@@ -2,7 +2,7 @@ import { memo, useEffect, useId, useMemo, useRef, type KeyboardEvent } from "rea
 import { useVirtualRows } from "../../components/useVirtualRows";
 import type { HeadState, LogCommit, RefEntry } from "../../services/types";
 import { rowHeightFor, usePreferences } from "../../stores/preferences";
-import { GraphCell, LANE_WIDTH, MAX_DRAWN_LANES } from "./GraphCell";
+import { GraphCell, MAX_DRAWN_LANES, laneWidthFor } from "./GraphCell";
 import type { GraphRow } from "./graphLayout";
 import { ancestorsOf, descendantsOf, nearestChild, type LaidOutHistory } from "./historyLayout";
 import { RefBadges, describeRef } from "./RefBadges";
@@ -44,10 +44,14 @@ export function CommitList({
 }: CommitListProps) {
   const container = useRef<HTMLDivElement>(null);
   const idPrefix: string = useId();
-  const rowHeight: number = usePreferences((state) => rowHeightFor(state.personality));
+  const zoom = usePreferences((state) => state.historyZoom);
+  const baseRow: number = usePreferences((state) => rowHeightFor(state.personality));
+  // Zoom scales rows and lanes together, so the graph keeps its proportions.
+  const rowHeight: number = Math.round(baseRow * (zoom === -1 ? 0.8 : zoom === 1 ? 1.3 : 1));
+  const laneWidth: number = laneWidthFor(zoom);
   const { commits, rows, indexByOid } = history;
   const { start, end, totalHeight, ensureVisible } = useVirtualRows(container, commits.length, rowHeight, 12);
-  const graphWidth: number = graph ? Math.min(Math.max(history.maxLanes, 1), MAX_DRAWN_LANES) * LANE_WIDTH + 8 : 0;
+  const graphWidth: number = graph ? Math.min(Math.max(history.maxLanes, 1), MAX_DRAWN_LANES) * laneWidth + 12 : 0;
   const selectedIndex: number = selected === null ? -1 : (indexByOid.get(selected) ?? -1);
 
   // Ancestry focus is computed only when requested and only over loaded commits.
@@ -128,16 +132,6 @@ export function CommitList({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div
-        aria-hidden
-        className="flex h-6 shrink-0 items-center gap-3 border-b border-divider bg-surface pr-3 rg-label"
-        style={{ paddingLeft: graph ? graphWidth : 12 }}
-      >
-        <span className="flex-1">Message</span>
-        <span className="w-36">Author</span>
-        <span className="w-24">Date</span>
-        <span className="w-16">Commit</span>
-      </div>
-      <div
         ref={container}
         role="listbox"
         aria-label="Commits"
@@ -151,7 +145,7 @@ export function CommitList({
       >
         <div style={{ height: totalHeight + (hasMore || loadingMore ? rowHeight : 0), position: "relative" }}>
           {graph && (
-            <div aria-hidden className="rg-canvas absolute inset-y-0 left-0 border-r border-divider" style={{ width: graphWidth }} />
+            <div aria-hidden className="rg-canvas absolute inset-y-0 left-0" style={{ width: graphWidth }} />
           )}
           {commits.slice(start, end).map((commit: LogCommit, offset: number) => {
             const index: number = start + offset;
@@ -162,6 +156,7 @@ export function CommitList({
                 commit={commit}
                 row={graph ? rows[index] : undefined}
                 graphWidth={graphWidth}
+                laneWidth={laneWidth}
                 top={index * rowHeight}
                 height={rowHeight}
                 selected={commit.oid === selected}
@@ -194,6 +189,7 @@ interface CommitRowProps {
   commit: LogCommit;
   row: GraphRow | undefined;
   graphWidth: number;
+  laneWidth: number;
   top: number;
   height: number;
   selected: boolean;
@@ -210,6 +206,7 @@ const CommitRow = memo(function CommitRow({
   commit,
   row,
   graphWidth,
+  laneWidth,
   top,
   height,
   selected,
@@ -244,28 +241,28 @@ const CommitRow = memo(function CommitRow({
       aria-label={label}
       onClick={() => onSelect(commit.oid)}
       style={{ position: "absolute", top, height, left: 0, right: 0 }}
-      className={`flex cursor-default items-center gap-3 pr-3 transition-opacity duration-100 ${
+      className={`flex cursor-default items-center gap-4 pr-5 transition-opacity duration-100 ${
         selected ? "bg-selection-strong" : "hover:bg-hover"
       } ${dimmed ? "opacity-30" : ""}`}
     >
       {row !== undefined ? (
-        <GraphCell row={row} width={graphWidth} height={height} head={head} selected={selected} />
+        <GraphCell row={row} width={graphWidth} height={height} laneWidth={laneWidth} head={head} selected={selected} />
       ) : (
         <span className="w-0 shrink-0" />
       )}
-      <span className="flex min-w-0 flex-1 items-center gap-2">
+      <span className="flex min-w-0 flex-1 items-center gap-3 pl-2">
         {(detachedHere || (refs !== undefined && refs.length > 0)) && (
           <RefBadges refs={refs ?? []} head={headState} detachedHead={detachedHere} />
         )}
         <span className={`truncate ${row?.merge === true ? "text-fg-secondary" : "text-fg"}`}>{commit.summary}</span>
       </span>
-      <span className="w-36 shrink-0 truncate text-sm text-fg-secondary" title={commit.authorEmail}>
+      <span className="w-32 shrink-0 truncate text-sm text-fg-muted" title={commit.authorEmail}>
         {commit.authorName}
       </span>
       <time
         dateTime={new Date(commit.authorTime * 1000).toISOString()}
         title={formatAbsolute(commit.authorTime)}
-        className="w-24 shrink-0 truncate text-sm tabular-nums text-fg-muted"
+        className="w-20 shrink-0 truncate text-right font-mono text-xs tabular-nums text-fg-muted"
       >
         {formatRelative(commit.authorTime, now)}
       </time>

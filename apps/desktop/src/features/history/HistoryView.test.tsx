@@ -9,6 +9,7 @@ vi.mock("@tauri-apps/api/core", () => ({ invoke: (...args: unknown[]) => invokeM
 const { HistoryView } = await import("./HistoryView");
 const { renderWithClient } = await import("../../test/renderWithClient");
 const { useWorkspace } = await import("../../stores/workspace");
+const { usePreferences } = await import("../../stores/preferences");
 
 // Test fixtures only; production history comes from the backend.
 function commit(oid: string, summary: string, ...parents: string[]): LogCommit {
@@ -140,13 +141,39 @@ describe("HistoryView", () => {
     expect(useWorkspace.getState().selectedCommit).toBe(OID("cc33"));
   });
 
-  it("filters by a branch through log_page revisions", async () => {
+  it("filters the lineage by a branch chosen in the strand, and back to all", async () => {
     renderWithClient(<HistoryView repositoryId={1} />);
     await screen.findByRole("listbox", { name: "Commits" });
-    await userEvent.selectOptions(screen.getByRole("combobox", { name: /Refs/ }), "refs/heads/feature");
+    const strand: HTMLElement = screen.getByRole("navigation", { name: "Branches" });
+    await userEvent.click(within(strand).getByRole("button", { name: /^feature, no upstream/ }));
     await waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith("log_page", expect.objectContaining({ revisions: ["refs/heads/feature"] })),
     );
+    expect(within(strand).getByRole("button", { name: /^feature/ }).getAttribute("aria-pressed")).toBe("true");
+    await userEvent.click(within(strand).getByRole("button", { name: "All branches and tags" }));
+    await waitFor(() =>
+      expect(within(strand).getByRole("button", { name: "All branches and tags" }).getAttribute("aria-pressed")).toBe("true"),
+    );
+  });
+
+  it("shows the current branch and its upstream relationship in the strand", async () => {
+    renderWithClient(<HistoryView repositoryId={1} />);
+    const strand: HTMLElement = await screen.findByRole("navigation", { name: "Branches" });
+    expect(await within(strand).findByRole("button", { name: "main, in sync, current branch" })).toBeTruthy();
+    // Remotes and tags are folded until opened.
+    expect(within(strand).queryByRole("button", { name: /origin\/main/ })).toBeNull();
+    await userEvent.click(within(strand).getByRole("button", { name: /remotes 1/ }));
+    expect(within(strand).getByRole("button", { name: "origin/main" })).toBeTruthy();
+  });
+
+  it("zooms the lineage with the toolbar and keyboard", async () => {
+    usePreferences.setState({ historyZoom: 0 });
+    renderWithClient(<HistoryView repositoryId={1} />);
+    await screen.findByRole("listbox", { name: "Commits" });
+    fireEvent.keyDown(window, { key: "=", ctrlKey: true });
+    expect(usePreferences.getState().historyZoom).toBe(1);
+    fireEvent.keyDown(window, { key: "0", ctrlKey: true });
+    expect(usePreferences.getState().historyZoom).toBe(0);
   });
 
   it("requests the next page when the end of the loaded history is near", async () => {

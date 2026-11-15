@@ -5,7 +5,7 @@ import type { HeadState, RefEntry } from "../../services/types";
 /** Groups references by the commit they point at, current branch first. */
 export function refsByCommit(refs: readonly RefEntry[], head: HeadState | undefined): Map<string, RefEntry[]> {
   const order = (ref: RefEntry): number => {
-    if (head?.kind === "branch" && ref.kind === "local" && ref.shortName === head.name) return 0;
+    if (isCurrent(ref, head)) return 0;
     return ref.kind === "local" ? 1 : ref.kind === "remote" ? 2 : 3;
   };
   const map: Map<string, RefEntry[]> = new Map();
@@ -15,6 +15,10 @@ export function refsByCommit(refs: readonly RefEntry[], head: HeadState | undefi
     else list.push(ref);
   }
   return map;
+}
+
+export function isCurrent(ref: RefEntry, head: HeadState | undefined): boolean {
+  return head?.kind === "branch" && ref.kind === "local" && ref.shortName === head.name;
 }
 
 const KIND_LABEL: Record<RefEntry["kind"], string> = { local: "branch", remote: "remote branch", tag: "tag" };
@@ -32,32 +36,26 @@ interface RefBadgesProps {
 }
 
 /**
- * Reference labels. Local branches are solid, remote branches outlined with
- * a cloud, tags amber; the current branch is filled cyan. Shapes and icons
- * distinguish them as well as color.
+ * Reference labels as quiet mono text with a glyph (no pills): sage for the
+ * current branch, secondary for local branches, indigo for remote branches,
+ * clay for tags and a detached HEAD. The glyph and the accessible text carry
+ * the kind as well as the colour.
  */
-export const RefBadges = memo(function RefBadges({ refs, head, detachedHead, max = 3 }: RefBadgesProps) {
+export const RefBadges = memo(function RefBadges({ refs, head, detachedHead, max = 2 }: RefBadgesProps) {
   const shown: RefEntry[] = refs.slice(0, max);
   const hidden: RefEntry[] = refs.slice(max);
   return (
-    <span className="flex shrink-0 items-center gap-1">
+    <span className="flex shrink-0 items-center gap-2.5 font-mono text-xs">
       {detachedHead && (
-        <span
-          title="HEAD is detached at this commit"
-          className="rounded-xs border border-amber px-1 font-mono text-2xs leading-4 font-semibold text-amber"
-        >
+        <span title="HEAD is detached at this commit" className="text-clay-text">
           HEAD
         </span>
       )}
-      {shown.map((ref: RefEntry) => {
-        const current: boolean = head?.kind === "branch" && ref.kind === "local" && ref.shortName === head.name;
-        return <Badge key={ref.fullName} entry={ref} current={current} />;
-      })}
+      {shown.map((ref: RefEntry) => (
+        <Label key={ref.fullName} entry={ref} current={isCurrent(ref, head)} />
+      ))}
       {hidden.length > 0 && (
-        <span
-          title={hidden.map((ref) => describeRef(ref, false)).join("\n")}
-          className="rounded-xs border border-border px-1 font-mono text-2xs leading-4 text-fg-muted"
-        >
+        <span title={hidden.map((ref) => describeRef(ref, false)).join("\n")} className="text-fg-muted">
           +{hidden.length}
         </span>
       )}
@@ -65,32 +63,23 @@ export const RefBadges = memo(function RefBadges({ refs, head, detachedHead, max
   );
 });
 
-function Badge({ entry, current }: { entry: RefEntry; current: boolean }) {
+function Label({ entry, current }: { entry: RefEntry; current: boolean }) {
   const label: string = describeRef(entry, current);
-  if (current) {
-    return (
-      <span
-        title={`HEAD → ${entry.shortName}`}
-        className="flex max-w-48 items-center gap-0.5 rounded-xs bg-accent px-1 font-mono text-2xs leading-4 font-semibold text-accent-contrast"
-      >
-        <GitBranch aria-hidden className="size-2.5 shrink-0" />
-        <span className="sr-only">{label}</span>
-        <span aria-hidden className="truncate">{entry.shortName}</span>
-      </span>
-    );
-  }
-  const style: string =
-    entry.kind === "local"
-      ? "border-accent/60 bg-selection text-accent"
+  const tone: string = current
+    ? "font-medium text-accent"
+    : entry.kind === "local"
+      ? "text-fg-secondary"
       : entry.kind === "remote"
-        ? "border-lavender/50 text-lavender"
-        : "border-amber/60 text-amber";
-  const Icon = entry.kind === "local" ? GitBranch : entry.kind === "remote" ? Cloud : Tag;
+        ? "text-indigo-text"
+        : "text-clay-text";
+  const Icon = entry.kind === "remote" ? Cloud : entry.kind === "tag" ? Tag : GitBranch;
   return (
-    <span title={label} className={`flex max-w-48 items-center gap-0.5 rounded-xs border px-1 font-mono text-2xs leading-4 ${style}`}>
-      <Icon aria-hidden className="size-2.5 shrink-0" />
+    <span title={current ? `HEAD → ${entry.shortName}` : label} className={`flex max-w-48 items-center gap-1 ${tone}`}>
+      <Icon aria-hidden className="size-3 shrink-0" strokeWidth={1.75} />
       <span className="sr-only">{label}</span>
-      <span aria-hidden className="truncate">{entry.shortName}</span>
+      <span aria-hidden className={`truncate ${current ? "underline decoration-1 underline-offset-[3px]" : ""}`}>
+        {entry.shortName}
+      </span>
     </span>
   );
 }

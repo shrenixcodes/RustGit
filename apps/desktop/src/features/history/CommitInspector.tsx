@@ -24,8 +24,8 @@ export function CommitInspector({ repositoryId, oid, refs, head, onSelectCommit,
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-      <header className="space-y-2 border-b border-divider px-3 py-2.5">
-        <p className="rg-label">Commit</p>
+      <header className="space-y-3 px-5 pt-4 pb-3">
+        <p className="rg-label">commit</p>
         <div className="flex items-center gap-2">
           <span data-selectable className="min-w-0 break-all font-mono text-xs text-accent">
             {oid}
@@ -46,7 +46,7 @@ export function CommitInspector({ repositoryId, oid, refs, head, onSelectCommit,
         )}
       </header>
 
-      {details.isPending && <p className="px-3 py-3 text-sm text-fg-muted">Reading commit…</p>}
+      {details.isPending && <p className="px-5 py-3 text-sm text-fg-muted">Reading commit…</p>}
       {details.isError && (
         <div className="p-3">
           <ErrorNotice title="Could not read commit" error={details.error} />
@@ -54,11 +54,11 @@ export function CommitInspector({ repositoryId, oid, refs, head, onSelectCommit,
       )}
       {details.data !== undefined && (
         <>
-          <section aria-label="Message" className="border-b border-divider px-3 py-2.5">
+          <section aria-label="Message" className="px-5 py-3">
             <MessageView message={details.data.message} />
           </section>
 
-          <dl className="grid grid-cols-[76px_1fr] gap-x-3 gap-y-1.5 border-b border-divider px-3 py-2.5 text-sm">
+          <dl className="grid grid-cols-[76px_1fr] gap-x-3 gap-y-2 px-5 py-3 text-sm">
             <Field label="Author">
               <Person name={details.data.authorName} email={details.data.authorEmail} time={details.data.authorTime} />
             </Field>
@@ -127,9 +127,9 @@ function FileList({ files, merge }: { files: readonly CommitFile[]; merge: boole
   const additions: number = files.reduce((sum: number, file: CommitFile) => sum + (file.additions ?? 0), 0);
   const deletions: number = files.reduce((sum: number, file: CommitFile) => sum + (file.deletions ?? 0), 0);
   return (
-    <section aria-label="Changed files" className="px-3 py-2.5">
+    <section aria-label="Changed files" className="px-5 py-3">
       <div className="mb-1.5 flex items-center gap-2">
-        <h3 className="rg-label">Files</h3>
+        <h3 className="rg-label">files</h3>
         <span className="font-mono text-2xs tabular-nums text-fg-muted">
           {files.length} · <span className="text-success">+{additions}</span>{" "}
           <span className="text-danger">−{deletions}</span>

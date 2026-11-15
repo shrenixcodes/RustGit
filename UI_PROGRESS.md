@@ -48,3 +48,23 @@ are mostly blocked on backend capabilities, so the order is:
 | ---- | --------------------------------------------- | ---------- | ------ |
 | U-1  | UI research, decisions, interaction spec      | COMMITTED  | see git log |
 | U-2  | Integration docs and backend requests         | COMMITTED  | see git log |
+| U-3  | Orbital design foundation                     | COMMITTED  | see git log |
+
+### U-3 Orbital design foundation
+
+Tokens in `src/styles/tokens.css` (dark and light, surfaces, lines, text,
+accents, semantic, diff, six graph lanes, density variables). Contrast is
+enforced by `src/styles/tokens.test.ts`, which parses the stylesheet and
+checks text tokens ≥ 4.5:1 and graphical tokens ≥ 3:1 on all five surfaces of
+each theme. One brief color changed (dark muted text, `#71818F` → `#7D8C99`);
+violet is limited to non-text use. UI preferences (density, motion, layout
+sizes) in `src/stores/preferences.ts`, persisted to `localStorage` and
+re-clamped on load. Primitives: `Button`, `IconButton` (always labelled,
+tooltip with shortcut), `SegmentedControl` (radio group with arrow keys),
+`Kbd`. Shortcut matching in `src/app/shortcuts.ts`. Settings: theme,
+density, motion, Git info.
+
+Tests: Vitest 72 passed (50 contrast checks, preferences persistence and
+corrupt-value recovery, shortcut matching per platform, existing suites).
+`tsc --noEmit` clean. No frontend linter or formatter is configured in the
+repository; none was added.

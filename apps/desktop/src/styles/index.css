@@ -7,29 +7,44 @@
   --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
 
   --color-bg: var(--rg-bg);
+  --color-canvas: var(--rg-canvas);
   --color-sidebar: var(--rg-sidebar);
   --color-surface: var(--rg-surface);
   --color-elevated: var(--rg-elevated);
   --color-border: var(--rg-border);
+  --color-divider: var(--rg-divider);
   --color-border-control: var(--rg-border-control);
   --color-fg: var(--rg-text);
   --color-fg-secondary: var(--rg-text-secondary);
   --color-fg-muted: var(--rg-text-muted);
   --color-accent: var(--rg-accent);
+  --color-accent-strong: var(--rg-accent-strong);
   --color-accent-contrast: var(--rg-accent-contrast);
+  --color-lavender: var(--rg-lavender);
+  --color-violet: var(--rg-violet);
+  --color-amber: var(--rg-amber);
+  --color-yellow: var(--rg-yellow);
   --color-success: var(--rg-success);
   --color-warning: var(--rg-warning);
   --color-danger: var(--rg-danger);
+  --color-info: var(--rg-info);
   --color-selection: var(--rg-selection);
+  --color-selection-strong: var(--rg-selection-strong);
   --color-hover: var(--rg-hover);
+  --color-overlay: var(--rg-overlay);
 
-  --radius-sm: 4px;
-  --radius-md: 6px;
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 4px;
 
+  --text-2xs: 10px;
   --text-xs: 11px;
   --text-sm: 12px;
   --text-base: 13px;
   --text-lg: 15px;
+
+  --shadow-popover: var(--rg-shadow-popover);
+  --shadow-glow: var(--rg-glow);
 }
 
 @layer base {
@@ -55,15 +70,16 @@
     font-size: var(--text-base);
     line-height: 1.45;
     user-select: none;
+    font-feature-settings: "cv11", "ss01";
   }
 
   :focus-visible {
-    outline: 2px solid var(--rg-accent);
+    outline: 1px solid var(--rg-accent);
     outline-offset: 1px;
   }
 
   ::selection {
-    background: var(--rg-selection);
+    background: var(--rg-selection-strong);
   }
 
   input,
@@ -72,6 +88,24 @@
     user-select: text;
   }
 
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--rg-border);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    border-radius: 6px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--rg-border-control);
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  /* OS preference and the in-app setting both disable motion. */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -80,5 +114,40 @@
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
+  }
+  :root[data-motion="reduce"] *,
+  :root[data-motion="reduce"] *::before,
+  :root[data-motion="reduce"] *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@layer components {
+  /* Small uppercase technical label, used for section and field labels. */
+  .rg-label {
+    font-size: var(--text-2xs);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--rg-text-muted);
+  }
+
+  /* Faint instrumentation grid. Only for canvases and empty states. */
+  .rg-grid {
+    background-color: var(--rg-canvas);
+    background-image:
+      linear-gradient(var(--rg-grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--rg-grid-line) 1px, transparent 1px);
+    background-size: 24px 24px;
+    background-position: -1px -1px;
+  }
+
+  .rg-row {
+    height: var(--rg-row);
+  }
+  .rg-control {
+    height: var(--rg-control);
   }
 }

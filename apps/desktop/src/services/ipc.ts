@@ -1,8 +1,15 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
+  ChangeTotals,
   CommandError,
+  CommandRecord,
+  CommitContext,
+  CommitResult,
+  WorkingDiffSide,
   ErrorKind,
+  FileDiff,
   GitInfo,
+  HunkAction,
   RepositoryEntry,
   Settings,
   StatusSnapshot,
@@ -61,4 +68,42 @@ export const ipc = {
     call("set_repository_pinned", { id, pinned }),
   removeRepository: (id: number): Promise<void> => call("remove_repository", { id }),
   repositoryStatus: (id: number): Promise<StatusSnapshot> => call("repository_status", { id }),
+
+  // Changes and staging (contract C-1). Mutations return the status after the change.
+  stagePaths: (id: number, paths: string[]): Promise<StatusSnapshot> => call("stage_paths", { id, paths }),
+  unstagePaths: (id: number, paths: string[]): Promise<StatusSnapshot> => call("unstage_paths", { id, paths }),
+  stageAll: (id: number): Promise<StatusSnapshot> => call("stage_all", { id }),
+  unstageAll: (id: number): Promise<StatusSnapshot> => call("unstage_all", { id }),
+  /** Destructive: confirm with the user first. */
+  discardPaths: (id: number, paths: string[]): Promise<StatusSnapshot> => call("discard_paths", { id, paths }),
+  fileDiff: (args: {
+    id: number;
+    path: string;
+    originalPath?: string | null;
+    side: WorkingDiffSide;
+    ignoreWhitespace: boolean;
+    /** 0..20, default 3. apply_hunk must use the same value. */
+    contextLines?: number | null;
+  }): Promise<FileDiff> => call("file_diff", { originalPath: null, contextLines: null, ...args }),
+  /** "discard" is destructive: confirm with the user first. */
+  applyHunk: (args: {
+    id: number;
+    path: string;
+    side: WorkingDiffSide;
+    action: HunkAction;
+    hunkHeader: string;
+    lineIndices?: number[] | null;
+    contextLines?: number | null;
+  }): Promise<StatusSnapshot> => call("apply_hunk", { lineIndices: null, contextLines: null, ...args }),
+  changeTotals: (id: number, side: WorkingDiffSide): Promise<ChangeTotals> =>
+    call("change_totals", { id, side }),
+
+  // Commits (contract C-1).
+  commitContext: (id: number): Promise<CommitContext> => call("commit_context", { id }),
+  createCommit: (id: number, message: string, amend: boolean): Promise<CommitResult> =>
+    call("create_commit", { id, message, amend }),
+
+  commandHistory: (filter: { repositoryId?: number | null; sinceSequence?: number | null } = {}): Promise<
+    CommandRecord[]
+  > => call("command_history", { repositoryId: null, sinceSequence: null, ...filter }),
 } as const;

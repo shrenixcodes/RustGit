@@ -32,6 +32,7 @@ beforeEach(() => {
       const snapshot: StatusSnapshot = {
         branch: { head: "main", oid: "abc", upstream: null, ahead: 0, behind: 0 },
         files,
+        inProgress: "none",
       };
       return snapshot;
     }

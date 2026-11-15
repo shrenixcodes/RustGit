@@ -17,6 +17,17 @@
     "allow-open-repository",
     "allow-set-repository-pinned",
     "allow-remove-repository",
-    "allow-repository-status"
+    "allow-repository-status",
+    "allow-stage-paths",
+    "allow-unstage-paths",
+    "allow-stage-all",
+    "allow-unstage-all",
+    "allow-discard-paths",
+    "allow-file-diff",
+    "allow-apply-hunk",
+    "allow-change-totals",
+    "allow-create-commit",
+    "allow-command-history",
+    "allow-commit-context"
   ]
 }

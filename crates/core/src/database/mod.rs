@@ -10,7 +10,7 @@ use std::sync::{Mutex, MutexGuard};
 
 use rusqlite::Connection;
 
-pub use repositories::RepositoryEntry;
+pub use repositories::{RepositoryEntry, owning_repository};
 pub use settings::{Settings, ThemePreference};
 
 /// Ordered schema migrations. The index + 1 is stored in `PRAGMA user_version`.

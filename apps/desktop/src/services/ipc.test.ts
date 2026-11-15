@@ -16,6 +16,29 @@ describe("ipc", () => {
     expect(invokeMock).toHaveBeenCalledWith("set_repository_pinned", { id: 3, pinned: true });
   });
 
+  it("fills optional contract arguments with null", async () => {
+    invokeMock.mockResolvedValue({});
+    await ipc.applyHunk({ id: 1, path: "a.rs", side: "unstaged", action: "stage", hunkHeader: "@@ -1 +1 @@" });
+    expect(invokeMock).toHaveBeenCalledWith("apply_hunk", {
+      id: 1,
+      path: "a.rs",
+      side: "unstaged",
+      action: "stage",
+      hunkHeader: "@@ -1 +1 @@",
+      lineIndices: null,
+      contextLines: null,
+    });
+    await ipc.fileDiff({ id: 1, path: "a.rs", side: "staged", ignoreWhitespace: false });
+    expect(invokeMock).toHaveBeenLastCalledWith("file_diff", {
+      id: 1,
+      path: "a.rs",
+      originalPath: null,
+      contextLines: null,
+      side: "staged",
+      ignoreWhitespace: false,
+    });
+  });
+
   it("converts backend command errors into IpcError with the same kind", async () => {
     invokeMock.mockRejectedValue({ kind: "not_a_repository", message: "'/x' is not inside a Git repository." });
     const error: unknown = await ipc.addRepository("/x").catch((caught: unknown) => caught);

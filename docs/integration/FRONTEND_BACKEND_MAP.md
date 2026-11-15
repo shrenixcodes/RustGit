@@ -1,32 +1,44 @@
 # Frontend ↔ backend map
 
-Which UI surface uses which command. **Owner:** UI session. Status:
-`live` = wired to a real command; `blocked` = waiting on a request in
-`INTEGRATION_STATUS.md`; the UI shows blocked features as unavailable, never
-simulated.
+Which backend contract each UI surface depends on. UI behavior is specified
+by the UI session in `docs/INTERACTION_SPEC.md` (UI branch); this file only
+records the dependencies. Contract details: `API_CONTRACT.md`.
 
-| UI surface                               | Commands / events                                    | Status        |
-| ---------------------------------------- | ---------------------------------------------------- | ------------- |
-| Repository switcher (rail)               | `list_repositories`, `open_repository`, `repository_status` | live   |
-| Repositories view                        | `list_repositories`, `add_repository`, `init_repository`, `open_repository`, `set_repository_pinned`, `remove_repository` | live |
-| Overview                                 | `repository_status`                                  | live          |
-| Operation shelf: repo, branch, ↑↓        | `repository_status`                                  | live          |
-| Activity panel: app operations           | frontend mutation log (UI-side records of commands it invoked, with real outcome and duration) | live |
-| Activity panel: Git commands             | R-1 `command_history`                                | blocked       |
-| Changes: file list, groups, filter       | `repository_status`                                  | live          |
-| Changes: file inspector (status)         | `repository_status`                                  | live          |
-| Changes: diff viewer, line totals        | R-2 `file_diff`                                      | blocked       |
-| Changes: stage / unstage file, all       | R-3                                                  | blocked       |
-| Changes: hunk / line staging             | R-4                                                  | blocked       |
-| Changes: discard                         | R-4, R-5                                             | blocked       |
-| Commit composer                          | R-6, R-7                                             | blocked       |
-| History graph                            | R-8, R-9                                             | blocked (layout engine built and unit-tested, no screen) |
-| Commit inspector                         | R-10                                                 | blocked       |
-| Branches workspace                       | R-9, R-11                                            | blocked       |
-| Live refresh                             | E-1 `repository-changed`                             | blocked (focus + explicit refresh used) |
-| Fetch / pull / push, progress            | R-13, E-2, E-3                                       | blocked       |
-| Conflict workspace                       | R-14                                                 | blocked       |
-| Settings: theme                          | `get_settings`, `set_theme`                          | live          |
-| Settings: Git info                       | `git_info`                                           | live          |
-| Settings: density, reduce motion, layout | none (UI preferences, `localStorage`)                | live          |
-| Command palette                          | the live commands above                              | live          |
+| UI surface                        | Commands / events                                                   | Contract status |
+| --------------------------------- | ------------------------------------------------------------------- | --------------- |
+| Repository list, add, create      | `list_repositories`, `add_repository`, `init_repository`, `set_repository_pinned`, `remove_repository` | IMPLEMENTED |
+| Open repository                   | `open_repository`                                                   | IMPLEMENTED     |
+| Overview / operation shelf status | `repository_status`                                                 | IMPLEMENTED     |
+| Settings: theme, Git info         | `get_settings`, `set_theme`, `git_info`                             | IMPLEMENTED     |
+| Changes file list                 | `repository_status`                                                 | IMPLEMENTED     |
+| Stage / unstage file, group       | `stage_paths`, `unstage_paths`, `stage_all`, `unstage_all`          | IMPLEMENTED     |
+| Discard file (confirm dialog)     | `discard_paths`                                                     | IMPLEMENTED     |
+| Diff panel (staged / not staged)  | `file_diff`                                                         | IMPLEMENTED     |
+| Stage / unstage / discard hunk or lines | `apply_hunk`                                                  | IMPLEMENTED     |
+| Commit composer totals            | `change_totals` (`side: "staged"`)                                  | IMPLEMENTED     |
+| Commit composer author line       | `author_identity`                                                   | IMPLEMENTED     |
+| Amend prefill                     | `last_commit_message`                                               | IMPLEMENTED     |
+| Commit / amend                    | `create_commit`                                                     | IMPLEMENTED     |
+| Activity panel (command log)      | `command_history`                                                   | IMPLEMENTED     |
+| Automatic refresh                 | `repository://changed`                                              | NOT STARTED     |
+| History graph, branches, remotes, stashes, worktrees, GitHub | none yet                                 | NOT STARTED     |
+
+## Requests from the UI session
+
+Requirements read from the UI session's `docs/INTERACTION_SPEC.md` and
+`docs/UX_DECISIONS.md` (uncommitted in its worktree on 2026-11-15) and
+answered by contract C-1:
+
+- Staged and not-staged diff sections per file → `file_diff` with `side`.
+- Hunk and line staging/unstaging/discarding → `apply_hunk`.
+- Untracked files shown as additions; staging a hunk of an untracked file
+  stages the whole file → `file_diff` treats untracked as all-added;
+  `apply_hunk` on untracked files stages the whole file only when
+  `lineIndices` is omitted.
+- Binary and oversized detection (2 MB / 20 000 lines) → `FileDiff.binary`,
+  `FileDiff.tooLarge`.
+- "N files staged · +a −d" → `change_totals`.
+- Missing identity disables commit → `author_identity`.
+- Hook failure shows stderr verbatim with exit code → `create_commit` errors.
+- Activity panel with arguments, cwd, duration, exit code, stderr →
+  `command_history`.

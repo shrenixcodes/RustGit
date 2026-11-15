@@ -29,6 +29,7 @@ beforeEach(() => {
   status = {
     branch: { head: "main", oid: "abc1234", upstream: "origin/main", ahead: 2, behind: 1 },
     files: [{ path: "a.txt", originalPath: null, staged: null, unstaged: "modified", conflicted: false }],
+    inProgress: "none",
   };
   invokeMock.mockImplementation(async (command: string, args?: { id?: number }) => {
     switch (command) {
@@ -143,7 +144,7 @@ describe("OperationShelf", () => {
   });
 
   it("says when the working tree is clean and when there is no upstream", async () => {
-    status = { branch: { head: "main", oid: "abc", upstream: null, ahead: 0, behind: 0 }, files: [] };
+    status = { branch: { head: "main", oid: "abc", upstream: null, ahead: 0, behind: 0 }, files: [], inProgress: "none" };
     useWorkspace.setState({ activeRepositoryId: 1, section: "overview" });
     renderWithClient(<OperationShelf />);
     expect(await screen.findByText("Working tree clean")).toBeTruthy();

@@ -53,9 +53,9 @@ are mostly blocked on backend capabilities, so the order is:
 | U-5  | Changes workspace on live status              | COMMITTED  | see git log |
 | U-6  | Commit graph lane layout engine               | COMMITTED  | see git log |
 | U-7  | UI test plan and acceptance tracker           | COMMITTED  | see git log |
-| —    | Diff viewer, staging, commit composer         | BLOCKED    | R-2 … R-7 |
-| —    | History screen                                | BLOCKED    | R-8, R-9 (engine ready) |
-| —    | Branches workspace                            | BLOCKED    | R-9, R-11 |
+| U-8  | Diff viewer, staging, commit composer         | NOT STARTED | backend ready: C-1 + C-2 amendments |
+| —    | History screen                                | BLOCKED    | C-2 `log_page`, `list_refs` defined, not implemented (layout engine ready) |
+| —    | Branches workspace                            | BLOCKED    | C-2 branch commands defined, not implemented |
 | —    | Command palette                               | NOT STARTED | |
 
 ### U-3 Orbital design foundation

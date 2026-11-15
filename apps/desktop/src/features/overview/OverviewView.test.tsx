@@ -29,7 +29,7 @@ afterEach(() => {
 
 describe("OverviewView", () => {
   it("reports a clean tree on a tracking branch without attention notes", async () => {
-    status = { branch: { head: "main", oid: "0123456789abcdef", upstream: "origin/main", ahead: 0, behind: 0 }, files: [] };
+    status = { branch: { head: "main", oid: "0123456789abcdef", upstream: "origin/main", ahead: 0, behind: 0 }, files: [], inProgress: "none" };
     renderWithClient(<OverviewView repositoryId={1} />);
     expect(await screen.findByText("Working tree clean. Nothing to commit.")).toBeTruthy();
     expect(screen.getByText("0123456789ab")).toBeTruthy();
@@ -40,6 +40,7 @@ describe("OverviewView", () => {
     status = {
       branch: { head: null, oid: "abc", upstream: "origin/main", ahead: 2, behind: 3 },
       files: [{ path: "x.txt", originalPath: null, staged: null, unstaged: "unmerged", conflicted: true }],
+      inProgress: "merging",
     };
     renderWithClient(<OverviewView repositoryId={1} />);
     const attention: HTMLElement = await screen.findByRole("region", { name: "Attention" });
@@ -50,7 +51,7 @@ describe("OverviewView", () => {
   });
 
   it("does not call an unborn branch detached", async () => {
-    status = { branch: { head: "main", oid: null, upstream: null, ahead: 0, behind: 0 }, files: [] };
+    status = { branch: { head: "main", oid: null, upstream: null, ahead: 0, behind: 0 }, files: [], inProgress: "none" };
     renderWithClient(<OverviewView repositoryId={1} />);
     expect(await screen.findByText("No commits yet")).toBeTruthy();
     expect(screen.queryByText(/HEAD is detached/)).toBeNull();

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-command-history"
+description = "Enables the command_history command without any pre-configured scope."
+commands.allow = ["command_history"]
+
+[[permission]]
+identifier = "deny-command-history"
+description = "Denies the command_history command without any pre-configured scope."
+commands.deny = ["command_history"]

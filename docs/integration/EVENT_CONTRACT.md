@@ -1,58 +1,74 @@
-# RustGit event contract
+# RustGit backend event contract
 
-**Owner:** core engineering session. Created by the UI session.
+Owner: core engineering session. Events are emitted with Tauri's event system
+and received with `listen(name, handler)` from `@tauri-apps/api/event`.
+Handlers must be removed with the returned unlisten function when the
+component unmounts.
 
-## Implemented events
+**Current state: no events are emitted yet; the events below are DEFINED by contract C-2.** All state reaches the UI through
+command responses. Until the events below are IMPLEMENTED, the UI refreshes
+status on window focus, after its own mutations (from the returned
+`StatusSnapshot`), and on explicit user refresh.
 
-None. The UI refreshes repository status on window focus, after its own
-mutations, and on explicit Refresh (`Ctrl+R`/`F5`). It never polls.
+## State invalidation rules (in force now)
 
-## Requested events
+| After                                         | Invalidate                          |
+| --------------------------------------------- | ----------------------------------- |
+| Any staging command (`stage_*`, `unstage_*`, `discard_paths`, `apply_hunk`) | status (replace with response), all `file_diff` and `change_totals` for that repository |
+| `create_commit`                               | status (replace), diffs, totals, `last_commit_message`, history (when it exists) |
+| `add/init/remove_repository`, `set_repository_pinned`, `open_repository` | `list_repositories` |
+| Window regains focus                          | status of the open repository       |
+| Branch mutations, merge/rebase/cherry-pick/revert, stash apply, `continue_operation`, `abort_operation` | status, diffs, `list_refs`, `log_page`, `commit_context` |
+| `operation-finished` (fetch/pull/push)        | status, `list_refs`, `log_page`; pull also diffs |
 
-### E-1 `repository-changed` (priority P1, request R-12)
+## Planned events
 
-Emitted after filesystem changes in a registered, currently open repository,
-debounced (proposal: 300 ms trailing, max 2 s).
+### `repository-changed` — DEFINED (C-2)
+
+Emitted for repositories registered with `watch_repository` when the
+filesystem watcher (notify) sees changes, debounced 300 ms trailing and at
+most one event per 2 s of continuous activity. Includes changes RustGit made
+itself (the UI's invalidation is idempotent). `.git/objects`, `.git/logs`
+and `*.lock` files are ignored. Linked worktrees: the worktree's own git
+directory (index, HEAD) and the common directory (refs, config) are watched.
 
 ```ts
-interface RepositoryChangedEvent {
+interface RepositoryChanged {
   repositoryId: number;
-  /** Which areas changed, so the UI invalidates only what is affected. */
-  scopes: Array<"worktree" | "index" | "refs" | "head" | "config">;
+  scopes: ("worktree" | "index" | "refs" | "head" | "config")[];
 }
 ```
 
-UI reaction: invalidate `["repositories", id, "status"]` for
-`worktree|index|head`; diffs for `worktree|index`; log and refs for
-`refs|head`.
+The UI invalidates status for `worktree`/`index`/`head`, and branch/history
+queries for `refs`/`head`. If watching fails or events overflow, the backend
+emits one event with every scope so the UI performs a full refresh.
 
-Edge cases the watcher should handle: `.git/index.lock` churn during
-RustGit's own operations (suppress or coalesce), linked worktrees (watch the
-worktree's own git dir for `index`/`HEAD` and the common dir for `refs`),
-very large trees (ignore paths Git ignores).
+### `operation-progress` — DEFINED (C-2)
 
-### E-2 `operation-progress` (priority P2, request R-13)
-
-For long-running network operations (clone, fetch, pull, push).
+For long-running operations (clone, fetch, pull, push).
 
 ```ts
-interface OperationProgressEvent {
-  operationId: string;          // returned by the command that started it
-  repositoryId: number | null;  // null for clone before registration
-  kind: "clone" | "fetch" | "pull" | "push";
-  phase: string;                // Git's own phase text, e.g. "Receiving objects"
+interface OperationProgress {
+  operationId: string;
+  repositoryId: number | null;
+  kind: "clone" | "fetch" | "pull" | "push" | "delete_remote_branch";
+  phase: string;            // Git's own phase text, e.g. "Receiving objects"
   /** Only when Git reported counts; never synthesized. */
   progress: { current: number; total: number } | null;
 }
 ```
 
-### E-3 `operation-finished` (priority P2, request R-13)
+### `operation-finished` — DEFINED (C-2)
 
 ```ts
-interface OperationFinishedEvent {
+interface OperationFinished {
   operationId: string;
-  repositoryId: number | null;
+  repositoryId: number | null;   // for clone: the newly registered repository
   outcome: "succeeded" | "failed" | "cancelled";
-  error: { kind: string; message: string } | null;
+  error: CommandError | null;
 }
 ```
+
+Progress values come only from Git's own progress output; the backend never
+invents progress. Progress events are throttled to at most 10 per second per
+operation. `operation-finished` is emitted exactly once per operation id.

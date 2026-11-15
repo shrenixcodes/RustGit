@@ -6,6 +6,16 @@ request R-n in `integration/INTEGRATION_STATUS.md`. Blocked features are
 shown as unavailable in the UI, never simulated. This file is updated as
 features land.
 
+**Backend update (merged from `main`, 2026-11-15):** requests R-1 … R-7 are
+implemented by contract C-1 with C-2 amendments (`file_diff`, `apply_hunk`,
+`stage_paths`, `unstage_paths`, `stage_all`, `unstage_all`, `discard_paths`,
+`change_totals`, `commit_context`, `create_commit`, `command_history`). Items
+below marked blocked on those requests are now frontend work, not yet built.
+R-8 … R-14 are defined in C-2 but not implemented. See
+`integration/API_CONTRACT.md` for the authoritative shapes, which differ in
+places from the original requests (for example, hunks are identified by
+their header string, one hunk per `apply_hunk` call).
+
 ## Global
 
 | Shortcut               | Action                                   | Status    |

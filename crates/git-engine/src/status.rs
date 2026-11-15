@@ -47,6 +47,51 @@ pub struct BranchStatus {
 pub struct StatusSnapshot {
     pub branch: BranchStatus,
     pub files: Vec<FileStatus>,
+    pub in_progress: InProgress,
+}
+
+/// A multi-step operation Git has started and not finished.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum InProgress {
+    #[default]
+    None,
+    Merging,
+    Rebasing,
+    CherryPicking,
+    Reverting,
+}
+
+impl InProgress {
+    pub fn describe(self) -> &'static str {
+        match self {
+            Self::None => "no operation",
+            Self::Merging => "merge",
+            Self::Rebasing => "rebase",
+            Self::CherryPicking => "cherry-pick",
+            Self::Reverting => "revert",
+        }
+    }
+}
+
+/// Detects an in-progress merge, rebase, cherry-pick or revert from the
+/// state files in the (per-worktree) Git directory.
+pub fn in_progress(git: &GitExecutor, root: &Path) -> GitResult<InProgress> {
+    let git_dir: String = git.run_text(root, ["rev-parse", "--absolute-git-dir"])?;
+    let git_dir: &Path = Path::new(git_dir.trim());
+    Ok(
+        if git_dir.join("rebase-merge").is_dir() || git_dir.join("rebase-apply").is_dir() {
+            InProgress::Rebasing
+        } else if git_dir.join("MERGE_HEAD").is_file() {
+            InProgress::Merging
+        } else if git_dir.join("CHERRY_PICK_HEAD").is_file() {
+            InProgress::CherryPicking
+        } else if git_dir.join("REVERT_HEAD").is_file() {
+            InProgress::Reverting
+        } else {
+            InProgress::None
+        },
+    )
 }
 
 /// Reads the working tree status with `git status --porcelain=v2 -z`.
@@ -62,7 +107,9 @@ pub fn read_status(git: &GitExecutor, root: &Path) -> GitResult<StatusSnapshot> 
         ],
         None,
     )?;
-    parse_porcelain_v2(&output.stdout)
+    let mut snapshot: StatusSnapshot = parse_porcelain_v2(&output.stdout)?;
+    snapshot.in_progress = in_progress(git, root)?;
+    Ok(snapshot)
 }
 
 /// Parses NUL-separated porcelain v2 status output.

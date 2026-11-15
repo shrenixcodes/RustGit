@@ -7,7 +7,7 @@
 // Usage: node tests/native/windows-smoke.mjs <path-to-rustgit.exe> [screenshot-dir]
 
 import { spawn, execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, unlinkSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, unlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { chromium } from "playwright-core";
@@ -245,6 +245,157 @@ try {
     throw new Error("sinceSequence filter returned older records");
   }
   step("discard, stage, commit, nothing_to_commit and filtered command_history");
+
+  // --- Contract C-2 through the real backend ------------------------------
+  // Subscribe to backend events the same way @tauri-apps/api does.
+  await page.evaluate(() => {
+    window.__smokeEvents = [];
+    for (const name of ["operation-progress", "operation-finished", "repository-changed"]) {
+      const handler = window.__TAURI_INTERNALS__.transformCallback((event) =>
+        window.__smokeEvents.push({ name, payload: event.payload }),
+      );
+      window.__TAURI_INTERNALS__.invoke("plugin:event|listen", {
+        event: name,
+        target: { kind: "Any" },
+        handler,
+      });
+    }
+  });
+  const waitForEvent = async (predicate, label) => {
+    const deadline = Date.now() + 30_000;
+    while (Date.now() < deadline) {
+      const events = await page.evaluate(() => window.__smokeEvents);
+      const match = events.find(predicate);
+      if (match) {
+        return match.payload;
+      }
+      await new Promise((done) => setTimeout(done, 200));
+    }
+    throw new Error(`timed out waiting for ${label}`);
+  };
+  const finished = (operationId) =>
+    waitForEvent(
+      (event) => event.name === "operation-finished" && event.payload.operationId === operationId,
+      `finish of ${operationId}`,
+    );
+  const LF = String.fromCharCode(10);
+
+  const page1 = await ok("log_page", {
+    id, revisions: null, skip: 0, limit: 1, search: null, since: null, until: null,
+  });
+  if (page1.commits[0].oid !== git("rev-parse", "HEAD") || !page1.hasMore) {
+    throw new Error(`unexpected log page ${JSON.stringify(page1)}`);
+  }
+  const details = await ok("commit_details", { id, oid: page1.commits[0].oid });
+  if (!details.files.some((file) => file.path === "remove-me.txt" && file.kind === "deleted")) {
+    throw new Error(`unexpected commit details ${JSON.stringify(details.files)}`);
+  }
+  const commitDiff = await ok("commit_file_diff", {
+    id, oid: details.oid, path: "tracked.txt", originalPath: null, contextLines: null,
+  });
+  if (commitDiff.side !== "commit" || commitDiff.added !== 1) {
+    throw new Error(`unexpected commit diff ${JSON.stringify(commitDiff)}`);
+  }
+  step("log_page, commit_details and commit_file_diff");
+
+  let refs = await ok("create_branch", { id, name: "smoke-topic", startPoint: null, checkout: true });
+  if (refs.head.name !== "smoke-topic") {
+    throw new Error(`branch not checked out: ${JSON.stringify(refs.head)}`);
+  }
+  await failsWith("invalid_ref_name", "create_branch", {
+    id, name: "bad..name", startPoint: null, checkout: false,
+  });
+  writeFileSync(join(repoDir, "tracked.txt"), `topic side${LF}`);
+  await ok("stage_paths", { id, paths: ["tracked.txt"] });
+  await ok("create_commit", { id, message: "topic change", amend: false });
+  await ok("checkout_branch", { id, name: "main", mode: "keep_changes" });
+  writeFileSync(join(repoDir, "tracked.txt"), `main side${LF}`);
+  await ok("stage_paths", { id, paths: ["tracked.txt"] });
+  await ok("create_commit", { id, message: "main change", amend: false });
+  const merge = await ok("merge_branch", { id, source: "smoke-topic", strategy: "default" });
+  if (merge.outcome !== "conflicts" || merge.status.inProgress !== "merging") {
+    throw new Error(`expected conflicts: ${JSON.stringify(merge)}`);
+  }
+  const versions = await ok("conflict_versions", { id, path: "tracked.txt" });
+  if (!versions.working.includes("<<<<<<<") || versions.theirs !== `topic side${LF}`) {
+    throw new Error(`unexpected conflict versions ${JSON.stringify(versions)}`);
+  }
+  await ok("resolve_conflict", { id, path: "tracked.txt", content: `resolved${LF}`, take: null });
+  const continued = await ok("continue_operation", { id });
+  if (continued.outcome !== "completed" || continued.status.inProgress !== "none") {
+    throw new Error(`merge did not complete: ${JSON.stringify(continued)}`);
+  }
+  refs = await ok("delete_branch", { id, name: "smoke-topic", force: false });
+  if (refs.refs.some((ref) => ref.shortName === "smoke-topic")) {
+    throw new Error("branch not deleted");
+  }
+  step("branches, merge conflict, conflict_versions, resolve and continue");
+
+  writeFileSync(join(repoDir, "tracked.txt"), `stashed${LF}`);
+  await ok("create_stash", { id, message: "smoke stash", includeUntracked: false });
+  const stashes = await ok("list_stashes", { id });
+  const applied = await ok("apply_stash", { id, oid: stashes[0].oid, pop: true });
+  if (applied.outcome !== "completed" || readFileSync(join(repoDir, "tracked.txt"), "utf8") !== `stashed${LF}`) {
+    throw new Error(`stash pop failed: ${JSON.stringify(applied)}`);
+  }
+  await ok("discard_paths", { id, paths: ["tracked.txt"] });
+  const worktreePath = join(workDir, "smoke-worktree");
+  let worktrees = await ok("add_worktree", {
+    id, path: worktreePath, branch: null, newBranch: "wt-branch", commit: null,
+  });
+  if (worktrees.length !== 2) {
+    throw new Error(`unexpected worktrees ${JSON.stringify(worktrees)}`);
+  }
+  worktrees = await ok("remove_worktree", { id, path: worktreePath, force: false });
+  if (worktrees.length !== 1) {
+    throw new Error("worktree not removed");
+  }
+  step("stash create/list/pop and worktree add/remove");
+
+  const bare = join(workDir, "server.git");
+  execFileSync("git", ["init", "--bare", "--initial-branch=main", bare]);
+  const bareUrl = `file:///${bare.split(String.fromCharCode(92)).join("/")}`;
+  const remotes = await ok("add_remote", { id, name: "origin", url: bareUrl });
+  if (remotes[0]?.name !== "origin") {
+    throw new Error(`remote not added: ${JSON.stringify(remotes)}`);
+  }
+  const push = await ok("start_push", {
+    id, remote: "origin", branch: "main", setUpstream: true, forceWithLease: false,
+  });
+  const pushed = await finished(push.operationId);
+  if (pushed.outcome !== "succeeded") {
+    throw new Error(`push failed: ${JSON.stringify(pushed)}`);
+  }
+  if (await ok("cancel_operation", { operationId: push.operationId })) {
+    throw new Error("a finished operation reported a successful cancel");
+  }
+  const fetch = await ok("start_fetch", { id, remote: null, prune: true });
+  if ((await finished(fetch.operationId)).outcome !== "succeeded") {
+    throw new Error("fetch failed");
+  }
+  const cloneParent = join(workDir, "clones");
+  mkdirSync(cloneParent);
+  const clone = await ok("start_clone", {
+    url: bareUrl, parentDirectory: cloneParent, directoryName: "cloned",
+  });
+  const cloned = await finished(clone.operationId);
+  if (cloned.outcome !== "succeeded" || typeof cloned.repositoryId !== "number") {
+    throw new Error(`clone failed: ${JSON.stringify(cloned)}`);
+  }
+  step("remotes, push/fetch/clone with operation-finished events");
+
+  await ok("watch_repository", { id });
+  await new Promise((done) => setTimeout(done, 500));
+  writeFileSync(join(repoDir, "watched.txt"), `change${LF}`);
+  const changed = await waitForEvent(
+    (event) =>
+      event.name === "repository-changed" &&
+      event.payload.repositoryId === id &&
+      event.payload.scopes.includes("worktree"),
+    "repository-changed",
+  );
+  await ok("unwatch_repository", { id });
+  step(`repository-changed event received (${changed.scopes.join(", ")})`);
 
   await browser.close();
   // taskkill without /F posts WM_CLOSE, i.e. a normal window close.

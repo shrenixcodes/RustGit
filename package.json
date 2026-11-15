@@ -1,0 +1,15 @@
+{
+  "name": "rustgit-workspace",
+  "private": true,
+  "packageManager": "pnpm@12.21.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @rustgit/desktop tauri dev",
+    "build": "pnpm --filter @rustgit/desktop tauri build",
+    "typecheck": "pnpm --filter @rustgit/desktop typecheck",
+    "test": "pnpm --filter @rustgit/desktop test",
+    "lint:rust": "cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings"
+  }
+}

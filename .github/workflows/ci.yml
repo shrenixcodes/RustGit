@@ -81,7 +81,16 @@ jobs:
         run: pnpm --filter @rustgit/desktop tauri build --debug --no-bundle
       - name: Launch and drive the native application
         working-directory: apps/desktop
+        env:
+          RUSTGIT_SMOKE_KEEP_APP_ON_FAILURE: "1"
         run: node tests/native/windows-smoke.mjs ../../target/debug/rustgit.exe smoke-screenshots
+      - name: Diagnose WebView2 on failure
+        if: failure()
+        shell: pwsh
+        run: |
+          Get-ItemProperty 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}' -ErrorAction SilentlyContinue | Select-Object pv
+          Get-CimInstance Win32_Process -Filter "Name = 'msedgewebview2.exe' OR Name = 'rustgit.exe'" | Select-Object ProcessId, Name, CommandLine | Format-List
+          Get-NetTCPConnection -State Listen | Where-Object LocalPort -ge 9000 | Format-Table LocalAddress, LocalPort, OwningProcess
       - name: Upload screenshots
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

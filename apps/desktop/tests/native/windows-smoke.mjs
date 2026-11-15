@@ -180,11 +180,16 @@ try {
   console.error(`SMOKE TEST FAILED: ${error instanceof Error ? error.stack : error}`);
   console.error(`--- application output ---
 ${logs.join("")}--- end ---`);
-  if (app && app.exitCode === null) {
+  if (process.env.RUSTGIT_SMOKE_KEEP_APP_ON_FAILURE === "1") {
+    console.error("leaving the application running for diagnostics");
+  } else if (app && app.exitCode === null) {
     app.kill();
     await exited;
   }
 } finally {
+  if (exitCode !== 0 && process.env.RUSTGIT_SMOKE_KEEP_APP_ON_FAILURE === "1") {
+    process.exit(exitCode);
+  }
   rmSync(workDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
   process.exit(exitCode);
 }

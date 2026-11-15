@@ -20,7 +20,7 @@ let repositories: RepositoryEntry[] = [];
 
 beforeEach(() => {
   repositories = [];
-  useWorkspace.setState({ activeRepositoryId: null, section: "repositories" });
+  useWorkspace.setState({ activeRepositoryId: null, focus: null, unfolded: null });
   invokeMock.mockImplementation(async (command: string, args?: { id?: number; path?: string }) => {
     switch (command) {
       case "list_repositories":
@@ -62,7 +62,7 @@ describe("RepositoriesView", () => {
 
     await waitFor(() => expect(invokeMock).toHaveBeenCalledWith("add_repository", { path: "D:/code/added" }));
     expect(useWorkspace.getState().activeRepositoryId).toBe(10);
-    expect(useWorkspace.getState().section).toBe("overview");
+    expect(useWorkspace.getState().focus).toBe("now");
   });
 
   it("does nothing when the folder dialog is cancelled", async () => {

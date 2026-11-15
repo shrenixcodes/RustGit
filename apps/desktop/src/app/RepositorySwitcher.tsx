@@ -6,6 +6,7 @@ import { filterRepositories } from "../features/repositories/filterRepositories"
 import { toIpcError, type IpcError } from "../services/ipc";
 import { useOpenRepository, useRepositories } from "../services/queries";
 import type { RepositoryEntry } from "../services/types";
+import { useUi } from "../stores/ui";
 import { useWorkspace } from "../stores/workspace";
 
 /** Repository switcher popover, anchored under the repository name in the ridge (Mod+P). */
@@ -13,7 +14,7 @@ export function SwitcherPopover({ onClose, root }: { onClose: () => void; root: 
   const repositories = useRepositories();
   const openRepository = useOpenRepository();
   const activate = useWorkspace((state) => state.openRepository);
-  const showSection = useWorkspace((state) => state.showSection);
+  const setSheet = useUi((state) => state.setSheet);
   const activeRepositoryId: number | null = useWorkspace((state) => state.activeRepositoryId);
   const [query, setQuery] = useState<string>("");
   const [highlight, setHighlight] = useState<number>(0);
@@ -50,7 +51,7 @@ export function SwitcherPopover({ onClose, root }: { onClose: () => void; root: 
   };
 
   const manage = (): void => {
-    showSection("repositories");
+    setSheet("repositories");
     onClose();
   };
 

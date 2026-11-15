@@ -10,6 +10,7 @@ const { AppShell } = await import("./AppShell");
 const { renderWithClient } = await import("../test/renderWithClient");
 const { useWorkspace } = await import("../stores/workspace");
 const { useUi } = await import("../stores/ui");
+const userEvent = (await import("@testing-library/user-event")).default;
 
 const alpha: RepositoryEntry = { id: 7, name: "alpha", path: "D:/code/alpha", pinned: false, addedAt: 1, lastOpenedAt: 1 };
 let openFails = false;
@@ -17,7 +18,7 @@ let openFails = false;
 function rememberPath(path: string): void {
   localStorage.setItem(
     "rustgit.workspace",
-    JSON.stringify({ state: { lastRepositoryPath: path, lastSectionByRepository: {} }, version: 1 }),
+    JSON.stringify({ state: { lastRepositoryPath: path }, version: 3 }),
   );
 }
 
@@ -25,7 +26,8 @@ beforeEach(() => {
   localStorage.clear();
   window.innerWidth = 1440;
   openFails = false;
-  useWorkspace.setState({ activeRepositoryId: null, activeRepositoryPath: null, section: "repositories" });
+  useWorkspace.setState({ activeRepositoryId: null, activeRepositoryPath: null, focus: null, unfolded: null });
+  useUi.setState({ sheet: null, paletteOpen: false });
   useUi.setState({ restoreFailure: null });
   invokeMock.mockImplementation(async (command: string) => {
     switch (command) {
@@ -77,10 +79,16 @@ describe("AppShell", () => {
     expect(useWorkspace.getState().activeRepositoryId).toBeNull();
   });
 
-  it("gives rail buttons exact accessible names without shortcut hints", async () => {
-    useWorkspace.setState({ activeRepositoryId: 7, activeRepositoryPath: alpha.path, section: "overview" });
+  it("opens settings from the seal and commands with Ctrl+K", async () => {
     renderWithClient(<AppShell />);
-    expect(screen.getByRole("button", { name: "Changes" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Settings" })).toBeTruthy();
+    await screen.findByRole("button", { name: "Open alpha" }, { timeout: 5000 });
+    await userEvent.click(screen.getByRole("button", { name: "Settings" }));
+    expect(useUi.getState().sheet).toBe("settings");
+    expect(await screen.findByRole("dialog", { name: "Settings" })).toBeTruthy();
+    await userEvent.keyboard("{Escape}");
+    useUi.setState({ sheet: null });
+    await userEvent.keyboard("{Control>}k{/Control}");
+    expect(useUi.getState().paletteOpen).toBe(true);
+    expect(await screen.findByRole("dialog", { name: "Commands" })).toBeTruthy();
   });
 });

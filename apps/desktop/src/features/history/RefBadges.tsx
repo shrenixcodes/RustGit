@@ -83,3 +83,13 @@ function Label({ entry, current }: { entry: RefEntry; current: boolean }) {
     </span>
   );
 }
+
+/** Relationship of a local branch to its upstream, in words where Git provides them. */
+export function upstreamState(ref: RefEntry): string {
+  if (ref.upstream === null) return "no upstream";
+  if (ref.upstreamGone) return "upstream gone";
+  const parts: string[] = [];
+  if ((ref.ahead ?? 0) > 0) parts.push(`${ref.ahead}↑`);
+  if ((ref.behind ?? 0) > 0) parts.push(`${ref.behind}↓`);
+  return parts.length === 0 ? "in sync" : parts.join(" ");
+}

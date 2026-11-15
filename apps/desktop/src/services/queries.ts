@@ -3,6 +3,7 @@ import {
   QueryClient,
   useInfiniteQuery,
   useMutation,
+  useQueries,
   useQuery,
   useQueryClient,
   type InfiniteData,
@@ -19,6 +20,7 @@ import type {
   CommitResult,
   FileDiff,
   HunkAction,
+  IntegrationResult,
   GitInfo,
   LogPage,
   LogSearch,
@@ -192,8 +194,13 @@ export const useSetRepositoryPinned = () =>
     ipc.setRepositoryPinned(id, pinned),
   );
 
-export function useRefs(repositoryId: number): UseQueryResult<RefList, IpcError> {
-  return useQuery({ queryKey: queryKeys.refs(repositoryId), queryFn: () => ipc.listRefs(repositoryId), staleTime: 10_000 });
+export function useRefs(repositoryId: number | null): UseQueryResult<RefList, IpcError> {
+  return useQuery({
+    queryKey: queryKeys.refs(repositoryId ?? -1),
+    queryFn: () => ipc.listRefs(repositoryId ?? -1),
+    enabled: repositoryId !== null,
+    staleTime: 10_000,
+  });
 }
 
 /**
@@ -373,5 +380,141 @@ export function useCreateCommit(
       void client.invalidateQueries({ queryKey: queryKeys.refs(repositoryId) });
     },
     onSettled: () => invalidateWorkingState(client, repositoryId),
+  });
+}
+
+/** A file whose diff sections are needed by the review stream. */
+export interface DiffRequest {
+  path: string;
+  originalPath: string | null;
+  sides: WorkingDiffSide[];
+}
+
+/**
+ * Diffs for every expanded file in the review stream, both sides as needed.
+ * Results come back in request order, `undefined` while loading.
+ */
+export function useFileDiffs(
+  repositoryId: number,
+  requests: readonly DiffRequest[],
+  ignoreWhitespace: boolean,
+): Array<UseQueryResult<FileDiff, IpcError>> {
+  const flat = requests.flatMap((request) => request.sides.map((side) => ({ ...request, side })));
+  return useQueries({
+    queries: flat.map((request) => ({
+      queryKey: queryKeys.diff(repositoryId, request.path, request.side, ignoreWhitespace),
+      queryFn: () =>
+        ipc.fileDiff({
+          id: repositoryId,
+          path: request.path,
+          originalPath: request.originalPath,
+          side: request.side,
+          ignoreWhitespace,
+          contextLines: DIFF_CONTEXT_LINES,
+        }),
+      staleTime: 5_000,
+    })),
+  }) as Array<UseQueryResult<FileDiff, IpcError>>;
+}
+
+export function useCommitFileDiff(
+  repositoryId: number,
+  oid: string,
+  path: string | null,
+  originalPath: string | null,
+): UseQueryResult<FileDiff, IpcError> {
+  return useQuery({
+    queryKey: [...queryKeys.commit(repositoryId, oid), "diff", path ?? ""],
+    queryFn: () => ipc.commitFileDiff({ id: repositoryId, oid, path: path ?? "", originalPath }),
+    enabled: path !== null,
+    // A commit's diff never changes.
+    staleTime: Infinity,
+  });
+}
+
+export type BranchRequest =
+  | { kind: "checkout"; name: string }
+  | { kind: "create"; name: string; startPoint: string | null; checkout: boolean }
+  | { kind: "rename"; from: string; to: string }
+  | { kind: "delete"; name: string; force: boolean }
+  | { kind: "merge"; source: string }
+  | { kind: "rebase"; onto: string }
+  | { kind: "cherry_pick"; oid: string }
+  | { kind: "revert"; oid: string }
+  | { kind: "continue" }
+  | { kind: "abort" };
+
+export function describeBranchRequest(request: BranchRequest): string {
+  switch (request.kind) {
+    case "checkout":
+      return `Switch to ${request.name}`;
+    case "create":
+      return `Create branch ${request.name}`;
+    case "rename":
+      return `Rename ${request.from} to ${request.to}`;
+    case "delete":
+      return `${request.force ? "Force delete" : "Delete"} branch ${request.name}`;
+    case "merge":
+      return `Merge ${request.source}`;
+    case "rebase":
+      return `Rebase onto ${request.onto}`;
+    case "cherry_pick":
+      return `Cherry-pick ${request.oid.slice(0, 7)}`;
+    case "revert":
+      return `Revert ${request.oid.slice(0, 7)}`;
+    case "continue":
+      return "Continue operation";
+    case "abort":
+      return "Abort operation";
+  }
+}
+
+/** Outcome of a branch operation, normalised for display. */
+export type BranchOutcome =
+  | { kind: "refs"; refs: RefList }
+  | { kind: "status"; status: StatusSnapshot }
+  | { kind: "integration"; result: IntegrationResult };
+
+/**
+ * Branch and integration operations. Results never update caches
+ * optimistically: status, refs, history and commit context are refetched
+ * (EVENT_CONTRACT.md invalidation rules).
+ */
+export function useBranchOperation(repositoryId: number): UseMutationResult<BranchOutcome, IpcError, BranchRequest> {
+  const client: QueryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (request: BranchRequest): Promise<BranchOutcome> => {
+      switch (request.kind) {
+        case "checkout":
+          return { kind: "status", status: await ipc.checkoutBranch(repositoryId, request.name, "keep_changes") };
+        case "create":
+          return { kind: "refs", refs: await ipc.createBranch(repositoryId, request.name, request.startPoint, request.checkout) };
+        case "rename":
+          return { kind: "refs", refs: await ipc.renameBranch(repositoryId, request.from, request.to) };
+        case "delete":
+          return { kind: "refs", refs: await ipc.deleteBranch(repositoryId, request.name, request.force) };
+        case "merge":
+          return { kind: "integration", result: await ipc.mergeBranch(repositoryId, request.source, "default") };
+        case "rebase":
+          return { kind: "integration", result: await ipc.rebaseBranch(repositoryId, request.onto) };
+        case "cherry_pick":
+          return { kind: "integration", result: await ipc.cherryPick(repositoryId, [request.oid]) };
+        case "revert":
+          return { kind: "integration", result: await ipc.revertCommit(repositoryId, request.oid) };
+        case "continue":
+          return { kind: "integration", result: await ipc.continueOperation(repositoryId) };
+        case "abort":
+          return { kind: "status", status: await ipc.abortOperation(repositoryId) };
+      }
+    },
+    meta: { operation: "Branch operation", describe: (variables: unknown) => describeBranchRequest(variables as BranchRequest) },
+    onSettled: () => {
+      void client.invalidateQueries({ queryKey: queryKeys.status(repositoryId) });
+      void client.invalidateQueries({ queryKey: queryKeys.refs(repositoryId) });
+      void client.invalidateQueries({ queryKey: queryKeys.logAll(repositoryId) });
+      void client.invalidateQueries({ queryKey: queryKeys.diffs(repositoryId) });
+      void client.invalidateQueries({ queryKey: queryKeys.totals(repositoryId) });
+      void client.invalidateQueries({ queryKey: queryKeys.commitContext(repositoryId) });
+    },
   });
 }

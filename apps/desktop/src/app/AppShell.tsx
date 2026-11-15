@@ -1,17 +1,12 @@
 import { useEffect, useRef } from "react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { ActivityPanel } from "./ActivityPanel";
-import { Rail } from "./Rail";
-import { Ridge } from "./Ridge";
+import { CommandPalette } from "./CommandPalette";
 import { OperationShelf } from "./OperationShelf";
-import { useInspector } from "./WorkspaceLayout";
-import { SECTIONS, isSectionEnabled, type SectionDefinition, type SectionId } from "./navigation";
-import { useShortcuts, type ShortcutBinding } from "./shortcuts";
-import { ChangesView } from "../features/changes/ChangesView";
-import { HistoryView } from "../features/history/HistoryView";
-import { OverviewView } from "../features/overview/OverviewView";
+import { Seal } from "./Seal";
+import { Sheet } from "./Sheet";
+import { useShortcuts } from "./shortcuts";
 import { RepositoriesView } from "../features/repositories/RepositoriesView";
-import { SettingsView } from "../features/settings/SettingsView";
 import { toIpcError } from "../services/ipc";
 import { useRepositoryWatcher } from "../services/repositoryEvents";
 import { queryKeys, useOpenRepository, useRepositories } from "../services/queries";
@@ -19,76 +14,67 @@ import type { RepositoryEntry } from "../services/types";
 import { usePreferences } from "../stores/preferences";
 import { useUi } from "../stores/ui";
 import { lastActiveRepositoryPath, useWorkspace } from "../stores/workspace";
+import { ThreadView } from "../thread/ThreadView";
 
+/**
+ * One canvas: the seal (repository identity) above the thread, the
+ * operation shelf below. Without a repository the canvas lists
+ * repositories instead. Settings and commands open over the canvas.
+ */
 export function AppShell() {
-  const section: SectionId = useWorkspace((state) => state.section);
   const activeRepositoryId: number | null = useWorkspace((state) => state.activeRepositoryId);
   const activityOpen: boolean = usePreferences((state) => state.activityOpen);
+  const paletteOpen: boolean = useUi((state) => state.paletteOpen);
 
   useGlobalShortcuts();
   useRestoreLastRepository();
   useRepositoryWatcher(activeRepositoryId);
 
   return (
-    <div className="flex h-full bg-bg text-fg">
-      <Rail />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Ridge />
-        <main className="flex min-h-0 flex-1 flex-col">{renderSection(section, activeRepositoryId)}</main>
-        {activityOpen && <ActivityPanel />}
-        <OperationShelf />
-      </div>
+    <div className="flex h-full flex-col bg-bg text-fg">
+      <Seal />
+      <main className="flex min-h-0 flex-1 flex-col">
+        {activeRepositoryId === null ? <RepositoriesView /> : <ThreadView key={activeRepositoryId} repositoryId={activeRepositoryId} />}
+      </main>
+      {activityOpen && <ActivityPanel />}
+      <OperationShelf />
+      <Sheet />
+      {paletteOpen && <CommandPalette />}
     </div>
   );
-}
-
-function renderSection(section: SectionId, repositoryId: number | null) {
-  switch (section) {
-    case "settings":
-      return <SettingsView />;
-    case "overview":
-      return repositoryId === null ? <RepositoriesView /> : <OverviewView repositoryId={repositoryId} />;
-    case "history":
-      return repositoryId === null ? <RepositoriesView /> : <HistoryView repositoryId={repositoryId} />;
-    case "changes":
-      return repositoryId === null ? <RepositoriesView /> : <ChangesView repositoryId={repositoryId} />;
-    default:
-      // Sections that are not implemented cannot be selected; fall back safely.
-      return <RepositoriesView />;
-  }
 }
 
 function useGlobalShortcuts(): void {
   const client: QueryClient = useQueryClient();
   const activeRepositoryId: number | null = useWorkspace((state) => state.activeRepositoryId);
-  const showSection = useWorkspace((state) => state.showSection);
-  const togglePersonality = usePreferences((state) => state.togglePersonality);
-  const inspector = useInspector();
   const activityOpen: boolean = usePreferences((state) => state.activityOpen);
   const setActivityOpen = usePreferences((state) => state.setActivityOpen);
+  const togglePersonality = usePreferences((state) => state.togglePersonality);
+  const setZoom = usePreferences((state) => state.setZoom);
   const switcherOpen: boolean = useUi((state) => state.switcherOpen);
   const setSwitcherOpen = useUi((state) => state.setSwitcherOpen);
+  const paletteOpen: boolean = useUi((state) => state.paletteOpen);
+  const setPaletteOpen = useUi((state) => state.setPaletteOpen);
+  const setSheet = useUi((state) => state.setSheet);
+  const requestSearchFocus = useUi((state) => state.requestSearchFocus);
+  const hasRepository: boolean = activeRepositoryId !== null;
 
   const refresh = (): void => {
     void client.invalidateQueries({ queryKey: queryKeys.repositories });
   };
 
-  const sectionBindings: ShortcutBinding[] = SECTIONS.filter(
-    (definition: SectionDefinition) => definition.shortcut !== undefined,
-  ).map((definition: SectionDefinition) => ({
-    shortcut: definition.shortcut as string,
-    enabled: isSectionEnabled(definition, activeRepositoryId !== null),
-    run: () => showSection(definition.id),
-  }));
-
   useShortcuts([
-    ...sectionBindings,
-    { shortcut: "Mod+Shift+D", run: togglePersonality, allowInInput: true },
-    { shortcut: "Mod+I", run: inspector.toggle, allowInInput: true },
-    { shortcut: "Mod+J", run: () => setActivityOpen(!activityOpen), allowInInput: true },
+    { shortcut: "Mod+K", run: () => setPaletteOpen(!paletteOpen), allowInInput: true },
     { shortcut: "Mod+P", run: () => setSwitcherOpen(!switcherOpen), allowInInput: true },
+    { shortcut: "Mod+,", run: () => setSheet("settings"), allowInInput: true },
+    { shortcut: "Mod+Shift+O", run: () => setSheet("repositories"), allowInInput: true },
+    { shortcut: "Mod+J", run: () => setActivityOpen(!activityOpen), allowInInput: true },
+    { shortcut: "Mod+Shift+D", run: togglePersonality, allowInInput: true },
     { shortcut: "Mod+R", run: refresh, allowInInput: true },
     { shortcut: "F5", run: refresh, allowInInput: true },
+    { shortcut: "Mod+-", run: () => setZoom("map"), enabled: hasRepository },
+    { shortcut: "Mod+0", run: () => setZoom("thread"), enabled: hasRepository },
+    { shortcut: "/", run: requestSearchFocus, enabled: hasRepository },
   ]);
 }
 
@@ -105,19 +91,13 @@ function useRestoreLastRepository(): void {
   const attempted = useRef<boolean>(false);
 
   useEffect(() => {
-    if (attempted.current || repositories.data === undefined) {
-      return;
-    }
+    if (attempted.current || repositories.data === undefined) return;
     attempted.current = true;
     const path: string | null = lastActiveRepositoryPath();
-    if (path === null || useWorkspace.getState().activeRepositoryId !== null) {
-      return;
-    }
+    if (path === null || useWorkspace.getState().activeRepositoryId !== null) return;
     const entry: RepositoryEntry | undefined = repositories.data.find((candidate) => candidate.path === path);
-    if (entry === undefined) {
-      // No longer registered (removed, or a different data directory): nothing to restore.
-      return;
-    }
+    // No longer registered (removed, or a different data directory): nothing to restore.
+    if (entry === undefined) return;
     openRepository
       .mutateAsync(entry.id)
       .then((opened: RepositoryEntry) => activate(opened.id, opened.path))

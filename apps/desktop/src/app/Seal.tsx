@@ -1,0 +1,167 @@
+import { useEffect, useRef } from "react";
+import { ChevronDown, Command, RefreshCw, Search, Settings } from "lucide-react";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { IconButton } from "../components/Button";
+import { Mark } from "../components/Mark";
+import { SegmentedControl, type SegmentOption } from "../components/SegmentedControl";
+import { SwitcherPopover } from "./RepositorySwitcher";
+import { formatShortcut } from "./shortcuts";
+import { queryKeys, useRepositories, useRepositoryStatus } from "../services/queries";
+import type { BranchStatus, InProgress, RepositoryEntry } from "../services/types";
+import { usePreferences, type Zoom } from "../stores/preferences";
+import { useUi } from "../stores/ui";
+import { useWorkspace } from "../stores/workspace";
+
+const ZOOMS: readonly SegmentOption<Zoom>[] = [
+  { value: "thread", label: "Thread" },
+  { value: "map", label: "Map" },
+];
+
+const IN_PROGRESS_LABEL: Record<Exclude<InProgress, "none">, string> = {
+  merging: "merge in progress",
+  rebasing: "rebase in progress",
+  cherry_picking: "cherry-pick in progress",
+  reverting: "revert in progress",
+};
+
+/**
+ * The seal: the repository's identity in the corner (its name opens the
+ * switcher, then the branch path), and the few controls that act on the
+ * whole thread: search, distance, refresh, settings and commands.
+ */
+export function Seal() {
+  const client: QueryClient = useQueryClient();
+  const activeRepositoryId: number | null = useWorkspace((state) => state.activeRepositoryId);
+  const repositories = useRepositories();
+  const status = useRepositoryStatus(activeRepositoryId);
+  const switcherOpen: boolean = useUi((state) => state.switcherOpen);
+  const setSwitcherOpen = useUi((state) => state.setSwitcherOpen);
+  const setPaletteOpen = useUi((state) => state.setPaletteOpen);
+  const setSheet = useUi((state) => state.setSheet);
+  const search: string = useUi((state) => state.search);
+  const setSearch = useUi((state) => state.setSearch);
+  const searchFocusRequest: number = useUi((state) => state.searchFocusRequest);
+  const zoom: Zoom = usePreferences((state) => state.zoom);
+  const setZoom = usePreferences((state) => state.setZoom);
+  const root = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const searchInput = useRef<HTMLInputElement>(null);
+  const repository: RepositoryEntry | undefined = repositories.data?.find((entry) => entry.id === activeRepositoryId);
+
+  useEffect(() => {
+    if (searchFocusRequest > 0) searchInput.current?.focus();
+  }, [searchFocusRequest]);
+
+  const close = (): void => {
+    setSwitcherOpen(false);
+    trigger.current?.focus();
+  };
+
+  return (
+    <header aria-label="Repository" className="flex h-12 shrink-0 items-center gap-4 border-b border-divider pr-3 pl-4">
+      <div ref={root} className="relative flex min-w-0 items-center gap-2.5">
+        <Mark size={20} />
+        <button
+          ref={trigger}
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded={switcherOpen}
+          aria-label={repository === undefined ? "Choose a repository" : `Repository ${repository.name}. Switch repository`}
+          title={`Switch repository (${formatShortcut("Mod+P")})`}
+          onClick={() => setSwitcherOpen(!switcherOpen)}
+          className="group flex min-w-0 items-center gap-1 rounded-sm py-1 text-left"
+        >
+          <span className={`truncate text-base font-semibold ${repository === undefined ? "text-fg-muted" : "text-fg"}`}>
+            {repository?.name ?? "RustGit"}
+          </span>
+          <ChevronDown aria-hidden className="size-3.5 shrink-0 text-fg-muted group-hover:text-fg" />
+        </button>
+        {switcherOpen && <SwitcherPopover onClose={close} root={root} />}
+      </div>
+
+      {repository !== undefined && status.data !== undefined && (
+        <div className="flex min-w-0 items-center gap-3">
+          <BranchPath branch={status.data.branch} />
+          {status.data.inProgress !== "none" && (
+            <span className="shrink-0 font-mono text-xs text-warning">{IN_PROGRESS_LABEL[status.data.inProgress]}</span>
+          )}
+        </div>
+      )}
+
+      <span className="flex-1" />
+
+      {repository !== undefined && (
+        <>
+          <label className="flex w-64 items-center gap-2 border-b border-border focus-within:border-accent">
+            <Search aria-hidden className="size-3.5 shrink-0 text-fg-muted" />
+            <span className="sr-only">Search the thread</span>
+            <input
+              ref={searchInput}
+              type="search"
+              aria-label="Search the thread"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  setSearch("");
+                  event.currentTarget.blur();
+                }
+              }}
+              placeholder="message or commit id   /"
+              className="h-7 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-fg-muted"
+            />
+          </label>
+          <SegmentedControl label="Distance" options={ZOOMS} value={zoom} onChange={setZoom} />
+          <IconButton
+            label="Refresh"
+            shortcut="Mod+R"
+            onClick={() => void client.invalidateQueries({ queryKey: queryKeys.repository(repository.id) })}
+          >
+            <RefreshCw aria-hidden className="size-3.5" />
+          </IconButton>
+        </>
+      )}
+      <IconButton label="Settings" shortcut="Mod+," onClick={() => setSheet("settings")}>
+        <Settings aria-hidden className="size-3.5" />
+      </IconButton>
+      <button
+        type="button"
+        onClick={() => setPaletteOpen(true)}
+        title={`Commands (${formatShortcut("Mod+K")})`}
+        className="flex h-6 items-center gap-1 rounded-sm border border-border px-1.5 font-mono text-2xs text-fg-muted hover:border-border-control hover:text-fg"
+      >
+        <Command aria-hidden className="size-3" />
+        {formatShortcut("Mod+K")}
+      </button>
+    </header>
+  );
+}
+
+/** The branch written as a short path in the graph's own language: a point, a line to its upstream, the distance. */
+export function BranchPath({ branch }: { branch: BranchStatus }) {
+  const detached: boolean = branch.head === null;
+  return (
+    <span className="flex min-w-0 items-center gap-2 font-mono text-xs">
+      <svg aria-hidden width="8" height="8" viewBox="0 0 8 8" className="shrink-0">
+        <circle cx="4" cy="4" r="3" fill={detached ? "var(--rg-clay)" : "var(--rg-accent)"} />
+      </svg>
+      <span className={`truncate ${detached ? "text-clay-text" : "text-fg"}`}>
+        {branch.head ?? `detached at ${branch.oid?.slice(0, 7) ?? "?"}`}
+      </span>
+      {branch.upstream === null ? (
+        <span className="shrink-0 text-fg-muted">no upstream</span>
+      ) : (
+        <span className="flex shrink-0 items-center gap-1.5 text-fg-muted" title={`Compared with ${branch.upstream} as of the last fetch`}>
+          <span aria-hidden className="h-px w-3 bg-border-control" />
+          <span className="sr-only">upstream {branch.upstream},</span>
+          <span className={branch.ahead > 0 ? "text-accent" : ""}>
+            {branch.ahead}↑<span className="sr-only"> ahead,</span>
+          </span>
+          <span className={branch.behind > 0 ? "text-clay-text" : ""}>
+            {branch.behind}↓<span className="sr-only"> behind</span>
+          </span>
+        </span>
+      )}
+    </span>
+  );
+}

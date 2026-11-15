@@ -109,3 +109,26 @@ export function matchesFilter(file: FileStatus, query: string): boolean {
   const haystack: string = `${file.path}\n${file.originalPath ?? ""}`.toLowerCase();
   return terms.every((term: string) => haystack.includes(term));
 }
+
+/** Groups of the review stream. A file belongs to exactly one, so it appears once. */
+export type NavigatorGroup = "conflicts" | "changes" | "untracked";
+
+export function groupOf(file: FileStatus): NavigatorGroup {
+  if (file.conflicted) return "conflicts";
+  if (file.staged === null && file.unstaged === "untracked") return "untracked";
+  return "changes";
+}
+
+/** Plain-language staging state, used for accessible names. */
+export function stagingState(file: FileStatus): string {
+  if (file.conflicted) return "conflicted";
+  if (isPartiallyStaged(file)) return "partially staged";
+  if (file.staged !== null) return "staged";
+  return file.unstaged === "untracked" ? "untracked" : "not staged";
+}
+
+/** The kind shown for a file: what is staged, else what changed in the working tree. */
+export function displayKind(file: FileStatus): ChangeKind | null {
+  if (file.conflicted) return "unmerged";
+  return file.staged ?? file.unstaged;
+}

@@ -2,16 +2,16 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 /**
- * UI-only preferences (workspace personality, motion, layout). Repository
- * data and the theme live in the backend settings store; these never leave
- * the webview.
+ * UI-only preferences (workspace personality, motion, thread distance).
+ * Repository data and the theme live in the backend settings store; these
+ * never leave the webview.
  */
 
 /** Quiet: spacious, for daily work. Deep: darker and denser, for history and investigation. */
 export type Personality = "quiet" | "deep";
 export type MotionPreference = "system" | "reduce";
-/** History zoom step: -1 dense, 0 normal, 1 spacious. */
-export type ZoomStep = -1 | 0 | 1;
+/** How far the thread is seen from: every commit, or only branch heads, forks and merges. */
+export type Zoom = "thread" | "map";
 
 export interface PanelLimits {
   min: number;
@@ -20,34 +20,27 @@ export interface PanelLimits {
 }
 
 export const PANEL_LIMITS = {
-  inspector: { min: 240, max: 480, initial: 300 },
-  fileList: { min: 240, max: 520, initial: 300 },
-  strand: { min: 160, max: 320, initial: 196 },
   activity: { min: 120, max: 480, initial: 220 },
 } as const satisfies Record<string, PanelLimits>;
 
 export type PanelId = keyof typeof PANEL_LIMITS;
 
-/** Row height of lists for a personality (matches `--rg-row` in tokens.css). */
+/** Row height of the thread for a personality (matches `--rg-row` in tokens.css). */
 export function rowHeightFor(personality: Personality): number {
-  return personality === "deep" ? 24 : 30;
+  return personality === "deep" ? 26 : 32;
 }
 
 export interface PreferencesState {
   personality: Personality;
   motion: MotionPreference;
-  inspectorOpen: boolean;
+  zoom: Zoom;
   activityOpen: boolean;
-  strandOpen: boolean;
-  historyZoom: ZoomStep;
   sizes: Record<PanelId, number>;
   setPersonality: (personality: Personality) => void;
   togglePersonality: () => void;
   setMotion: (motion: MotionPreference) => void;
-  toggleInspector: () => void;
+  setZoom: (zoom: Zoom) => void;
   setActivityOpen: (open: boolean) => void;
-  toggleStrand: () => void;
-  zoomHistory: (step: -1 | 1 | 0) => void;
   setSize: (panel: PanelId, size: number) => void;
   resetSize: (panel: PanelId) => void;
 }
@@ -57,38 +50,19 @@ export function clampSize(panel: PanelId, size: number): number {
   return Math.round(Math.min(limits.max, Math.max(limits.min, size)));
 }
 
-function initialSizes(): Record<PanelId, number> {
-  return {
-    inspector: PANEL_LIMITS.inspector.initial,
-    fileList: PANEL_LIMITS.fileList.initial,
-    strand: PANEL_LIMITS.strand.initial,
-    activity: PANEL_LIMITS.activity.initial,
-  };
-}
-
-function clampZoom(value: number): ZoomStep {
-  return value <= -1 ? -1 : value >= 1 ? 1 : 0;
-}
-
 export const usePreferences = create<PreferencesState>()(
   persist(
     (set) => ({
       personality: "quiet",
       motion: "system",
-      inspectorOpen: true,
+      zoom: "thread",
       activityOpen: false,
-      strandOpen: true,
-      historyZoom: 0,
-      sizes: initialSizes(),
+      sizes: { activity: PANEL_LIMITS.activity.initial },
       setPersonality: (personality: Personality) => set({ personality }),
       togglePersonality: () => set((state) => ({ personality: state.personality === "quiet" ? "deep" : "quiet" })),
       setMotion: (motion: MotionPreference) => set({ motion }),
-      toggleInspector: () => set((state) => ({ inspectorOpen: !state.inspectorOpen })),
+      setZoom: (zoom: Zoom) => set({ zoom }),
       setActivityOpen: (activityOpen: boolean) => set({ activityOpen }),
-      toggleStrand: () => set((state) => ({ strandOpen: !state.strandOpen })),
-      // step 0 resets; otherwise moves one step within -1..1.
-      zoomHistory: (step: -1 | 1 | 0) =>
-        set((state) => ({ historyZoom: step === 0 ? 0 : clampZoom(state.historyZoom + step) })),
       setSize: (panel: PanelId, size: number) =>
         set((state) => ({ sizes: { ...state.sizes, [panel]: clampSize(panel, size) } })),
       resetSize: (panel: PanelId) =>
@@ -96,20 +70,19 @@ export const usePreferences = create<PreferencesState>()(
     }),
     {
       name: "rustgit.preferences",
-      // Version 2 replaced density with the workspace personality.
-      version: 2,
+      // v2 replaced density with the personality; v3 is the thread model.
+      version: 3,
       storage: createJSONStorage(() => localStorage),
       migrate: (persisted: unknown) => {
-        const old = (persisted ?? {}) as { density?: unknown };
-        return { ...(persisted as object), personality: old.density === "compact" ? "deep" : "quiet" };
+        const old = (persisted ?? {}) as { density?: unknown; personality?: unknown };
+        const personality: unknown = old.personality ?? (old.density === "compact" ? "deep" : "quiet");
+        return { ...(persisted as object), personality };
       },
       partialize: (state) => ({
         personality: state.personality,
         motion: state.motion,
-        inspectorOpen: state.inspectorOpen,
+        zoom: state.zoom,
         activityOpen: state.activityOpen,
-        strandOpen: state.strandOpen,
-        historyZoom: state.historyZoom,
         sizes: state.sizes,
       }),
       // Stored values are validated so corrupted or outdated data cannot break the layout.
@@ -117,22 +90,19 @@ export const usePreferences = create<PreferencesState>()(
         const stored = (persisted ?? {}) as Partial<Record<keyof PreferencesState, unknown>> & {
           sizes?: Record<string, unknown>;
         };
-        const sizes: Record<PanelId, number> = { ...current.sizes };
-        for (const panel of Object.keys(PANEL_LIMITS) as PanelId[]) {
-          const value: unknown = stored.sizes?.[panel];
-          if (typeof value === "number" && Number.isFinite(value)) {
-            sizes[panel] = clampSize(panel, value);
-          }
-        }
+        const activity: unknown = stored.sizes?.activity;
         return {
           ...current,
           personality: stored.personality === "deep" ? "deep" : "quiet",
           motion: stored.motion === "reduce" ? "reduce" : "system",
-          inspectorOpen: stored.inspectorOpen !== false,
+          zoom: stored.zoom === "map" ? "map" : "thread",
           activityOpen: stored.activityOpen === true,
-          strandOpen: stored.strandOpen !== false,
-          historyZoom: typeof stored.historyZoom === "number" ? clampZoom(stored.historyZoom) : 0,
-          sizes,
+          sizes: {
+            activity:
+              typeof activity === "number" && Number.isFinite(activity)
+                ? clampSize("activity", activity)
+                : PANEL_LIMITS.activity.initial,
+          },
         };
       },
     },

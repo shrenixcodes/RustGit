@@ -1,0 +1,299 @@
+import { useState, type FormEvent, type ReactNode } from "react";
+import { Button } from "../components/Button";
+import { ConfirmDialog } from "../components/ConfirmDialog";
+import { ErrorNotice } from "../components/ErrorNotice";
+import type { IpcError } from "../services/ipc";
+import { useBranchOperation, type BranchOutcome, type BranchRequest } from "../services/queries";
+import type { RefEntry } from "../services/types";
+import { describeRef, upstreamState } from "../features/history/RefBadges";
+import { formatRelative } from "../features/history/time";
+import { OutcomeNotice } from "./OutcomeNotice";
+
+interface MapFoldProps {
+  repositoryId: number;
+  oid: string;
+  refs: readonly RefEntry[];
+  currentBranch: string | null;
+  /** The working tree has changes (switching keeps them when Git can). */
+  dirty: boolean;
+  height: number;
+}
+
+interface Pending {
+  request: BranchRequest;
+  title: string;
+  body: string;
+  label: string;
+  destructive: boolean;
+}
+
+/**
+ * A node on the map, unfolded: the branches that point at it, how each
+ * relates to its upstream and to the current branch, and the operations
+ * that apply to it. Every operation runs in the backend; risky ones confirm.
+ */
+export function MapFold({ repositoryId, oid, refs, currentBranch, dirty, height }: MapFoldProps) {
+  const operation = useBranchOperation(repositoryId);
+  const [pending, setPending] = useState<Pending | null>(null);
+  const [outcome, setOutcome] = useState<BranchOutcome | null>(null);
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const [newName, setNewName] = useState<string>("");
+  const [creating, setCreating] = useState<boolean>(false);
+  const [lastRequest, setLastRequest] = useState<BranchRequest | null>(null);
+
+  const run = (request: BranchRequest): void => {
+    setOutcome(null);
+    setLastRequest(request);
+    operation.mutate(request, {
+      onSuccess: (result) => {
+        setOutcome(result);
+        setRenaming(null);
+        setCreating(false);
+        setNewName("");
+      },
+      onSettled: () => setPending(null),
+    });
+  };
+
+  const submitName = (event: FormEvent): void => {
+    event.preventDefault();
+    const name: string = newName.trim();
+    if (name === "") return;
+    if (renaming !== null) run({ kind: "rename", from: renaming, to: name });
+    else run({ kind: "create", name, startPoint: oid, checkout: false });
+  };
+
+  const locals: RefEntry[] = refs.filter((ref) => ref.kind === "local");
+  const remotes: RefEntry[] = refs.filter((ref) => ref.kind === "remote");
+  const tags: RefEntry[] = refs.filter((ref) => ref.kind === "tag");
+
+  return (
+    <div style={{ height }} className="overflow-y-auto pr-5 pb-3 pl-[72px]">
+      <div className="space-y-3 pt-2">
+        {locals.map((ref) => {
+          const current: boolean = ref.shortName === currentBranch;
+          return (
+            <BranchLine key={ref.fullName} entry={ref} current={current}>
+              {!current && (
+                <Button
+                  variant="ghost"
+                  disabled={operation.isPending}
+                  onClick={() =>
+                    dirty
+                      ? setPending({
+                          request: { kind: "checkout", name: ref.shortName },
+                          title: `Switch to ${ref.shortName}?`,
+                          body: "You have uncommitted changes. Git carries them over when they do not conflict with the other branch; if they would be overwritten, nothing changes and the files are listed.",
+                          label: "Switch",
+                          destructive: false,
+                        })
+                      : run({ kind: "checkout", name: ref.shortName })
+                  }
+                >
+                  Switch
+                </Button>
+              )}
+              {!current && currentBranch !== null && (
+                <>
+                  <Button
+                    variant="ghost"
+                    disabled={operation.isPending}
+                    onClick={() =>
+                      setPending({
+                        request: { kind: "merge", source: ref.shortName },
+                        title: `Merge ${ref.shortName} into ${currentBranch}?`,
+                        body: `Brings the commits of ${ref.shortName} into ${currentBranch}. A merge commit is created unless ${currentBranch} can fast-forward. Conflicts stop the merge for you to resolve or abort.`,
+                        label: "Merge",
+                        destructive: false,
+                      })
+                    }
+                  >
+                    Merge into {currentBranch}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    disabled={operation.isPending}
+                    onClick={() =>
+                      setPending({
+                        request: { kind: "rebase", onto: ref.shortName },
+                        title: `Rebase ${currentBranch} onto ${ref.shortName}?`,
+                        body: `Replays the commits of ${currentBranch} that are not on ${ref.shortName} on top of it. Those commits get new ids; if ${currentBranch} was already pushed, pushing afterwards needs force-with-lease.`,
+                        label: "Rebase",
+                        destructive: true,
+                      })
+                    }
+                  >
+                    Rebase {currentBranch} onto it
+                  </Button>
+                </>
+              )}
+              <Button variant="ghost" disabled={operation.isPending} onClick={() => { setRenaming(ref.shortName); setCreating(false); setNewName(ref.shortName); }}>
+                Rename…
+              </Button>
+              {!current && (
+                <Button
+                  variant="ghost"
+                  disabled={operation.isPending}
+                  onClick={() =>
+                    setPending({
+                      request: { kind: "delete", name: ref.shortName, force: false },
+                      title: `Delete branch ${ref.shortName}?`,
+                      body: "Git deletes the branch only if its commits are merged elsewhere; otherwise you will be asked again.",
+                      label: "Delete branch",
+                      destructive: true,
+                    })
+                  }
+                >
+                  Delete…
+                </Button>
+              )}
+            </BranchLine>
+          );
+        })}
+
+        {remotes.map((ref) => (
+          <BranchLine key={ref.fullName} entry={ref} current={false}>
+            <Button variant="ghost" disabled={operation.isPending} onClick={() => run({ kind: "checkout", name: ref.shortName })}>
+              Check out as a local branch
+            </Button>
+            {currentBranch !== null && (
+              <Button
+                variant="ghost"
+                disabled={operation.isPending}
+                onClick={() =>
+                  setPending({
+                    request: { kind: "merge", source: ref.shortName },
+                    title: `Merge ${ref.shortName} into ${currentBranch}?`,
+                    body: `Brings the commits of ${ref.shortName} (as of the last fetch) into ${currentBranch}.`,
+                    label: "Merge",
+                    destructive: false,
+                  })
+                }
+              >
+                Merge into {currentBranch}
+              </Button>
+            )}
+          </BranchLine>
+        ))}
+
+        {tags.map((ref) => (
+          <BranchLine key={ref.fullName} entry={ref} current={false} />
+        ))}
+
+        <div className="flex flex-wrap items-center gap-2">
+          {!creating && renaming === null && (
+            <Button variant="ghost" onClick={() => { setCreating(true); setNewName(""); }}>
+              Create a branch here…
+            </Button>
+          )}
+          {(creating || renaming !== null) && (
+            <form onSubmit={submitName} className="flex items-center gap-2">
+              <label className="flex items-center gap-2 border-b border-border focus-within:border-accent">
+                <span className="sr-only">{renaming !== null ? `New name for ${renaming}` : "New branch name"}</span>
+                <input
+                  autoFocus
+                  value={newName}
+                  onChange={(event) => setNewName(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") {
+                      event.stopPropagation();
+                      setCreating(false);
+                      setRenaming(null);
+                    }
+                  }}
+                  placeholder={renaming !== null ? renaming : "feature/name"}
+                  className="h-7 w-56 bg-transparent font-mono text-xs outline-none"
+                />
+              </label>
+              <Button type="submit" variant="primary" disabled={newName.trim() === "" || operation.isPending}>
+                {renaming !== null ? "Rename" : `Create at ${oid.slice(0, 7)}`}
+              </Button>
+              <Button variant="ghost" onClick={() => { setCreating(false); setRenaming(null); }}>
+                Cancel
+              </Button>
+            </form>
+          )}
+        </div>
+
+        {operation.error !== null && (
+          <OperationError
+            error={operation.error}
+            request={lastRequest}
+            onForceDelete={(name) =>
+              setPending({
+                request: { kind: "delete", name, force: true },
+                title: `Delete ${name} with unmerged commits?`,
+                body: `Its commits are not on any other branch. After deleting, they can only be recovered from the reflog for a limited time.`,
+                label: "Delete anyway",
+                destructive: true,
+              })
+            }
+          />
+        )}
+        {outcome !== null && <OutcomeNotice outcome={outcome} />}
+      </div>
+
+      {pending !== null && (
+        <ConfirmDialog
+          title={pending.title}
+          confirmLabel={pending.label}
+          destructive={pending.destructive}
+          busy={operation.isPending}
+          onCancel={() => setPending(null)}
+          onConfirm={() => run(pending.request)}
+        >
+          <p>{pending.body}</p>
+        </ConfirmDialog>
+      )}
+    </div>
+  );
+}
+
+function BranchLine({ entry, current, children }: { entry: RefEntry; current: boolean; children?: ReactNode }) {
+  const relation: string | null = entry.kind === "local" ? upstreamState(entry) : null;
+  return (
+    <div className="space-y-1">
+      <p className="flex flex-wrap items-baseline gap-x-3 font-mono text-xs">
+        <span className={current ? "text-accent" : entry.kind === "remote" ? "text-indigo-text" : entry.kind === "tag" ? "text-clay-text" : "text-fg"}>
+          {entry.shortName}
+        </span>
+        <span className="text-fg-muted">{describeRef(entry, current).replace(` ${entry.shortName}`, "")}</span>
+        {relation !== null && <span className="text-fg-muted">{entry.upstream !== null ? `${entry.upstream} · ${relation}` : relation}</span>}
+        <span className="text-fg-muted">last commit {formatRelative(entry.lastCommitTime)}</span>
+      </p>
+      {children !== undefined && <div className="flex flex-wrap gap-1">{children}</div>}
+    </div>
+  );
+}
+
+function OperationError({
+  error,
+  request,
+  onForceDelete,
+}: {
+  error: IpcError;
+  request: BranchRequest | null;
+  onForceDelete: (name: string) => void;
+}) {
+  if (error.kind === "would_overwrite_changes") {
+    const paths: string[] = error.details?.paths ?? [];
+    return (
+      <div role="alert" className="border-l-2 border-warning py-1 pl-3 text-sm">
+        <p className="text-fg">Nothing changed: switching would overwrite your uncommitted changes{paths.length > 0 ? " in:" : "."}</p>
+        {paths.length > 0 && <p className="mt-1 font-mono text-xs text-fg-secondary">{paths.join("\n")}</p>}
+        <p className="mt-1 text-xs text-fg-muted">Commit or discard those changes at the loose end, then switch.</p>
+      </div>
+    );
+  }
+  if (error.kind === "branch_not_fully_merged" && request?.kind === "delete") {
+    return (
+      <div role="alert" className="border-l-2 border-warning py-1 pl-3 text-sm">
+        <p className="text-fg">{request.name} has commits that are not merged anywhere else, so Git kept it.</p>
+        <Button variant="danger" className="mt-2" onClick={() => onForceDelete(request.name)}>
+          Delete anyway…
+        </Button>
+      </div>
+    );
+  }
+  return <ErrorNotice title="Git did not complete the operation" error={error} />;
+}

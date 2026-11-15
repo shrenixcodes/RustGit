@@ -5,36 +5,36 @@ import { PANEL_LIMITS, usePreferences } from "../stores/preferences";
 
 beforeEach(() => {
   localStorage.clear();
-  usePreferences.getState().resetSize("inspector");
+  usePreferences.getState().resetSize("activity");
 });
 
 afterEach(cleanup);
 
 describe("Splitter", () => {
   it("exposes the window-splitter semantics", () => {
-    render(<Splitter panel="inspector" label="Resize inspector" grows="left" />);
-    const separator: HTMLElement = screen.getByRole("separator", { name: "Resize inspector" });
-    expect(separator.getAttribute("aria-valuenow")).toBe(String(PANEL_LIMITS.inspector.initial));
-    expect(separator.getAttribute("aria-orientation")).toBe("vertical");
+    render(<Splitter panel="activity" label="Resize activity panel" grows="up" />);
+    const separator: HTMLElement = screen.getByRole("separator", { name: "Resize activity panel" });
+    expect(separator.getAttribute("aria-valuenow")).toBe(String(PANEL_LIMITS.activity.initial));
+    expect(separator.getAttribute("aria-orientation")).toBe("horizontal");
   });
 
   it("resizes with arrow keys in the panel's growth direction and jumps with Home/End", () => {
-    render(<Splitter panel="inspector" label="Resize inspector" grows="left" />);
+    render(<Splitter panel="activity" label="Resize activity panel" grows="up" />);
     const separator: HTMLElement = screen.getByRole("separator");
-    fireEvent.keyDown(separator, { key: "ArrowLeft" });
-    expect(usePreferences.getState().sizes.inspector).toBe(PANEL_LIMITS.inspector.initial + 16);
-    fireEvent.keyDown(separator, { key: "ArrowRight" });
-    expect(usePreferences.getState().sizes.inspector).toBe(PANEL_LIMITS.inspector.initial);
+    fireEvent.keyDown(separator, { key: "ArrowUp" });
+    expect(usePreferences.getState().sizes.activity).toBe(PANEL_LIMITS.activity.initial + 16);
+    fireEvent.keyDown(separator, { key: "ArrowDown" });
+    expect(usePreferences.getState().sizes.activity).toBe(PANEL_LIMITS.activity.initial);
     fireEvent.keyDown(separator, { key: "End" });
-    expect(usePreferences.getState().sizes.inspector).toBe(PANEL_LIMITS.inspector.max);
+    expect(usePreferences.getState().sizes.activity).toBe(PANEL_LIMITS.activity.max);
     fireEvent.keyDown(separator, { key: "Home" });
-    expect(usePreferences.getState().sizes.inspector).toBe(PANEL_LIMITS.inspector.min);
+    expect(usePreferences.getState().sizes.activity).toBe(PANEL_LIMITS.activity.min);
   });
 
   it("resets on double-click", () => {
-    usePreferences.getState().setSize("inspector", 400);
-    render(<Splitter panel="inspector" label="Resize inspector" grows="left" />);
+    usePreferences.getState().setSize("activity", 400);
+    render(<Splitter panel="activity" label="Resize activity panel" grows="up" />);
     fireEvent.doubleClick(screen.getByRole("separator"));
-    expect(usePreferences.getState().sizes.inspector).toBe(PANEL_LIMITS.inspector.initial);
+    expect(usePreferences.getState().sizes.activity).toBe(PANEL_LIMITS.activity.initial);
   });
 });

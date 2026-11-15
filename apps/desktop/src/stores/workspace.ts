@@ -1,8 +1,28 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { SECTIONS, type SectionId } from "../app/navigation";
 
-/** The side of a file whose change is selected in the Changes workspace. */
+/**
+ * Where the user is on the thread. There are no sections or pages: the
+ * position is a node in focus and, optionally, the one node unfolded.
+ *
+ * Node ids: "now" is the loose end (the working tree); "c:<oid>" a commit
+ * on the thread; "m:<oid>" a node on the map.
+ */
+export type NodeId = string;
+export const LOOSE_END: NodeId = "now";
+
+export function commitNode(oid: string): NodeId {
+  return `c:${oid}`;
+}
+export function mapNode(oid: string): NodeId {
+  return `m:${oid}`;
+}
+/** The commit id a node refers to, if any. */
+export function oidOf(node: NodeId | null): string | null {
+  return node !== null && (node.startsWith("c:") || node.startsWith("m:")) ? node.slice(2) : null;
+}
+
+/** The side of a file whose change is selected (kept for the review stream). */
 export type ChangeSide = "staged" | "unstaged";
 
 export interface ChangeSelection {
@@ -18,89 +38,51 @@ interface WorkspaceState {
    * belongs to the WebView profile, so the path is the stable identity.
    */
   activeRepositoryPath: string | null;
-  section: SectionId;
-  /** Last section used per repository path, restored when switching back. */
-  lastSectionByRepository: Record<string, SectionId>;
+  focus: NodeId | null;
+  unfolded: NodeId | null;
+  /** File in focus inside the unfolded loose end. */
   selectedChange: ChangeSelection | null;
-  /** Selected commit in History (full object id). */
-  selectedCommit: string | null;
   openRepository: (repositoryId: number, path: string) => void;
   closeRepository: () => void;
-  showSection: (section: SectionId) => void;
+  setFocus: (node: NodeId | null) => void;
+  /** Unfolds a node (focusing it), or folds it when it is already unfolded. */
+  toggleUnfold: (node: NodeId) => void;
+  unfold: (node: NodeId | null) => void;
   selectChange: (selection: ChangeSelection | null) => void;
-  selectCommit: (oid: string | null) => void;
 }
-
-const REPOSITORY_SECTIONS: ReadonlySet<SectionId> = new Set(
-  SECTIONS.filter((section) => section.repositoryScoped && section.available).map((section) => section.id),
-);
 
 export const useWorkspace = create<WorkspaceState>()(
   persist(
     (set) => ({
       activeRepositoryId: null,
       activeRepositoryPath: null,
-      section: "repositories",
-      lastSectionByRepository: {},
+      focus: null,
+      unfolded: null,
       selectedChange: null,
-      selectedCommit: null,
       openRepository: (repositoryId: number, path: string) =>
-        set((state) => {
-          const remembered: SectionId | undefined = state.lastSectionByRepository[path];
-          const section: SectionId =
-            remembered !== undefined && REPOSITORY_SECTIONS.has(remembered) ? remembered : "overview";
-          return {
-            activeRepositoryId: repositoryId,
-            activeRepositoryPath: path,
-            section,
-            selectedChange: repositoryId === state.activeRepositoryId ? state.selectedChange : null,
-            selectedCommit: repositoryId === state.activeRepositoryId ? state.selectedCommit : null,
-          };
-        }),
+        set((state) =>
+          repositoryId === state.activeRepositoryId
+            ? { activeRepositoryPath: path }
+            : { activeRepositoryId: repositoryId, activeRepositoryPath: path, focus: LOOSE_END, unfolded: null, selectedChange: null },
+        ),
       closeRepository: () =>
-        set({
-          activeRepositoryId: null,
-          activeRepositoryPath: null,
-          section: "repositories",
-          selectedChange: null,
-          selectedCommit: null,
-        }),
-      showSection: (section: SectionId) =>
-        set((state) => ({
-          section,
-          lastSectionByRepository:
-            state.activeRepositoryPath !== null && REPOSITORY_SECTIONS.has(section)
-              ? { ...state.lastSectionByRepository, [state.activeRepositoryPath]: section }
-              : state.lastSectionByRepository,
-        })),
+        set({ activeRepositoryId: null, activeRepositoryPath: null, focus: null, unfolded: null, selectedChange: null }),
+      setFocus: (focus: NodeId | null) => set({ focus }),
+      toggleUnfold: (node: NodeId) =>
+        set((state) => ({ focus: node, unfolded: state.unfolded === node ? null : node })),
+      unfold: (unfolded: NodeId | null) => set((state) => ({ unfolded, focus: unfolded ?? state.focus })),
       selectChange: (selectedChange: ChangeSelection | null) => set({ selectedChange }),
-      selectCommit: (selectedCommit: string | null) => set({ selectedCommit }),
     }),
     {
       name: "rustgit.workspace",
-      // Version 2 keys sections by path; version 1 keyed them by database id.
-      version: 2,
-      migrate: () => ({ lastSectionByRepository: {}, lastRepositoryPath: null }),
+      // Version 3: the thread model (no sections). Earlier data is dropped.
+      version: 3,
+      migrate: () => ({ lastRepositoryPath: null }),
       storage: createJSONStorage(() => localStorage),
-      // The active repository itself is not restored from storage: only its
-      // path, which is matched against the registry and reopened through
-      // `open_repository` so a moved or deleted repository is detected.
-      partialize: (state) => ({
-        lastSectionByRepository: state.lastSectionByRepository,
-        lastRepositoryPath: state.activeRepositoryPath,
-      }),
-      merge: (persisted, current) => {
-        const stored = (persisted ?? {}) as { lastSectionByRepository?: unknown };
-        const map: Record<string, SectionId> = {};
-        if (typeof stored.lastSectionByRepository === "object" && stored.lastSectionByRepository !== null) {
-          for (const [key, value] of Object.entries(stored.lastSectionByRepository as Record<string, unknown>)) {
-            if (typeof value === "string" && REPOSITORY_SECTIONS.has(value as SectionId)) {
-              map[key] = value as SectionId;
-            }
-          }
-        }
-        return { ...current, lastSectionByRepository: map };
-      },
+      // The active repository is restored by path through `open_repository`,
+      // so a moved or deleted repository is detected.
+      partialize: (state) => ({ lastRepositoryPath: state.activeRepositoryPath }),
+      merge: (_persisted, current) => current,
     },
   ),
 );

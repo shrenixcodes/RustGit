@@ -1,5 +1,4 @@
 import { memo } from "react";
-import { OpenNode } from "../../components/Mark";
 import type { GraphRow, LaneLine } from "./graphLayout";
 
 /** Lanes beyond this are clipped; the column never grows wider. */
@@ -23,15 +22,20 @@ interface GraphCellProps {
   laneWidth: number;
   head: boolean;
   selected: boolean;
+  /**
+   * Lane of the uncommitted link from the loose end down to HEAD: "full"
+   * on rows between them, "top" on the HEAD row itself.
+   */
+  uncommitted?: { lane: number; span: "full" | "top" } | undefined;
 }
 
 /**
  * One row of the lineage. Lines come from the lane layout: lanes passing
  * through, edges from children above, edges to parents below. Node shapes
  * carry meaning: a point is a commit, paired points a merge (one per side,
- * each in its parent's lane colour), a short bar a root, the open node HEAD.
+ * each in its parent's lane colour), a short bar a root, a clay point HEAD.
  */
-export const GraphCell = memo(function GraphCell({ row, width, height, laneWidth, head, selected }: GraphCellProps) {
+export const GraphCell = memo(function GraphCell({ row, width, height, laneWidth, head, selected, uncommitted }: GraphCellProps) {
   const x = (lane: number): number => laneWidth / 2 + lane * laneWidth;
   const mid: number = height / 2;
   const nodeX: number = x(row.lane);
@@ -40,6 +44,17 @@ export const GraphCell = memo(function GraphCell({ row, width, height, laneWidth
 
   return (
     <svg data-graph-cell aria-hidden width={width} height={height} className="shrink-0 overflow-visible" style={{ display: "block" }}>
+      {uncommitted !== undefined && uncommitted.lane < MAX_DRAWN_LANES && (
+        <line
+          x1={x(uncommitted.lane)}
+          y1={0}
+          x2={x(uncommitted.lane)}
+          y2={uncommitted.span === "full" ? height : mid}
+          stroke="var(--rg-accent)"
+          strokeWidth={STROKE}
+          strokeDasharray="2 3"
+        />
+      )}
       {row.passing.filter(visible).map((line: LaneLine) => (
         <line
           key={`p${line.lane}`}
@@ -96,11 +111,8 @@ function Node({
     <g>
       {selected && <circle cx={cx} cy={cy} r={7.5 * scale} fill="none" stroke="var(--rg-accent)" strokeOpacity={0.55} strokeWidth={1} />}
       {head ? (
-        <>
-          <circle cx={cx} cy={cy} r={5.5 * scale} fill={halo} />
-          <OpenNode cx={cx} cy={cy} r={5 * scale} stroke="var(--rg-clay)" width={1.5} />
-          <circle cx={cx} cy={cy} r={2.2 * scale} fill={color} />
-        </>
+        // HEAD: the present commit, a solid clay point. The open node belongs to the loose end above it.
+        <circle cx={cx} cy={cy} r={4 * scale} fill="var(--rg-clay)" stroke={halo} strokeWidth={1.5} />
       ) : row.merge ? (
         <>
           <circle cx={cx - 2.4 * scale} cy={cy} r={2.9 * scale} fill={color} stroke={halo} strokeWidth={1.25} />

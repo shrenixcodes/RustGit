@@ -22,10 +22,13 @@ interface WorkspaceState {
   /** Last section used per repository path, restored when switching back. */
   lastSectionByRepository: Record<string, SectionId>;
   selectedChange: ChangeSelection | null;
+  /** Selected commit in History (full object id). */
+  selectedCommit: string | null;
   openRepository: (repositoryId: number, path: string) => void;
   closeRepository: () => void;
   showSection: (section: SectionId) => void;
   selectChange: (selection: ChangeSelection | null) => void;
+  selectCommit: (oid: string | null) => void;
 }
 
 const REPOSITORY_SECTIONS: ReadonlySet<SectionId> = new Set(
@@ -40,6 +43,7 @@ export const useWorkspace = create<WorkspaceState>()(
       section: "repositories",
       lastSectionByRepository: {},
       selectedChange: null,
+      selectedCommit: null,
       openRepository: (repositoryId: number, path: string) =>
         set((state) => {
           const remembered: SectionId | undefined = state.lastSectionByRepository[path];
@@ -50,10 +54,17 @@ export const useWorkspace = create<WorkspaceState>()(
             activeRepositoryPath: path,
             section,
             selectedChange: repositoryId === state.activeRepositoryId ? state.selectedChange : null,
+            selectedCommit: repositoryId === state.activeRepositoryId ? state.selectedCommit : null,
           };
         }),
       closeRepository: () =>
-        set({ activeRepositoryId: null, activeRepositoryPath: null, section: "repositories", selectedChange: null }),
+        set({
+          activeRepositoryId: null,
+          activeRepositoryPath: null,
+          section: "repositories",
+          selectedChange: null,
+          selectedCommit: null,
+        }),
       showSection: (section: SectionId) =>
         set((state) => ({
           section,
@@ -63,6 +74,7 @@ export const useWorkspace = create<WorkspaceState>()(
               : state.lastSectionByRepository,
         })),
       selectChange: (selectedChange: ChangeSelection | null) => set({ selectedChange }),
+      selectCommit: (selectedCommit: string | null) => set({ selectedCommit }),
     }),
     {
       name: "rustgit.workspace",

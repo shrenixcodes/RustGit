@@ -61,12 +61,13 @@ describe("NavRail", () => {
     expect(screen.getByRole("button", { name: /Settings/ }).hasAttribute("disabled")).toBe(false);
   });
 
-  it("explains why unimplemented sections are unavailable", () => {
+  it("explains why unbuilt sections are unavailable", () => {
     useWorkspace.setState({ activeRepositoryId: 1, section: "overview" });
     renderWithClient(<NavRail />);
-    const history: HTMLElement = screen.getByRole("button", { name: /History/ });
-    expect(history.hasAttribute("disabled")).toBe(true);
-    expect(history.getAttribute("title")).toContain("commit log");
+    const branches: HTMLElement = screen.getByRole("button", { name: /Branches/ });
+    expect(branches.hasAttribute("disabled")).toBe(true);
+    expect(branches.getAttribute("title")).toContain("not built yet");
+    expect(screen.getByRole("button", { name: /History/ }).hasAttribute("disabled")).toBe(false);
   });
 
   it("navigates to an enabled section and marks it current", async () => {

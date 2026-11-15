@@ -7,10 +7,12 @@ import { useInspector } from "./WorkspaceLayout";
 import { SECTIONS, isSectionEnabled, type SectionDefinition, type SectionId } from "./navigation";
 import { useShortcuts, type ShortcutBinding } from "./shortcuts";
 import { ChangesView } from "../features/changes/ChangesView";
+import { HistoryView } from "../features/history/HistoryView";
 import { OverviewView } from "../features/overview/OverviewView";
 import { RepositoriesView } from "../features/repositories/RepositoriesView";
 import { SettingsView } from "../features/settings/SettingsView";
 import { toIpcError } from "../services/ipc";
+import { useRepositoryWatcher } from "../services/repositoryEvents";
 import { queryKeys, useOpenRepository, useRepositories } from "../services/queries";
 import type { RepositoryEntry } from "../services/types";
 import { usePreferences } from "../stores/preferences";
@@ -24,6 +26,7 @@ export function AppShell() {
 
   useGlobalShortcuts();
   useRestoreLastRepository();
+  useRepositoryWatcher(activeRepositoryId);
 
   return (
     <div className="flex h-full flex-col bg-bg text-fg">
@@ -45,6 +48,8 @@ function renderSection(section: SectionId, repositoryId: number | null) {
       return <SettingsView />;
     case "overview":
       return repositoryId === null ? <RepositoriesView /> : <OverviewView repositoryId={repositoryId} />;
+    case "history":
+      return repositoryId === null ? <RepositoriesView /> : <HistoryView repositoryId={repositoryId} />;
     case "changes":
       return repositoryId === null ? <RepositoriesView /> : <ChangesView repositoryId={repositoryId} />;
     default:

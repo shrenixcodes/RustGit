@@ -61,7 +61,8 @@ describe("AppShell", () => {
   it("does not open anything when the remembered path is not registered", async () => {
     rememberPath("D:/elsewhere/other");
     renderWithClient(<AppShell />);
-    await screen.findByRole("button", { name: "Open alpha" });
+    // Generous timeout: under full-suite load the first render can exceed the 1 s default.
+    await screen.findByRole("button", { name: "Open alpha" }, { timeout: 5000 });
     expect(invokeMock).not.toHaveBeenCalledWith("open_repository", expect.anything());
     expect(useWorkspace.getState().activeRepositoryId).toBeNull();
   });

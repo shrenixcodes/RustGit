@@ -1,14 +1,27 @@
 import {
   MutationCache,
   QueryClient,
+  useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
+  type InfiniteData,
+  type UseInfiniteQueryResult,
   type UseMutationResult,
   type UseQueryResult,
 } from "@tanstack/react-query";
 import { ipc, toIpcError, type IpcError } from "./ipc";
-import type { GitInfo, RepositoryEntry, Settings, StatusSnapshot, ThemePreference } from "./types";
+import type {
+  CommitDetails,
+  GitInfo,
+  LogPage,
+  LogSearch,
+  RefList,
+  RepositoryEntry,
+  Settings,
+  StatusSnapshot,
+  ThemePreference,
+} from "./types";
 import { useActivity } from "../stores/activity";
 
 declare module "@tanstack/react-query" {
@@ -20,11 +33,30 @@ declare module "@tanstack/react-query" {
   }
 }
 
+/** Filters for the history log. `revision` null walks every branch, remote branch and tag. */
+export interface LogFilters {
+  revision: string | null;
+  search: LogSearch | null;
+  /** Unix seconds, inclusive bounds. */
+  since: number | null;
+  until: number | null;
+}
+
+/** Commits per `log_page` request (contract allows 1–2000). */
+export const LOG_PAGE_SIZE = 300;
+
+// Every repository-scoped key starts with ["repositories", id], so a
+// repository can be invalidated as a whole.
 export const queryKeys = {
   gitInfo: ["git-info"] as const,
   settings: ["settings"] as const,
   repositories: ["repositories"] as const,
+  repository: (repositoryId: number) => ["repositories", repositoryId] as const,
   status: (repositoryId: number) => ["repositories", repositoryId, "status"] as const,
+  refs: (repositoryId: number) => ["repositories", repositoryId, "refs"] as const,
+  logAll: (repositoryId: number) => ["repositories", repositoryId, "log"] as const,
+  log: (repositoryId: number, filters: LogFilters) => ["repositories", repositoryId, "log", filters] as const,
+  commit: (repositoryId: number, oid: string) => ["repositories", repositoryId, "commit", oid] as const,
 };
 
 /** Extracts a repository id from mutation variables when the variables carry one. */
@@ -124,3 +156,45 @@ export const useSetRepositoryPinned = () =>
   useRepositoryListMutation("Change repository pin", ({ id, pinned }: { id: number; pinned: boolean }) =>
     ipc.setRepositoryPinned(id, pinned),
   );
+
+export function useRefs(repositoryId: number): UseQueryResult<RefList, IpcError> {
+  return useQuery({ queryKey: queryKeys.refs(repositoryId), queryFn: () => ipc.listRefs(repositoryId), staleTime: 10_000 });
+}
+
+/**
+ * Paged history. Pages are requested on demand (never the whole log), and
+ * unchanged page objects keep their identity across refetches (structural
+ * sharing), which the incremental graph layout relies on.
+ */
+export function useLogPages(
+  repositoryId: number,
+  filters: LogFilters,
+): UseInfiniteQueryResult<InfiniteData<LogPage, number>, IpcError> {
+  return useInfiniteQuery({
+    queryKey: queryKeys.log(repositoryId, filters),
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) =>
+      ipc.logPage({
+        id: repositoryId,
+        revisions: filters.revision === null ? null : [filters.revision],
+        skip: pageParam,
+        limit: LOG_PAGE_SIZE,
+        search: filters.search,
+        since: filters.since,
+        until: filters.until,
+      }),
+    getNextPageParam: (lastPage: LogPage, pages: LogPage[]) =>
+      lastPage.hasMore ? pages.reduce((count: number, page: LogPage) => count + page.commits.length, 0) : undefined,
+    staleTime: 10_000,
+  });
+}
+
+export function useCommitDetails(repositoryId: number, oid: string | null): UseQueryResult<CommitDetails, IpcError> {
+  return useQuery({
+    queryKey: queryKeys.commit(repositoryId, oid ?? ""),
+    queryFn: () => ipc.commitDetails(repositoryId, oid ?? ""),
+    enabled: oid !== null,
+    // A commit id names immutable content.
+    staleTime: Infinity,
+  });
+}

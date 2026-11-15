@@ -43,6 +43,10 @@ Local machine issues found (not project defects, not changed by the build):
 | F-5 | CI workflow                                  | VERIFIED  | `5343893` |
 | F-6 | README                                       | VERIFIED  | `1050f60` |
 | F-7 | GitHub repository metadata                   | VERIFIED  | n/a       |
+| A-1 | Repository registry, settings store, IPC     | COMMITTED | `6abdee7` |
+| A-2 | Typed IPC client                             | COMMITTED | `6e48c5e` |
+| A-3 | App shell and repository manager            | COMMITTED | `460f946` |
+| A-4 | Native Windows smoke test (CI: BLOCKED)      | COMMITTED | `21bb177` |
 
 ### F-1 Repository configuration and license
 
@@ -113,6 +117,79 @@ https://github.com/shrenixcodes/RustGit/actions/runs/43726161791
 
 Description set; 20 topics set (the maximum GitHub allows) as requested.
 
+### A-1 Repository registry, settings store, IPC commands
+
+New crate `crates/core` (no Tauri dependency): SQLite store (rusqlite 0.43,
+bundled SQLite) with `user_version` migrations
+(`crates/core/migrations/0001_initial.sql`), tables `repositories` and
+`settings`; per-repository reader/writer locks; `CommandError` with stable
+`kind` values. The desktop crate exposes `git_info`, `get_settings`,
+`set_theme`, `list_repositories`, `add_repository`, `init_repository`,
+`open_repository`, `set_repository_pinned`, `remove_repository` and
+`repository_status`. Each is declared in the build-script app manifest and
+granted explicitly in `capabilities/default.json`. Git and SQLite calls run
+on the blocking thread pool.
+
+Tests: 11 unit tests in `rustgit-core` (migrations, newer-schema rejection,
+upsert idempotency, pin ordering, missing ids, theme default/persist/invalid
+fallback, error mapping and serialization, lock semantics).
+
+Note: the desktop crate's test harness is disabled (`test = false`). Rust
+test binaries do not receive the Windows common-controls v6 manifest that
+Tauri's dialog stack requires and fail to load with
+`STATUS_ENTRYPOINT_NOT_FOUND`; logic was moved to `crates/core` so it stays
+testable. The application binary itself loads correctly.
+
+### A-2 Typed IPC client
+
+`src/services/types.ts` mirrors the Rust serde types; `src/services/ipc.ts`
+wraps every command and converts failures into `IpcError` with a typed kind.
+Tests: 3 Vitest tests.
+
+### A-3 App shell and repository manager
+
+Sidebar with all planned sections; unimplemented ones are disabled and
+labelled "Soon" (History, Branches, Stashes, Worktrees, Remotes, Pull
+Requests). Implemented: Repositories (add via native folder picker, create
+via `git init`, open with validation, pin, search, remove from list without
+deleting files, actionable error for moved/deleted repositories), Overview
+(branch, commit, upstream, ahead/behind, staged/unstaged/untracked/conflicted
+counts), Changes (read-only staged/unstaged/conflicted lists), Settings
+(persisted theme, detected Git version and executable). Status refreshes on
+window focus or the Refresh button; nothing polls.
+
+Tests: Vitest 18 passed (repository view: empty state, add via dialog,
+cancelled dialog, missing repository error and removal, search; sidebar
+enable/disable and navigation; change grouping and counts; theme; IPC).
+
+Known limitations: staging, committing, and filesystem-event refresh are not
+implemented; file lists are not virtualized yet; layout is not persisted.
+
+### A-4 Native Windows smoke test
+
+`apps/desktop/tests/native/windows-smoke.mjs` launches the built executable
+with `RUSTGIT_DATA_DIR` pointing at a temporary directory, connects to the
+WebView2 through the DevTools protocol (playwright-core, no bundled browser)
+and drives the real UI against a disposable repository. The folder picker is
+a native dialog and is bypassed by invoking the same `add_repository`
+command it feeds; everything else goes through the UI.
+
+Local result (Windows 11, debug build with embedded frontend): passed:
+empty list, add and open, overview counts and commit id match Git, changes
+list, refresh after an external file creation, theme persisted across
+reload, window close with exit code 0, no errors in the application log.
+
+CI status: BLOCKED. On `windows-latest` the WebView2 runtime is not
+registered by default; after installing it (156.0.4314.58) with Microsoft's
+bootstrapper the application starts and opens its database, but the
+DevTools port never opens within 60 s (runs 43729125015, 43729658255,
+43730094906, 43730706203). The job lives in the manually triggered
+`.github/workflows/native-smoke.yml` until the cause is found, so `ci.yml`
+reports only checks that actually pass.
+
+Linux (WebKitGTK) and macOS (WKWebView) do not expose the DevTools protocol;
+native smoke testing on those platforms is not implemented yet.
+
 ## Initial quality checks (2026-11-15)
 
 | Check                                 | Result                         |
@@ -130,7 +207,7 @@ Description set; 20 topics set (the maximum GitHub allows) as requested.
 
 ## Not started
 
-Application shell, repository manager, staging, commits, branches, history
+Staging, commits, branches, history
 graph, diff viewer, remotes, stashes, worktrees, GitHub integration, settings
 persistence (SQLite), filesystem watching, performance benchmarks, native
 smoke tests in CI, installers and releases.

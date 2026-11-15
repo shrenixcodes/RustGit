@@ -1,0 +1,25 @@
+[package]
+name = "rustgit-core"
+description = "Application services for RustGit independent of the UI shell: persistence, locking and error contracts"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+rustgit-git-engine = { path = "../git-engine" }
+rusqlite = { version = "0.43.0", features = ["bundled"] }
+serde.workspace = true
+thiserror.workspace = true
+tokio = { version = "1.54.1", features = ["sync"] }
+tracing.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+tempfile.workspace = true
+tokio = { version = "1.54.1", features = ["sync", "macros", "rt", "time"] }
+
+[lints]
+workspace = true

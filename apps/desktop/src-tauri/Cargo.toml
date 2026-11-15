@@ -8,19 +8,27 @@ repository.workspace = true
 rust-version.workspace = true
 publish = false
 
+# Tauri glue only; logic and its tests live in crates/core and crates/git-engine.
+# Test harness binaries lack the Windows common-controls manifest Tauri needs.
 [lib]
 name = "rustgit_desktop"
 path = "src/lib.rs"
+test = false
+doctest = false
 
 [[bin]]
 name = "rustgit"
 path = "src/main.rs"
+test = false
 
 [build-dependencies]
 tauri-build = { version = "2.7.4", features = [] }
 
 [dependencies]
+rustgit-core = { path = "../../../crates/core" }
+rustgit-git-engine = { path = "../../../crates/git-engine" }
 tauri = { version = "2.12.5", features = [] }
+tauri-plugin-dialog = "2.8.4"
 serde.workspace = true
 serde_json.workspace = true
 tracing.workspace = true
@@ -28,3 +36,4 @@ tracing-subscriber.workspace = true
 
 [lints]
 workspace = true
+

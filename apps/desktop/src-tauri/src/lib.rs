@@ -24,7 +24,11 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app: &mut tauri::App| {
-            let data_dir: PathBuf = app.path().app_data_dir()?;
+            // RUSTGIT_DATA_DIR isolates state for portable use and automated tests.
+            let data_dir: PathBuf = match std::env::var_os("RUSTGIT_DATA_DIR") {
+                Some(dir) => PathBuf::from(dir),
+                None => app.path().app_data_dir()?,
+            };
             let database_path: PathBuf = data_dir.join(DATABASE_FILE);
             tracing::info!(path = %database_path.display(), "opening database");
             let database: Database = Database::open(&database_path)?;

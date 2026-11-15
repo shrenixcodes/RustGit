@@ -24,3 +24,4 @@ Thumbs.db
 # Test and benchmark output
 /test-results/
 /playwright-report/
+smoke-screenshots/

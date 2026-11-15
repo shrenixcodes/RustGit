@@ -13,10 +13,10 @@ export function App() {
   }, []);
 
   return (
-    <main>
-      <h1>RustGit</h1>
-      <p>Git, without the overhead.</p>
-      {version !== null && <p>Version {version}</p>}
+    <main className="flex h-full flex-col items-center justify-center gap-2 bg-bg text-fg">
+      <h1 className="text-lg font-semibold">RustGit</h1>
+      <p className="text-fg-secondary">Git, without the overhead.</p>
+      {version !== null && <p className="font-mono text-sm text-fg-muted tabular-nums">v{version}</p>}
     </main>
   );
 }

@@ -9,3 +9,7 @@ at your option.
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in RustGit by you, as defined in the Apache-2.0 license, shall be
 dual licensed as above, without any additional terms or conditions.
+
+Bundled fonts (apps/desktop/src/styles/fonts) are distributed under the SIL
+Open Font License 1.1: Inter (Inter-OFL.txt) and JetBrains Mono
+(JetBrainsMono-OFL.txt).

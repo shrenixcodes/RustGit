@@ -1,0 +1,55 @@
+/*
+ * RustGit design tokens.
+ *
+ * Text and status colors meet WCAG 2.1 AA (>= 4.5:1) on every surface of their
+ * theme; control borders and focus rings meet 3:1 (WCAG 1.4.11). Values that
+ * differ from the original brief were adjusted in lightness only, to pass:
+ *   dark  text-muted      #747E89 -> #868F98
+ *   light text-secondary  #626B75 -> #4E565F (keeps hierarchy above muted)
+ *   light text-muted      #89919A -> #646C75
+ *   light accent          #426FAF -> #406BA9
+ *   light success         #32835A -> #2E7852
+ *   light warning         #A86D21 -> #935F1D
+ *   light danger          #BD4848 -> #BA4343
+ */
+
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --rg-bg: #111315;
+  --rg-sidebar: #15181b;
+  --rg-surface: #191d21;
+  --rg-elevated: #20252a;
+  --rg-border: #2a3036;
+  --rg-border-control: #63717f;
+  --rg-text: #e8eaed;
+  --rg-text-secondary: #a0a8b2;
+  --rg-text-muted: #868f98;
+  --rg-accent: #7299d8;
+  --rg-accent-contrast: #111315;
+  --rg-success: #63b58a;
+  --rg-warning: #d7aa64;
+  --rg-danger: #d97878;
+  --rg-selection: rgb(114 153 216 / 0.18);
+  --rg-hover: rgb(232 234 237 / 0.05);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --rg-bg: #f5f6f7;
+  --rg-sidebar: #eef0f2;
+  --rg-surface: #ffffff;
+  --rg-elevated: #ffffff;
+  --rg-border: #e3e6e9;
+  --rg-border-control: #7c8a98;
+  --rg-text: #24282d;
+  --rg-text-secondary: #4e565f;
+  --rg-text-muted: #646c75;
+  --rg-accent: #406ba9;
+  --rg-accent-contrast: #ffffff;
+  --rg-success: #2e7852;
+  --rg-warning: #935f1d;
+  --rg-danger: #ba4343;
+  --rg-selection: rgb(64 107 169 / 0.14);
+  --rg-hover: rgb(36 40 45 / 0.05);
+}

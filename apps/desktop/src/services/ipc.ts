@@ -1,11 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
-  AuthorIdentity,
   ChangeTotals,
   CommandError,
   CommandRecord,
+  CommitContext,
   CommitResult,
-  DiffSide,
+  WorkingDiffSide,
   ErrorKind,
   FileDiff,
   GitInfo,
@@ -80,25 +80,30 @@ export const ipc = {
     id: number;
     path: string;
     originalPath?: string | null;
-    side: DiffSide;
+    side: WorkingDiffSide;
     ignoreWhitespace: boolean;
-  }): Promise<FileDiff> => call("file_diff", { originalPath: null, ...args }),
+    /** 0..20, default 3. apply_hunk must use the same value. */
+    contextLines?: number | null;
+  }): Promise<FileDiff> => call("file_diff", { originalPath: null, contextLines: null, ...args }),
   /** "discard" is destructive: confirm with the user first. */
   applyHunk: (args: {
     id: number;
     path: string;
-    side: DiffSide;
+    side: WorkingDiffSide;
     action: HunkAction;
     hunkHeader: string;
     lineIndices?: number[] | null;
-  }): Promise<StatusSnapshot> => call("apply_hunk", { lineIndices: null, ...args }),
-  changeTotals: (id: number, side: DiffSide): Promise<ChangeTotals> => call("change_totals", { id, side }),
+    contextLines?: number | null;
+  }): Promise<StatusSnapshot> => call("apply_hunk", { lineIndices: null, contextLines: null, ...args }),
+  changeTotals: (id: number, side: WorkingDiffSide): Promise<ChangeTotals> =>
+    call("change_totals", { id, side }),
 
   // Commits (contract C-1).
-  authorIdentity: (id: number): Promise<AuthorIdentity> => call("author_identity", { id }),
-  lastCommitMessage: (id: number): Promise<string | null> => call("last_commit_message", { id }),
+  commitContext: (id: number): Promise<CommitContext> => call("commit_context", { id }),
   createCommit: (id: number, message: string, amend: boolean): Promise<CommitResult> =>
     call("create_commit", { id, message, amend }),
 
-  commandHistory: (): Promise<CommandRecord[]> => call("command_history"),
+  commandHistory: (filter: { repositoryId?: number | null; sinceSequence?: number | null } = {}): Promise<
+    CommandRecord[]
+  > => call("command_history", { repositoryId: null, sinceSequence: null, ...filter }),
 } as const;

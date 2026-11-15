@@ -19,6 +19,8 @@ pub enum DiffSide {
     Staged,
     /// Working tree compared with the index.
     Unstaged,
+    /// A commit compared with its first parent (output only).
+    Commit,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -84,10 +86,30 @@ pub struct DiffRequest<'a> {
     pub original_path: Option<&'a str>,
     pub side: DiffSide,
     pub ignore_whitespace: bool,
+    /// Lines of context around changes (0..=20, Git's default is 3).
+    pub context_lines: u32,
+}
+
+pub const DEFAULT_CONTEXT_LINES: u32 = 3;
+const MAX_CONTEXT_LINES: u32 = 20;
+
+pub(crate) fn unified_arg(context_lines: u32) -> GitResult<String> {
+    if context_lines > MAX_CONTEXT_LINES {
+        return Err(GitError::InvalidRequest(format!(
+            "contextLines must be between 0 and {MAX_CONTEXT_LINES}"
+        )));
+    }
+    Ok(format!("--unified={context_lines}"))
 }
 
 pub fn file_diff(git: &GitExecutor, root: &Path, request: &DiffRequest<'_>) -> GitResult<FileDiff> {
     validate_relative_path(request.path)?;
+    if request.side == DiffSide::Commit {
+        return Err(GitError::InvalidRequest(
+            "use commit_file_diff for commit diffs".to_owned(),
+        ));
+    }
+    let unified: String = unified_arg(request.context_lines)?;
     if let Some(original) = request.original_path {
         validate_relative_path(original)?;
     }
@@ -104,6 +126,7 @@ pub fn file_diff(git: &GitExecutor, root: &Path, request: &DiffRequest<'_>) -> G
                 "--no-index",
                 "--no-color",
                 "--no-ext-diff",
+                unified.as_str(),
                 "--",
                 "/dev/null",
                 request.path,
@@ -126,7 +149,7 @@ pub fn file_diff(git: &GitExecutor, root: &Path, request: &DiffRequest<'_>) -> G
             "--no-ext-diff",
             "--no-textconv",
             "--find-renames",
-            "--unified=3",
+            unified.as_str(),
         ];
         if request.side == DiffSide::Staged {
             args.push("--cached");

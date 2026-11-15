@@ -7,10 +7,10 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use rustgit_core::{CommandResult, Database};
+use rustgit_core::{CommandResult, Database, RepositoryEntry, owning_repository};
 use rustgit_git_engine::{
-    AuthorIdentity, ChangeTotals, CommandRecord, CreatedCommit, DiffRequest, DiffSide, FileDiff,
-    GitExecutor, GitResult, HunkAction, HunkRequest, StatusSnapshot,
+    ChangeTotals, CommandRecord, CommitContext, CreatedCommit, DEFAULT_CONTEXT_LINES, DiffRequest,
+    DiffSide, FileDiff, GitExecutor, GitResult, HunkAction, HunkRequest, StatusSnapshot,
 };
 use serde::Serialize;
 use tauri::State;
@@ -26,7 +26,11 @@ pub struct CommitResult {
 }
 
 /// Runs `operation` under the repository write lock and returns the fresh status.
-async fn mutate<F>(state: &AppState, id: i64, operation: F) -> CommandResult<StatusSnapshot>
+pub(crate) async fn mutate<F>(
+    state: &AppState,
+    id: i64,
+    operation: F,
+) -> CommandResult<StatusSnapshot>
 where
     F: FnOnce(&GitExecutor, &Path) -> GitResult<()> + Send + 'static,
 {
@@ -42,7 +46,7 @@ where
 }
 
 /// Runs a read-only `operation` under the repository read lock.
-async fn read<T, F>(state: &AppState, id: i64, operation: F) -> CommandResult<T>
+pub(crate) async fn read<T, F>(state: &AppState, id: i64, operation: F) -> CommandResult<T>
 where
     T: Send + 'static,
     F: FnOnce(&GitExecutor, &Path) -> GitResult<T> + Send + 'static,
@@ -57,7 +61,7 @@ where
     .await
 }
 
-fn repository_root(database: &Database, id: i64) -> CommandResult<PathBuf> {
+pub(crate) fn repository_root(database: &Database, id: i64) -> CommandResult<PathBuf> {
     Ok(PathBuf::from(database.get_repository(id)?.path))
 }
 
@@ -121,6 +125,7 @@ pub async fn file_diff(
     original_path: Option<String>,
     side: DiffSide,
     ignore_whitespace: bool,
+    context_lines: Option<u32>,
 ) -> CommandResult<FileDiff> {
     read(&state, id, move |git, root| {
         rustgit_git_engine::file_diff(
@@ -131,6 +136,7 @@ pub async fn file_diff(
                 original_path: original_path.as_deref(),
                 side,
                 ignore_whitespace,
+                context_lines: context_lines.unwrap_or(DEFAULT_CONTEXT_LINES),
             },
         )
     })
@@ -138,6 +144,10 @@ pub async fn file_diff(
 }
 
 #[tauri::command]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "each parameter is a top-level IPC field; a struct would nest the wire format"
+)]
 pub async fn apply_hunk(
     state: State<'_, AppState>,
     id: i64,
@@ -146,6 +156,7 @@ pub async fn apply_hunk(
     action: HunkAction,
     hunk_header: String,
     line_indices: Option<Vec<usize>>,
+    context_lines: Option<u32>,
 ) -> CommandResult<StatusSnapshot> {
     mutate(&state, id, move |git, root| {
         rustgit_git_engine::apply_hunk(
@@ -157,6 +168,7 @@ pub async fn apply_hunk(
                 action,
                 hunk_header: &hunk_header,
                 line_indices: line_indices.as_deref(),
+                context_lines: context_lines.unwrap_or(DEFAULT_CONTEXT_LINES),
             },
         )
     })
@@ -176,16 +188,8 @@ pub async fn change_totals(
 }
 
 #[tauri::command]
-pub async fn author_identity(state: State<'_, AppState>, id: i64) -> CommandResult<AuthorIdentity> {
-    read(&state, id, rustgit_git_engine::author_identity).await
-}
-
-#[tauri::command]
-pub async fn last_commit_message(
-    state: State<'_, AppState>,
-    id: i64,
-) -> CommandResult<Option<String>> {
-    read(&state, id, rustgit_git_engine::last_commit_message).await
+pub async fn commit_context(state: State<'_, AppState>, id: i64) -> CommandResult<CommitContext> {
+    read(&state, id, rustgit_git_engine::commit_context).await
 }
 
 #[tauri::command]
@@ -211,7 +215,38 @@ pub async fn create_commit(
     .await
 }
 
+/// A command record attributed to the registered repository it ran in.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HistoryEntry {
+    #[serde(flatten)]
+    pub record: CommandRecord,
+    pub repository_id: Option<i64>,
+}
+
 #[tauri::command]
-pub fn command_history(state: State<'_, AppState>) -> Vec<CommandRecord> {
-    state.git.history()
+pub async fn command_history(
+    state: State<'_, AppState>,
+    repository_id: Option<i64>,
+    since_sequence: Option<u64>,
+) -> CommandResult<Vec<HistoryEntry>> {
+    let records: Vec<CommandRecord> = state.git.history();
+    let database: Arc<Database> = Arc::clone(&state.database);
+    blocking(move || {
+        let repositories: Vec<RepositoryEntry> = database.list_repositories()?;
+        Ok(records
+            .into_iter()
+            .filter(|record: &CommandRecord| {
+                since_sequence.is_none_or(|since| record.sequence > since)
+            })
+            .map(|record: CommandRecord| HistoryEntry {
+                repository_id: owning_repository(&repositories, &record.cwd),
+                record,
+            })
+            .filter(|entry: &HistoryEntry| {
+                repository_id.is_none() || entry.repository_id == repository_id
+            })
+            .collect())
+    })
+    .await
 }

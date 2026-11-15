@@ -15,15 +15,17 @@ pub mod repository;
 pub mod status;
 
 pub use commit::{
-    AuthorIdentity, CreatedCommit, author_identity, create_commit, last_commit_message,
+    CommitContext, CreatedCommit, HeadCommit, SigningMode, commit_context, create_commit,
 };
 pub use diff::{
-    ChangeTotals, DiffFileStatus, DiffHunk, DiffLine, DiffLineKind, DiffRequest, DiffSide,
-    FileDiff, FileTotals, change_totals, file_diff,
+    ChangeTotals, DEFAULT_CONTEXT_LINES, DiffFileStatus, DiffHunk, DiffLine, DiffLineKind,
+    DiffRequest, DiffSide, FileDiff, FileTotals, change_totals, file_diff,
 };
 pub use error::{GitError, GitErrorKind, GitResult};
-pub use executor::{CommandRecord, GitExecutor};
+pub use executor::{CancelToken, CommandRecord, GitExecutor};
 pub use index::{discard_paths, stage_all, stage_paths, unstage_all, unstage_paths};
 pub use patch::{HunkAction, HunkRequest, apply_hunk};
 pub use repository::{RepositoryLocation, discover, init};
-pub use status::{BranchStatus, ChangeKind, FileStatus, StatusSnapshot, read_status};
+pub use status::{
+    BranchStatus, ChangeKind, FileStatus, InProgress, StatusSnapshot, in_progress, read_status,
+};

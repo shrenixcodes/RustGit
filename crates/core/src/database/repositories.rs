@@ -105,9 +105,53 @@ impl Database {
     }
 }
 
+/// The registered repository whose root is the longest prefix of `path`
+/// (separators normalized), e.g. to attribute a Git command's working
+/// directory to a repository.
+pub fn owning_repository(repositories: &[RepositoryEntry], path: &str) -> Option<i64> {
+    let normalized: String = path.replace('\\', "/");
+    repositories
+        .iter()
+        .filter(|entry: &&RepositoryEntry| {
+            let root: String = entry.path.replace('\\', "/");
+            normalized == root
+                || normalized.starts_with(&format!("{}/", root.trim_end_matches('/')))
+        })
+        .max_by_key(|entry: &&RepositoryEntry| entry.path.len())
+        .map(|entry: &RepositoryEntry| entry.id)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn entry(id: i64, path: &str) -> RepositoryEntry {
+        RepositoryEntry {
+            id,
+            path: path.to_owned(),
+            name: String::new(),
+            pinned: false,
+            added_at: 0,
+            last_opened_at: None,
+        }
+    }
+
+    #[test]
+    fn owning_repository_prefers_the_deepest_root() {
+        let entries: Vec<RepositoryEntry> = vec![
+            entry(1, "D:/code/app"),
+            entry(2, "D:/code/app/vendor/lib"),
+            entry(3, "D:/code/application"),
+        ];
+        assert_eq!(owning_repository(&entries, "D:/code/app"), Some(1));
+        assert_eq!(owning_repository(&entries, r"D:\code\app\src"), Some(1));
+        assert_eq!(
+            owning_repository(&entries, "D:/code/app/vendor/lib/x"),
+            Some(2)
+        );
+        assert_eq!(owning_repository(&entries, "D:/code/application"), Some(3));
+        assert_eq!(owning_repository(&entries, "D:/other"), None);
+    }
 
     #[test]
     fn upsert_is_idempotent_per_path() {

@@ -19,8 +19,7 @@ const COMMANDS: &[&str] = &[
     "file_diff",
     "apply_hunk",
     "change_totals",
-    "author_identity",
-    "last_commit_message",
+    "commit_context",
     "create_commit",
     "command_history",
 ];

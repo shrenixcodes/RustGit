@@ -210,11 +210,11 @@ try {
   if (totals.added !== 2 || totals.deleted !== 1) {
     throw new Error(`unexpected totals ${JSON.stringify(totals)}`);
   }
-  const identity = await ok("author_identity", { id });
-  if (identity.name !== "RustGit Smoke") {
-    throw new Error(`unexpected identity ${JSON.stringify(identity)}`);
+  const context = await ok("commit_context", { id });
+  if (context.authorName !== "RustGit Smoke" || context.head === null || context.inProgress !== "none") {
+    throw new Error(`unexpected commit context ${JSON.stringify(context)}`);
   }
-  step("change_totals and author_identity");
+  step("change_totals and commit_context");
 
   status = await ok("discard_paths", { id, paths: ["untracked.md", "later.txt"] });
   if (status.files.some((file) => file.path === "untracked.md" || file.path === "later.txt")) {
@@ -228,15 +228,23 @@ try {
   if (commit.status.files.length !== 0) {
     throw new Error(`tree not clean after commit: ${JSON.stringify(commit.status.files)}`);
   }
-  const message = await ok("last_commit_message", { id });
-  if (message !== COMMIT_MESSAGE) {
-    throw new Error(`unexpected last message ${JSON.stringify(message)}`);
+  const after = await ok("commit_context", { id });
+  if (after.head?.message !== COMMIT_MESSAGE) {
+    throw new Error(`unexpected HEAD message ${JSON.stringify(after.head)}`);
   }
-  const history = await ok("command_history");
-  if (!history.some((record) => record.args.includes("commit"))) {
-    throw new Error("command history does not contain the commit");
+  await failsWith("nothing_to_commit", "create_commit", { id, message: "empty", amend: false });
+  const history = await ok("command_history", { repositoryId: id, sinceSequence: null });
+  if (!history.some((record) => record.args.includes("commit") && record.repositoryId === id)) {
+    throw new Error("command history does not attribute the commit to the repository");
   }
-  step("discard, stage, commit, last_commit_message and command_history");
+  const newer = await ok("command_history", {
+    repositoryId: null,
+    sinceSequence: history[history.length - 1].sequence,
+  });
+  if (newer.some((record) => record.sequence <= history[history.length - 1].sequence)) {
+    throw new Error("sinceSequence filter returned older records");
+  }
+  step("discard, stage, commit, nothing_to_commit and filtered command_history");
 
   await browser.close();
   // taskkill without /F posts WM_CLOSE, i.e. a normal window close.

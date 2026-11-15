@@ -26,9 +26,8 @@
     "allow-file-diff",
     "allow-apply-hunk",
     "allow-change-totals",
-    "allow-author-identity",
-    "allow-last-commit-message",
     "allow-create-commit",
-    "allow-command-history"
+    "allow-command-history",
+    "allow-commit-context"
   ]
 }

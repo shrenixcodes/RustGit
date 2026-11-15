@@ -26,12 +26,14 @@ describe("ipc", () => {
       action: "stage",
       hunkHeader: "@@ -1 +1 @@",
       lineIndices: null,
+      contextLines: null,
     });
     await ipc.fileDiff({ id: 1, path: "a.rs", side: "staged", ignoreWhitespace: false });
     expect(invokeMock).toHaveBeenLastCalledWith("file_diff", {
       id: 1,
       path: "a.rs",
       originalPath: null,
+      contextLines: null,
       side: "staged",
       ignoreWhitespace: false,
     });

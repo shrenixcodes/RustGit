@@ -29,6 +29,8 @@ pub struct HunkRequest<'a> {
     pub hunk_header: &'a str,
     /// Indices into `DiffHunk::lines` of add/delete lines; `None` = whole hunk.
     pub line_indices: Option<&'a [usize]>,
+    /// Must match the context of the diff the hunk header came from.
+    pub context_lines: u32,
 }
 
 /// Applies one hunk (or a selection of its lines) to the index or worktree.
@@ -52,6 +54,7 @@ pub fn apply_hunk(git: &GitExecutor, root: &Path, request: &HunkRequest<'_>) -> 
             original_path: None,
             side: request.side,
             ignore_whitespace: false,
+            context_lines: request.context_lines,
         },
     )?;
     if diff.binary || diff.too_large {

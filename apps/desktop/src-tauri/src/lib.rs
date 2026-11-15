@@ -54,8 +54,7 @@ pub fn run() {
             commands::changes::file_diff,
             commands::changes::apply_hunk,
             commands::changes::change_totals,
-            commands::changes::author_identity,
-            commands::changes::last_commit_message,
+            commands::changes::commit_context,
             commands::changes::create_commit,
             commands::changes::command_history,
         ])

@@ -2,11 +2,12 @@
 
 mod support;
 
+use rustgit_git_engine::commit::SigningMode;
 use rustgit_git_engine::{
     ChangeKind, DiffFileStatus, DiffHunk, DiffLineKind, DiffRequest, DiffSide, FileDiff,
-    FileStatus, GitError, HunkAction, HunkRequest, StatusSnapshot, apply_hunk, author_identity,
-    change_totals, create_commit, discard_paths, file_diff, last_commit_message, read_status,
-    stage_all, stage_paths, unstage_all, unstage_paths,
+    FileStatus, GitError, HunkAction, HunkRequest, StatusSnapshot, apply_hunk, change_totals,
+    commit_context, create_commit, discard_paths, file_diff, read_status, stage_all, stage_paths,
+    unstage_all, unstage_paths,
 };
 use support::TestRepo;
 
@@ -34,6 +35,7 @@ fn diff(repo: &TestRepo, path: &str, side: DiffSide) -> FileDiff {
             original_path: None,
             side,
             ignore_whitespace: false,
+            context_lines: 3,
         },
     )
     .expect("diff")
@@ -236,6 +238,7 @@ fn stage_and_unstage_a_single_hunk() {
             action: HunkAction::Stage,
             hunk_header: &second,
             line_indices: None,
+            context_lines: 3,
         },
     )
     .expect("stage hunk");
@@ -264,6 +267,7 @@ fn stage_and_unstage_a_single_hunk() {
             action: HunkAction::Unstage,
             hunk_header: &staged_header,
             line_indices: None,
+            context_lines: 3,
         },
     )
     .expect("unstage hunk");
@@ -293,6 +297,7 @@ fn stage_selected_lines_only() {
             action: HunkAction::Stage,
             hunk_header: &hunk.header,
             line_indices: Some(&pick),
+            context_lines: 3,
         },
     )
     .expect("stage lines");
@@ -323,6 +328,7 @@ fn discard_selected_lines_only() {
             action: HunkAction::Discard,
             hunk_header: &hunk.header,
             line_indices: Some(&[x]),
+            context_lines: 3,
         },
     )
     .expect("discard line");
@@ -341,6 +347,7 @@ fn stale_hunks_and_invalid_combinations_are_rejected() {
             action: HunkAction::Stage,
             hunk_header: "@@ -100,3 +100,3 @@",
             line_indices: None,
+            context_lines: 3,
         },
     );
     assert!(matches!(stale, Err(GitError::StaleDiff(_))), "{stale:?}");
@@ -354,6 +361,7 @@ fn stale_hunks_and_invalid_combinations_are_rejected() {
             action: HunkAction::Stage,
             hunk_header: "@@ -1 +1 @@",
             line_indices: None,
+            context_lines: 3,
         },
     );
     assert!(matches!(wrong_side, Err(GitError::InvalidRequest(_))));
@@ -376,6 +384,7 @@ fn staging_a_hunk_of_an_untracked_file_stages_the_file() {
             action: HunkAction::Stage,
             hunk_header: &header,
             line_indices: None,
+            context_lines: 3,
         },
     )
     .expect("stage untracked");
@@ -397,31 +406,65 @@ fn totals_count_staged_lines() {
 }
 
 #[test]
-fn commit_amend_identity_and_message() {
+fn commit_amend_and_context() {
     let repo: TestRepo = TestRepo::new();
-    assert_eq!(
-        last_commit_message(&repo.git, &repo.root()).expect("none"),
-        None
-    );
-    let identity = author_identity(&repo.git, &repo.root()).expect("identity");
-    assert_eq!(identity.name.as_deref(), Some("RustGit Test"));
+    let empty = commit_context(&repo.git, &repo.root()).expect("context");
+    assert_eq!(empty.head, None);
+    assert_eq!(empty.author_name.as_deref(), Some("RustGit Test"));
+    assert_eq!(empty.signing, SigningMode::Off);
 
-    repo.write("a.txt", "a\n");
+    repo.write(
+        "a.txt", "a
+",
+    );
     stage_paths(&repo.git, &repo.root(), &paths(&["a.txt"])).expect("stage");
-    let created =
-        create_commit(&repo.git, &repo.root(), "Add a\n\nBody text.", false).expect("commit");
+    let created = create_commit(
+        &repo.git,
+        &repo.root(),
+        "Add a
+
+Body text.",
+        false,
+    )
+    .expect("commit");
     assert_eq!(created.summary, "Add a");
     assert_eq!(created.oid, repo.git_ok(&["rev-parse", "HEAD"]).trim());
+    let context = commit_context(&repo.git, &repo.root()).expect("context");
+    let head = context.head.expect("head");
     assert_eq!(
-        last_commit_message(&repo.git, &repo.root())
-            .expect("msg")
-            .as_deref(),
-        Some("Add a\n\nBody text.")
+        head.message,
+        "Add a
+
+Body text."
     );
+    assert_eq!(head.summary, "Add a");
+    assert_eq!(head.on_upstream, None);
 
     let amended = create_commit(&repo.git, &repo.root(), "Add file a", true).expect("amend");
     assert_eq!(amended.summary, "Add file a");
     assert_eq!(repo.git_ok(&["rev-list", "--count", "HEAD"]).trim(), "1");
+}
+
+#[test]
+fn commit_requires_identity() {
+    let repo: TestRepo = TestRepo::new();
+    repo.git_ok(&["config", "user.email", ""]);
+    repo.write(
+        "a.txt", "a
+",
+    );
+    stage_paths(&repo.git, &repo.root(), &paths(&["a.txt"])).expect("stage");
+    // An empty value counts as missing. (Global config could still supply a
+    // value on a developer machine, so only assert the typed error when the
+    // effective value is empty.)
+    let context = commit_context(&repo.git, &repo.root()).expect("context");
+    if context.author_email.is_none() {
+        let result = create_commit(&repo.git, &repo.root(), "msg", false);
+        assert!(
+            matches!(result, Err(GitError::IdentityMissing(_))),
+            "{result:?}"
+        );
+    }
 }
 
 #[test]
@@ -430,10 +473,7 @@ fn commit_failures_are_reported_with_stderr() {
     repo.commit_file("a.txt", "a\n", "initial");
 
     let empty = create_commit(&repo.git, &repo.root(), "nothing staged", false);
-    assert!(
-        matches!(empty, Err(GitError::CommandFailed { .. })),
-        "{empty:?}"
-    );
+    assert!(matches!(empty, Err(GitError::NothingToCommit)), "{empty:?}");
 
     assert!(matches!(
         create_commit(&repo.git, &repo.root(), "   ", false),

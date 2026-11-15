@@ -14,6 +14,7 @@ pub mod patch;
 pub mod pathspec;
 pub mod redact;
 pub mod refs;
+pub mod remote;
 pub mod repository;
 pub mod status;
 

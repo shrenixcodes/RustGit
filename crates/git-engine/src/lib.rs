@@ -16,7 +16,9 @@ pub mod redact;
 pub mod refs;
 pub mod remote;
 pub mod repository;
+pub mod stash;
 pub mod status;
+pub mod worktree;
 
 pub use commit::{
     CommitContext, CreatedCommit, HeadCommit, SigningMode, commit_context, create_commit,

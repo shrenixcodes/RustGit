@@ -1,22 +1,24 @@
 import { useEffect, useState } from "react";
-import { getVersion } from "@tauri-apps/api/app";
+import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
+import { AppShell } from "./AppShell";
+import { createQueryClient, useSettings } from "../services/queries";
+import { applyTheme } from "../styles/theme";
+import type { ThemePreference } from "../services/types";
 
 export function App() {
-  const [version, setVersion] = useState<string | null>(null);
-
-  useEffect(() => {
-    getVersion()
-      .then(setVersion)
-      .catch((error: unknown) => {
-        console.error("Failed to read application version", error);
-      });
-  }, []);
-
+  const [queryClient] = useState<QueryClient>(createQueryClient);
   return (
-    <main className="flex h-full flex-col items-center justify-center gap-2 bg-bg text-fg">
-      <h1 className="text-lg font-semibold">RustGit</h1>
-      <p className="text-fg-secondary">Git, without the overhead.</p>
-      {version !== null && <p className="font-mono text-sm text-fg-muted tabular-nums">v{version}</p>}
-    </main>
+    <QueryClientProvider client={queryClient}>
+      <ThemeController />
+      <AppShell />
+    </QueryClientProvider>
   );
+}
+
+/** Applies the saved theme preference (System until settings load). */
+function ThemeController() {
+  const settings = useSettings();
+  const theme: ThemePreference = settings.data?.theme ?? "system";
+  useEffect(() => applyTheme(theme), [theme]);
+  return null;
 }

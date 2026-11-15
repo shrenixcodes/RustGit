@@ -47,6 +47,10 @@ Local machine issues found (not project defects, not changed by the build):
 | A-2 | Typed IPC client                             | COMMITTED | `6e48c5e` |
 | A-3 | App shell and repository manager            | COMMITTED | `460f946` |
 | A-4 | Native Windows smoke test (CI: BLOCKED)      | COMMITTED | `21bb177` |
+| B-1 | Integration contracts for the UI session     | COMMITTED | `e979876` |
+| B-2 | Engine: staging, diff, hunk/line, commit     | COMMITTED | `6fa0900` |
+| B-3 | IPC commands for contract C-1                | COMMITTED | `c510fc0` |
+| B-4 | Native smoke test covers contract C-1        | COMMITTED | `b9f3a5e` |
 
 ### F-1 Repository configuration and license
 
@@ -190,6 +194,42 @@ reports only checks that actually pass.
 Linux (WebKitGTK) and macOS (WKWebView) do not expose the DevTools protocol;
 native smoke testing on those platforms is not implemented yet.
 
+### B-1 Integration contracts
+
+Project split: this session owns backend, infrastructure and IPC contracts;
+a UI session owns frontend presentation (its work is on branch
+`worktree-ui-orbital`, not merged). `docs/integration/` holds
+`API_CONTRACT.md`, `EVENT_CONTRACT.md`, `FRONTEND_BACKEND_MAP.md` and
+`INTEGRATION_STATUS.md`. Contract C-1 was derived from the UI session's
+interaction spec before implementation.
+
+### B-2 Engine: staging, diff, partial staging, commit
+
+Modules `pathspec`, `index`, `diff`, `patch`, `commit` in
+`crates/git-engine`. Tests: 17 unit tests (path validation, diff parser,
+binary/new/deleted/renamed detection, size limit, numstat, patch building
+for forward and reverse line selections) and 17 integration tests against
+real repositories (stage/unstage paths, deletions, literal pathspecs with
+glob characters, unstage before first commit, stage/unstage all, path
+escape rejection, discard keeping staged changes, staged/unstaged/untracked
+diffs, binary, stage/unstage a single hunk, stage selected lines, discard
+selected lines, stale hunk and side/action validation, untracked hunk,
+totals, commit/amend/identity/last message, empty commit and pre-commit
+hook rejection with stderr). Workspace total: 53 Rust tests passed.
+
+### B-3 IPC commands for contract C-1
+
+Twelve Tauri commands; mutations hold the write lock through the status
+read they return. Frontend mirror updated; Vitest 19 passed.
+
+### B-4 Native verification of C-1
+
+The smoke test calls every C-1 command through the real WebView IPC:
+file_diff, apply_hunk (stage), stale_diff and invalid_request errors,
+change_totals, author_identity, discard_paths, stage_paths, create_commit
+(oid compared with `git rev-parse HEAD`, clean tree afterwards),
+last_commit_message, command_history. Local result: passed.
+
 ## Initial quality checks (2026-11-15)
 
 | Check                                 | Result                         |
@@ -207,7 +247,7 @@ native smoke testing on those platforms is not implemented yet.
 
 ## Not started
 
-Staging, commits, branches, history
+Staging, diff and commit UI (UI session), commits, branches, history
 graph, diff viewer, remotes, stashes, worktrees, GitHub integration, settings
 persistence (SQLite), filesystem watching, performance benchmarks, native
 smoke tests in CI, installers and releases.

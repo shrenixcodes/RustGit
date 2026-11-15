@@ -11,15 +11,15 @@ records the dependencies. Contract details: `API_CONTRACT.md`.
 | Overview / operation shelf status | `repository_status`                                                 | IMPLEMENTED     |
 | Settings: theme, Git info         | `get_settings`, `set_theme`, `git_info`                             | IMPLEMENTED     |
 | Changes file list                 | `repository_status`                                                 | IMPLEMENTED     |
-| Stage / unstage file, group       | `stage_paths`, `unstage_paths`, `stage_all`, `unstage_all`          | DEFINED         |
-| Discard file (confirm dialog)     | `discard_paths`                                                     | DEFINED         |
-| Diff panel (staged / not staged)  | `file_diff`                                                         | DEFINED         |
-| Stage / unstage / discard hunk or lines | `apply_hunk`                                                  | DEFINED         |
-| Commit composer totals            | `change_totals` (`side: "staged"`)                                  | DEFINED         |
-| Commit composer author line       | `author_identity`                                                   | DEFINED         |
-| Amend prefill                     | `last_commit_message`                                               | DEFINED         |
-| Commit / amend                    | `create_commit`                                                     | DEFINED         |
-| Activity panel (command log)      | `command_history`                                                   | DEFINED         |
+| Stage / unstage file, group       | `stage_paths`, `unstage_paths`, `stage_all`, `unstage_all`          | IMPLEMENTED     |
+| Discard file (confirm dialog)     | `discard_paths`                                                     | IMPLEMENTED     |
+| Diff panel (staged / not staged)  | `file_diff`                                                         | IMPLEMENTED     |
+| Stage / unstage / discard hunk or lines | `apply_hunk`                                                  | IMPLEMENTED     |
+| Commit composer totals            | `change_totals` (`side: "staged"`)                                  | IMPLEMENTED     |
+| Commit composer author line       | `author_identity`                                                   | IMPLEMENTED     |
+| Amend prefill                     | `last_commit_message`                                               | IMPLEMENTED     |
+| Commit / amend                    | `create_commit`                                                     | IMPLEMENTED     |
+| Activity panel (command log)      | `command_history`                                                   | IMPLEMENTED     |
 | Automatic refresh                 | `repository://changed`                                              | NOT STARTED     |
 | History graph, branches, remotes, stashes, worktrees, GitHub | none yet                                 | NOT STARTED     |
 

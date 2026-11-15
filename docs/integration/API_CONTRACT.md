@@ -72,7 +72,7 @@ fall back to defaults.
 
 `({ theme }) -> Settings`.
 
-### `command_history` — DEFINED
+### `command_history` — IMPLEMENTED
 
 `() -> CommandRecord[]`, oldest first, at most 200 entries, process lifetime
 only (not persisted).
@@ -154,7 +154,7 @@ interface StatusSnapshot { branch: BranchStatus; files: FileStatus[] }
 
 A partially staged file is one entry with both `staged` and `unstaged` set.
 
-## Changes and staging — DEFINED (change C-1)
+## Changes and staging — IMPLEMENTED (change C-1)
 
 All staging commands are mutations (write lock) and return the new
 `StatusSnapshot`.
@@ -253,7 +253,7 @@ interface ChangeTotals { files: FileTotals[]; added: number; deleted: number }
 
 Untracked files are not included (Git has no numstat for them).
 
-## Commits — DEFINED (change C-1)
+## Commits — IMPLEMENTED (change C-1)
 
 ### `author_identity` (read)
 
@@ -284,4 +284,14 @@ interface CommitResult { oid: string; summary: string; status: StatusSnapshot }
 
 - **C-1 (2026-11-15).** Added the staging, diff and commit contracts, and the
   `invalid_request` and `stale_diff` error kinds. No existing command
-  changed.
+  changed. Implemented in `6fa0900` (engine) and `c510fc0` (IPC); verified
+  through the real WebView IPC by the native smoke test (`b9f3a5e`).
+
+## Known limitations of C-1
+
+- Partial (line) staging rebuilds patches from UTF-8-decoded diff text. For
+  files that are not valid UTF-8 the rebuilt patch will not apply; Git
+  rejects it and `git_command_failed` is returned. Nothing is written.
+- A diff is read fully into memory before the size limit is checked.
+- With `ignoreWhitespace: true`, hunk headers differ from the normal diff;
+  `apply_hunk` with such a header returns `stale_diff`.

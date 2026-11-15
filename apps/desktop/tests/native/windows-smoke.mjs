@@ -54,6 +54,9 @@ async function connect() {
   const deadline = Date.now() + 60_000;
   let lastError;
   while (Date.now() < deadline) {
+    if (app.exitCode !== null) {
+      throw new Error(`application exited early with code ${app.exitCode}`);
+    }
     try {
       return await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
     } catch (error) {
@@ -79,6 +82,7 @@ async function shoot(page, name) {
 
 let app;
 let exited;
+const logs = [];
 let exitCode = 1;
 try {
   createFixture();
@@ -92,7 +96,6 @@ try {
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
-  const logs = [];
   app.stdout.on("data", (chunk) => logs.push(chunk.toString()));
   app.stderr.on("data", (chunk) => logs.push(chunk.toString()));
   exited = new Promise((done) => app.on("exit", (code) => done(code)));
@@ -175,6 +178,8 @@ try {
   console.log("SMOKE TEST PASSED");
 } catch (error) {
   console.error(`SMOKE TEST FAILED: ${error instanceof Error ? error.stack : error}`);
+  console.error(`--- application output ---
+${logs.join("")}--- end ---`);
   if (app && app.exitCode === null) {
     app.kill();
     await exited;

@@ -14,6 +14,7 @@ import {
   useSetRepositoryPinned,
 } from "../../services/queries";
 import type { RepositoryEntry } from "../../services/types";
+import { useUi } from "../../stores/ui";
 import { useWorkspace } from "../../stores/workspace";
 import { RepositoryRow } from "./RepositoryRow";
 import { filterRepositories } from "./filterRepositories";
@@ -36,7 +37,19 @@ export function RepositoriesView() {
   const closeRepository = useWorkspace((state) => state.closeRepository);
 
   const [query, setQuery] = useState<string>("");
-  const [failure, setFailure] = useState<FailedAction | null>(null);
+  const [actionFailure, setActionFailure] = useState<FailedAction | null>(null);
+  const restoreFailure = useUi((state) => state.restoreFailure);
+  const setRestoreFailure = useUi((state) => state.setRestoreFailure);
+  // A failed reopen at startup is shown until the user acts.
+  const failure: FailedAction | null =
+    actionFailure ??
+    (restoreFailure === null
+      ? null
+      : { title: "Could not reopen the last repository", ...restoreFailure });
+  const setFailure = (next: FailedAction | null): void => {
+    setRestoreFailure(null);
+    setActionFailure(next);
+  };
 
   const visible: RepositoryEntry[] = useMemo(
     () => filterRepositories(repositories.data ?? [], query),
@@ -61,7 +74,8 @@ export function RepositoriesView() {
     run("Could not add repository", null, async () => {
       const path: string | null = await pickFolder("Add an existing repository");
       if (path !== null) {
-        activate((await addRepository.mutateAsync(path)).id);
+        const added: RepositoryEntry = await addRepository.mutateAsync(path);
+        activate(added.id, added.path);
       }
     });
 
@@ -69,13 +83,15 @@ export function RepositoriesView() {
     run("Could not create repository", null, async () => {
       const path: string | null = await pickFolder("Choose a folder for the new repository");
       if (path !== null) {
-        activate((await initRepository.mutateAsync(path)).id);
+        const created: RepositoryEntry = await initRepository.mutateAsync(path);
+        activate(created.id, created.path);
       }
     });
 
   const handleOpen = (entry: RepositoryEntry) =>
     run(`Could not open ${entry.name}`, entry.id, async () => {
-      activate((await openRepository.mutateAsync(entry.id)).id);
+      const opened: RepositoryEntry = await openRepository.mutateAsync(entry.id);
+      activate(opened.id, opened.path);
     });
 
   const handleRemove = (entry: RepositoryEntry) =>

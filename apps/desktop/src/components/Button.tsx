@@ -1,4 +1,5 @@
 import { forwardRef, type ButtonHTMLAttributes } from "react";
+import { formatShortcut } from "../app/shortcuts";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 
@@ -30,7 +31,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "aria-label" | "title"> {
   /** Accessible name; also shown as the tooltip. */
   label: string;
-  /** Optional shortcut shown in the tooltip, e.g. "Ctrl+I". */
+  /** Optional shortcut shown in the tooltip, in shortcuts.ts notation ("Mod+I"). */
   shortcut?: string;
   pressed?: boolean;
 }
@@ -46,7 +47,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
       type={type}
       aria-label={label}
       aria-pressed={pressed}
-      title={shortcut === undefined ? label : `${label} (${shortcut})`}
+      title={shortcut === undefined ? label : `${label} (${formatShortcut(shortcut)})`}
       className={`inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-fg-muted transition-colors duration-100 hover:bg-hover hover:text-fg disabled:cursor-not-allowed disabled:opacity-45 aria-pressed:text-accent ${className}`}
       {...props}
     />

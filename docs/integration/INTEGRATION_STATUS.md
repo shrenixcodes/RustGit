@@ -4,42 +4,62 @@ Statuses: NOT STARTED · IN PROGRESS · BLOCKED · IMPLEMENTED · TESTED ·
 VERIFIED. VERIFIED means exercised end to end in the running native
 application against a real repository. Compiling is never enough.
 
-"Frontend" refers to the UI on `main`. The UI session's redesign lives on
-branch `worktree-ui-orbital` and is not merged yet.
+"IPC VERIFIED" means every command of the feature was called from the
+running native application's WebView against a real repository and its
+result checked (`apps/desktop/tests/native/windows-smoke.mjs`, Windows). It
+does not mean a UI for the feature exists or was tested.
 
-| Feature              | Backend     | API contract | Frontend     | Integration test |
-| -------------------- | ----------- | ------------ | ------------ | ---------------- |
-| Repository discovery | TESTED      | IMPLEMENTED  | IMPLEMENTED  | VERIFIED (local native smoke) |
-| Changes and staging  | TESTED      | IMPLEMENTED  | Status list only on `main`; staging UI is the UI session's | IPC VERIFIED (native smoke) |
-| Diff viewer          | TESTED      | IMPLEMENTED  | NOT STARTED  | IPC VERIFIED (native smoke) |
-| Commit               | TESTED      | IMPLEMENTED  | NOT STARTED  | IPC VERIFIED (native smoke) |
-| History graph        | NOT STARTED | NOT STARTED  | NOT STARTED  | NOT STARTED      |
-| Branch management    | NOT STARTED | NOT STARTED  | NOT STARTED  | NOT STARTED      |
-| Remotes              | NOT STARTED | NOT STARTED  | NOT STARTED  | NOT STARTED      |
-| Conflict resolution  | NOT STARTED | NOT STARTED  | NOT STARTED  | NOT STARTED      |
-| Stash                | NOT STARTED | NOT STARTED  | NOT STARTED  | NOT STARTED      |
-| Worktrees            | Discovery only (TESTED) | NOT STARTED | NOT STARTED | NOT STARTED |
-| GitHub integration   | NOT STARTED | NOT STARTED  | NOT STARTED  | NOT STARTED      |
-| Settings (theme)     | TESTED      | IMPLEMENTED  | IMPLEMENTED  | VERIFIED (local native smoke) |
+"Frontend" refers to `main`. The UI session's redesign lives on branch
+`worktree-ui-orbital` and is not merged yet.
 
-"IPC VERIFIED" means every command was called from the running native
-application's WebView against a real repository and its result checked
-(`apps/desktop/tests/native/windows-smoke.mjs`); it does not mean a UI for
-the feature exists or was tested.
+| Feature              | Backend | API contract | Frontend (main) | Integration test |
+| -------------------- | ------- | ------------ | --------------- | ---------------- |
+| Repository discovery | TESTED  | IMPLEMENTED  | IMPLEMENTED     | VERIFIED (native smoke, UI driven) |
+| Changes and staging  | TESTED  | IMPLEMENTED  | Read-only list; staging UI is the UI session's | IPC VERIFIED |
+| Diff viewer          | TESTED  | IMPLEMENTED  | NOT STARTED     | IPC VERIFIED     |
+| Commit               | TESTED  | IMPLEMENTED  | NOT STARTED     | IPC VERIFIED     |
+| History graph        | TESTED  | IMPLEMENTED  | NOT STARTED     | IPC VERIFIED     |
+| Branch management    | TESTED  | IMPLEMENTED  | NOT STARTED     | IPC VERIFIED     |
+| Remotes              | TESTED  | IMPLEMENTED  | NOT STARTED     | IPC VERIFIED (push, fetch, clone, events) |
+| Conflict resolution  | TESTED  | IMPLEMENTED  | NOT STARTED     | IPC VERIFIED (merge conflict resolved) |
+| Stash                | TESTED  | IMPLEMENTED  | NOT STARTED     | IPC VERIFIED     |
+| Worktrees            | TESTED  | IMPLEMENTED  | NOT STARTED     | IPC VERIFIED     |
+| Filesystem watching  | TESTED  | IMPLEMENTED  | NOT STARTED     | IPC VERIFIED (repository-changed received) |
+| GitHub integration   | BLOCKED | NOT STARTED  | NOT STARTED     | NOT STARTED      |
+| Settings (theme)     | TESTED  | IMPLEMENTED  | IMPLEMENTED     | VERIFIED (native smoke, UI driven) |
+
+Backend "TESTED" = unit tests plus integration tests against real
+temporary repositories, passing on Linux, Windows and macOS CI.
 
 ## Ready for the UI session
 
-Contract C-1 (staging, diffs, hunk/line staging, commit, command history) is
-implemented. The typed wrappers are in `apps/desktop/src/services/ipc.ts`
-(`stagePaths`, `unstagePaths`, `stageAll`, `unstageAll`, `discardPaths`,
-`fileDiff`, `applyHunk`, `changeTotals`, `authorIdentity`,
-`lastCommitMessage`, `createCommit`, `commandHistory`).
+Contracts C-1 and C-2 are implemented. Every UI request R-1 … R-14 has a
+command; differences from the requested shapes are listed in
+`API_CONTRACT.md` ("Contract C-2"). Typed wrappers are in
+`apps/desktop/src/services/ipc.ts`, payload and event types in
+`apps/desktop/src/services/types.ts`.
 
-## Open integration notes
+## Blocked
 
-- Native smoke test on GitHub's `windows-latest` runner: BLOCKED (WebView2
-  DevTools port never opens). Passes locally. See `BUILD_PROGRESS.md` A-4.
-- Shared files: `apps/desktop/src/services/types.ts` and
-  `apps/desktop/src/services/ipc.ts` are the IPC contract mirror and are
-  maintained by the backend session alongside each contract change. Other
-  frontend files belong to the UI session.
+- **GitHub integration.** The device-authorization flow needs the client
+  ID of a GitHub OAuth App (or GitHub App) registered by the project owner.
+  RustGit must not borrow another application's client ID or use the gh
+  CLI's token. Once a client ID exists, the backend work is: device flow,
+  token storage in the OS credential store (keyring), and REST calls for
+  user, repositories, pull requests, issues, releases and notifications.
+- **Native smoke test on GitHub's `windows-latest` runner.** The WebView2
+  DevTools port never opens there. Passes locally. See `BUILD_PROGRESS.md`
+  A-4.
+
+## Merge note for the UI branch
+
+`worktree-ui-orbital` contains its own versions of `docs/integration/*.md`
+written before these existed on `main`. When merging, keep `main`'s files
+(the backend owns the contract) and carry over anything from the UI
+branch's request log that is not yet answered here.
+
+## Shared files
+
+`apps/desktop/src/services/types.ts` and `apps/desktop/src/services/ipc.ts`
+are the IPC contract mirror and are maintained by the backend session with
+each contract change. Other frontend files belong to the UI session.

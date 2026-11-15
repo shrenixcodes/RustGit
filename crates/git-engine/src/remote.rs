@@ -249,7 +249,8 @@ pub fn pull(
         args.push(remote);
         run_network(git, root, &args, cancel, on_progress)?;
     }
-    if cancel.is_cancelled() {
+    // From here on the working tree changes; cancelling is no longer possible.
+    if !cancel.commit() {
         return Err(GitError::Cancelled);
     }
     match mode {
@@ -268,7 +269,7 @@ pub struct PushRequest<'a> {
     pub force_with_lease: bool,
 }
 
-/// Pushes; not cancellable because the remote may already have accepted it.
+/// Pushes; never cancellable because the remote may already have accepted it.
 pub fn push(
     git: &GitExecutor,
     root: &Path,
@@ -298,7 +299,7 @@ pub fn push(
         }
         (None, None) => {}
     }
-    run_network(git, root, &args, &CancelToken::default(), on_progress)
+    run_network(git, root, &args, &CancelToken::uncancellable(), on_progress)
 }
 
 pub fn delete_remote_branch(
@@ -313,7 +314,7 @@ pub fn delete_remote_branch(
     let args: Vec<String> = ["push", "--progress", remote, "--delete", branch]
         .map(str::to_owned)
         .to_vec();
-    run_network(git, root, &args, &CancelToken::default(), on_progress)
+    run_network(git, root, &args, &CancelToken::uncancellable(), on_progress)
 }
 
 /// Directory name Git would derive from a clone URL (`.../repo.git` -> `repo`).

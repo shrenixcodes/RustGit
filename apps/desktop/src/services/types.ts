@@ -283,3 +283,73 @@ export interface ConflictVersions {
 }
 
 export type ConflictSide = "ours" | "theirs";
+
+// --- Remotes and long-running operations (contract C-2) ---------------------
+
+export interface Remote {
+  name: string;
+  /** Credentials are redacted. */
+  fetchUrl: string | null;
+  pushUrl: string | null;
+}
+
+export type PullMode = "ff_only" | "merge" | "rebase";
+
+export interface OperationStarted {
+  operationId: string;
+}
+
+export type OperationKind = "clone" | "fetch" | "pull" | "push" | "delete_remote_branch";
+
+/** Payload of the `operation-progress` event. */
+export interface OperationProgressEvent {
+  operationId: string;
+  repositoryId: number | null;
+  kind: OperationKind;
+  /** Git's own phase text, e.g. "Receiving objects". */
+  phase: string;
+  /** Only when Git reported counts; never synthesized. */
+  progress: { current: number; total: number } | null;
+}
+
+/** Payload of the `operation-finished` event; emitted exactly once per operation. */
+export interface OperationFinishedEvent {
+  operationId: string;
+  /** For clone: the newly registered repository. */
+  repositoryId: number | null;
+  outcome: "succeeded" | "failed" | "cancelled";
+  error: CommandError | null;
+}
+
+// --- Stash and worktrees (contract C-2) -------------------------------------
+
+export interface StashEntry {
+  index: number;
+  /** Stable identity; stash@{n} positions shift. */
+  oid: string;
+  message: string;
+  createdAt: number;
+}
+
+export interface StashFile {
+  path: string;
+  kind: ChangeKind;
+  untracked: boolean;
+}
+
+export interface StashDetails {
+  files: StashFile[];
+}
+
+export interface Worktree {
+  path: string;
+  head: string | null;
+  branch: string | null;
+  isMain: boolean;
+  detached: boolean;
+  bare: boolean;
+  /** Lock reason ("" when locked without a reason). */
+  locked: string | null;
+  /** Why the worktree can be pruned (directory missing). */
+  prunable: string | null;
+}

@@ -43,7 +43,7 @@ fn cancellation_kills_the_process() {
     let trigger: CancelToken = cancel.clone();
     let canceller = std::thread::spawn(move || {
         std::thread::sleep(Duration::from_millis(300));
-        trigger.cancel();
+        assert!(trigger.cancel(), "an active token accepts cancellation");
     });
 
     let started: Instant = Instant::now();
@@ -79,4 +79,20 @@ fn records_have_increasing_sequences_and_start_times() {
             .iter()
             .all(|record| record.started_at > 1_700_000_000_000)
     );
+}
+
+#[test]
+fn committed_tokens_refuse_cancellation() {
+    let token: CancelToken = CancelToken::default();
+    assert!(token.commit());
+    assert!(!token.cancel());
+    assert!(!token.is_cancelled());
+
+    let cancelled: CancelToken = CancelToken::default();
+    assert!(cancelled.cancel());
+    assert!(
+        !cancelled.commit(),
+        "a cancelled operation must not start its final step"
+    );
+    assert!(!CancelToken::uncancellable().cancel());
 }

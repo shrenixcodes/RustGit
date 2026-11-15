@@ -99,7 +99,10 @@ pub async fn repository_status(
     .await
 }
 
-fn register(database: &Database, location: &RepositoryLocation) -> CommandResult<RepositoryEntry> {
+pub(crate) fn register(
+    database: &Database,
+    location: &RepositoryLocation,
+) -> CommandResult<RepositoryEntry> {
     let root: &PathBuf = &location.root;
     let name: String = root
         .file_name()

@@ -9,7 +9,13 @@ import type {
   LogPage,
   LogSearch,
   MergeStrategy,
+  OperationStarted,
+  PullMode,
   RefList,
+  Remote,
+  StashDetails,
+  StashEntry,
+  Worktree,
   CommandError,
   CommandRecord,
   CommitContext,
@@ -164,4 +170,57 @@ export const ipc = {
     path: string,
     resolution: { content: string; take?: null } | { take: ConflictSide; content?: null },
   ): Promise<StatusSnapshot> => call("resolve_conflict", { id, path, content: null, take: null, ...resolution }),
+
+  // Remotes and long-running operations (contract C-2). start* resolve with
+  // an operation id at once; listen to operation-progress / operation-finished.
+  listRemotes: (id: number): Promise<Remote[]> => call("list_remotes", { id }),
+  addRemote: (id: number, name: string, url: string): Promise<Remote[]> => call("add_remote", { id, name, url }),
+  setRemoteUrl: (id: number, name: string, url: string, push: boolean): Promise<Remote[]> =>
+    call("set_remote_url", { id, name, url, push }),
+  removeRemote: (id: number, name: string): Promise<Remote[]> => call("remove_remote", { id, name }),
+  /** remote null = all remotes. */
+  startFetch: (id: number, remote: string | null, prune: boolean): Promise<OperationStarted> =>
+    call("start_fetch", { id, remote, prune }),
+  startPull: (id: number, mode: PullMode): Promise<OperationStarted> => call("start_pull", { id, mode }),
+  /** forceWithLease rewrites remote history: confirm with the user first. */
+  startPush: (args: {
+    id: number;
+    remote?: string | null;
+    branch?: string | null;
+    setUpstream: boolean;
+    forceWithLease: boolean;
+  }): Promise<OperationStarted> => call("start_push", { remote: null, branch: null, ...args }),
+  /** Destructive on the remote: confirm with the user first. */
+  startDeleteRemoteBranch: (id: number, remote: string, branch: string): Promise<OperationStarted> =>
+    call("start_delete_remote_branch", { id, remote, branch }),
+  startClone: (url: string, parentDirectory: string, directoryName: string | null): Promise<OperationStarted> =>
+    call("start_clone", { url, parentDirectory, directoryName }),
+  /** false when unknown, finished, or no longer cancellable (push, pull after fetch). */
+  cancelOperation: (operationId: string): Promise<boolean> => call("cancel_operation", { operationId }),
+
+  // Stash (contract C-2).
+  listStashes: (id: number): Promise<StashEntry[]> => call("list_stashes", { id }),
+  createStash: (id: number, message: string | null, includeUntracked: boolean): Promise<StatusSnapshot> =>
+    call("create_stash", { id, message, includeUntracked }),
+  applyStash: (id: number, oid: string, pop: boolean): Promise<IntegrationResult> =>
+    call("apply_stash", { id, oid, pop }),
+  /** Destructive: confirm with the user first. */
+  dropStash: (id: number, oid: string): Promise<StashEntry[]> => call("drop_stash", { id, oid }),
+  stashDetails: (id: number, oid: string): Promise<StashDetails> => call("stash_details", { id, oid }),
+  stashFileDiff: (id: number, oid: string, path: string, contextLines: number | null = null): Promise<FileDiff> =>
+    call("stash_file_diff", { id, oid, path, contextLines }),
+
+  // Worktrees (contract C-2).
+  listWorktrees: (id: number): Promise<Worktree[]> => call("list_worktrees", { id }),
+  addWorktree: (args: {
+    id: number;
+    path: string;
+    branch?: string | null;
+    newBranch?: string | null;
+    commit?: string | null;
+  }): Promise<Worktree[]> => call("add_worktree", { branch: null, newBranch: null, commit: null, ...args }),
+  /** force discards the worktree's changes: confirm with the user first. */
+  removeWorktree: (id: number, path: string, force: boolean): Promise<Worktree[]> =>
+    call("remove_worktree", { id, path, force }),
+  pruneWorktrees: (id: number): Promise<Worktree[]> => call("prune_worktrees", { id }),
 } as const;

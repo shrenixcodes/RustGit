@@ -2,5 +2,7 @@
 
 pub mod changes;
 pub mod history;
+pub mod network;
 pub mod repositories;
 pub mod system;
+pub mod workspace;

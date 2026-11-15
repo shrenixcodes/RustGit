@@ -3,7 +3,7 @@ use std::ffi::{OsStr, OsString};
 use std::io::{ErrorKind, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, ExitStatus, Output, Stdio};
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU8, AtomicU64, Ordering};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
@@ -32,17 +32,53 @@ pub struct CommandRecord {
     pub stderr: String,
 }
 
-/// Cooperative cancellation for long-running commands. Cloning shares the flag.
+const TOKEN_ACTIVE: u8 = 0;
+const TOKEN_CANCELLED: u8 = 1;
+const TOKEN_COMMITTED: u8 = 2;
+
+/// Cooperative cancellation for long-running commands. Cloning shares the state.
+///
+/// Once an operation reaches a step that must not be interrupted it calls
+/// [`CancelToken::commit`]; from then on [`CancelToken::cancel`] refuses, so
+/// callers can tell the user truthfully whether cancelling took effect.
 #[derive(Debug, Clone, Default)]
-pub struct CancelToken(Arc<AtomicBool>);
+pub struct CancelToken(Arc<AtomicU8>);
 
 impl CancelToken {
-    pub fn cancel(&self) {
-        self.0.store(true, Ordering::SeqCst);
+    /// A token that can never be cancelled (e.g. for push).
+    pub fn uncancellable() -> Self {
+        Self(Arc::new(AtomicU8::new(TOKEN_COMMITTED)))
+    }
+
+    /// Requests cancellation. Returns `false` if the operation already
+    /// committed to finishing (or was cancelled before).
+    pub fn cancel(&self) -> bool {
+        self.0
+            .compare_exchange(
+                TOKEN_ACTIVE,
+                TOKEN_CANCELLED,
+                Ordering::SeqCst,
+                Ordering::SeqCst,
+            )
+            .is_ok()
     }
 
     pub fn is_cancelled(&self) -> bool {
-        self.0.load(Ordering::SeqCst)
+        self.0.load(Ordering::SeqCst) == TOKEN_CANCELLED
+    }
+
+    /// Marks the start of a non-cancellable step. Returns `false` if
+    /// cancellation was requested first, in which case the step must not run.
+    pub fn commit(&self) -> bool {
+        match self.0.compare_exchange(
+            TOKEN_ACTIVE,
+            TOKEN_COMMITTED,
+            Ordering::SeqCst,
+            Ordering::SeqCst,
+        ) {
+            Ok(_) => true,
+            Err(state) => state == TOKEN_COMMITTED,
+        }
     }
 }
 

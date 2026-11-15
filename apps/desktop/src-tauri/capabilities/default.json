@@ -45,6 +45,26 @@
     "allow-continue-operation",
     "allow-abort-operation",
     "allow-conflict-versions",
-    "allow-resolve-conflict"
+    "allow-resolve-conflict",
+    "allow-list-remotes",
+    "allow-add-remote",
+    "allow-set-remote-url",
+    "allow-remove-remote",
+    "allow-start-fetch",
+    "allow-start-pull",
+    "allow-start-push",
+    "allow-start-delete-remote-branch",
+    "allow-start-clone",
+    "allow-cancel-operation",
+    "allow-list-stashes",
+    "allow-create-stash",
+    "allow-apply-stash",
+    "allow-drop-stash",
+    "allow-stash-details",
+    "allow-stash-file-diff",
+    "allow-list-worktrees",
+    "allow-add-worktree",
+    "allow-remove-worktree",
+    "allow-prune-worktrees"
   ]
 }

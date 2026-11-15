@@ -20,6 +20,12 @@
   --color-accent: var(--rg-accent);
   --color-accent-strong: var(--rg-accent-strong);
   --color-accent-contrast: var(--rg-accent-contrast);
+  --color-sage: var(--rg-accent);
+  --color-moss: var(--rg-moss);
+  --color-clay: var(--rg-clay);
+  --color-clay-text: var(--rg-clay-text);
+  --color-indigo: var(--rg-indigo);
+  --color-indigo-text: var(--rg-indigo-text);
   --color-lavender: var(--rg-lavender);
   --color-violet: var(--rg-violet);
   --color-amber: var(--rg-amber);
@@ -34,7 +40,7 @@
   --color-overlay: var(--rg-overlay);
 
   --radius-xs: 2px;
-  --radius-sm: 3px;
+  --radius-sm: 2px;
   --radius-md: 4px;
 
   --text-2xs: 10px;
@@ -42,6 +48,7 @@
   --text-sm: 12px;
   --text-base: 13px;
   --text-lg: 15px;
+  --text-xl: 18px;
 
   --shadow-popover: var(--rg-shadow-popover);
   --shadow-glow: var(--rg-glow);
@@ -125,23 +132,39 @@
 }
 
 @layer components {
-  /* Small uppercase technical label, used for section and field labels. */
+  /*
+   * ShrenixCodes signature label: lowercase mono with a short leading
+   * hairline ("— staged"). Content stays as written in the source, so
+   * accessible names and innerText are unaffected by styling.
+   */
   .rg-label {
-    font-size: var(--text-2xs);
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    color: var(--rg-text-muted);
+  }
+  .rg-label::before {
+    content: "";
+    width: 10px;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.6;
+    flex-shrink: 0;
+  }
+  /* The same label without the hairline, for tight inline use. */
+  .rg-tag {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
     color: var(--rg-text-muted);
   }
 
-  /* Faint instrumentation grid. Only for canvases and empty states. */
-  .rg-grid {
+  /* Canvas tone for graph and diff areas and empty states. Plain tone, no texture. */
+  .rg-canvas {
     background-color: var(--rg-canvas);
-    background-image:
-      linear-gradient(var(--rg-grid-line) 1px, transparent 1px),
-      linear-gradient(90deg, var(--rg-grid-line) 1px, transparent 1px);
-    background-size: 24px 24px;
-    background-position: -1px -1px;
   }
 
   .rg-row {

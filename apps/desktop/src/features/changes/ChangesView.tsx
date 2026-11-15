@@ -98,7 +98,7 @@ function SelectedFilePane({
 }) {
   if (selection === null) {
     return (
-      <div className="rg-grid flex min-w-0 flex-1 flex-col items-center justify-center gap-1 text-center">
+      <div className="rg-canvas flex min-w-0 flex-1 flex-col items-center justify-center gap-1 text-center">
         <FileDiff aria-hidden className="size-5 text-fg-muted" />
         <p className="text-fg-secondary">{hasChanges ? "Select a file to inspect it." : "Nothing to review."}</p>
         {hasChanges && <p className="text-sm text-fg-muted">Use ↑ ↓ in the file list to move between files.</p>}
@@ -115,7 +115,7 @@ function SelectedFilePane({
         <span className="flex-1" />
         {file !== undefined && <StateBadges file={file} />}
       </header>
-      <div className="rg-grid flex flex-1 flex-col items-center justify-center gap-1.5 px-6 text-center">
+      <div className="rg-canvas flex flex-1 flex-col items-center justify-center gap-1.5 px-6 text-center">
         {file === undefined ? (
           <>
             <p className="text-fg-secondary">This file no longer has changes.</p>

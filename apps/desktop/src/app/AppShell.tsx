@@ -1,7 +1,8 @@
 import { useEffect, useRef } from "react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { ActivityPanel } from "./ActivityPanel";
-import { NavRail, useRailCollapsed } from "./NavRail";
+import { Rail } from "./Rail";
+import { Ridge } from "./Ridge";
 import { OperationShelf } from "./OperationShelf";
 import { useInspector } from "./WorkspaceLayout";
 import { SECTIONS, isSectionEnabled, type SectionDefinition, type SectionId } from "./navigation";
@@ -29,15 +30,14 @@ export function AppShell() {
   useRepositoryWatcher(activeRepositoryId);
 
   return (
-    <div className="flex h-full flex-col bg-bg text-fg">
-      <div className="flex min-h-0 flex-1">
-        <NavRail />
-        <main className="flex min-w-0 flex-1 flex-col">
-          <div className="flex min-h-0 flex-1 flex-col">{renderSection(section, activeRepositoryId)}</div>
-          {activityOpen && <ActivityPanel />}
-        </main>
+    <div className="flex h-full bg-bg text-fg">
+      <Rail />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <Ridge />
+        <main className="flex min-h-0 flex-1 flex-col">{renderSection(section, activeRepositoryId)}</main>
+        {activityOpen && <ActivityPanel />}
+        <OperationShelf />
       </div>
-      <OperationShelf />
     </div>
   );
 }
@@ -62,7 +62,7 @@ function useGlobalShortcuts(): void {
   const client: QueryClient = useQueryClient();
   const activeRepositoryId: number | null = useWorkspace((state) => state.activeRepositoryId);
   const showSection = useWorkspace((state) => state.showSection);
-  const rail = useRailCollapsed();
+  const togglePersonality = usePreferences((state) => state.togglePersonality);
   const inspector = useInspector();
   const activityOpen: boolean = usePreferences((state) => state.activityOpen);
   const setActivityOpen = usePreferences((state) => state.setActivityOpen);
@@ -83,7 +83,7 @@ function useGlobalShortcuts(): void {
 
   useShortcuts([
     ...sectionBindings,
-    { shortcut: "Mod+B", run: rail.toggle, allowInInput: true },
+    { shortcut: "Mod+Shift+D", run: togglePersonality, allowInInput: true },
     { shortcut: "Mod+I", run: inspector.toggle, allowInInput: true },
     { shortcut: "Mod+J", run: () => setActivityOpen(!activityOpen), allowInInput: true },
     { shortcut: "Mod+P", run: () => setSwitcherOpen(!switcherOpen), allowInInput: true },

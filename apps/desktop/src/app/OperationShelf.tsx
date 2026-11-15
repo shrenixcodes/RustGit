@@ -1,46 +1,52 @@
 import { useEffect, useState } from "react";
-import { ArrowDown, ArrowUp, CircleAlert, GitBranch, LoaderCircle, PanelBottom } from "lucide-react";
+import { ChevronUp, CircleAlert, LoaderCircle } from "lucide-react";
 import { formatShortcut } from "./shortcuts";
-import { useRepositories, useRepositoryStatus } from "../services/queries";
-import type { RepositoryEntry, StatusSnapshot } from "../services/types";
+import { formatDuration } from "./ActivityPanel";
 import { runningCount, useActivity, type OperationRecord } from "../stores/activity";
 import { usePreferences } from "../stores/preferences";
-import { useWorkspace } from "../stores/workspace";
-import { countChanges } from "../features/changes/changeLabels";
 
-/** Persistent bottom shelf: repository state and operations. Everything shown is real state. */
+/**
+ * The operation center's persistent, compact form: what is running, what
+ * just finished, what failed. Repository state lives in the ridge.
+ */
 export function OperationShelf() {
-  const activeRepositoryId: number | null = useWorkspace((state) => state.activeRepositoryId);
-  const showSection = useWorkspace((state) => state.showSection);
-  const repositories = useRepositories();
-  const status = useRepositoryStatus(activeRepositoryId);
   const operations: OperationRecord[] = useActivity((state) => state.operations);
   const unseenFailures: number = useActivity((state) => state.unseenFailures);
   const activityOpen: boolean = usePreferences((state) => state.activityOpen);
   const setActivityOpen = usePreferences((state) => state.setActivityOpen);
-  const repository: RepositoryEntry | undefined = repositories.data?.find((entry) => entry.id === activeRepositoryId);
   const running: number = runningCount(operations);
   const current: OperationRecord | undefined = operations.find((record) => record.outcome === "running");
+  const last: OperationRecord | undefined = operations.find((record) => record.outcome !== "running");
 
   return (
     <footer
-      aria-label="Status and operations"
+      aria-label="Operations"
       style={{ height: "var(--rg-shelf)" }}
-      className="flex shrink-0 items-center gap-3 border-t border-border bg-sidebar px-2.5 text-xs text-fg-secondary"
+      className="flex shrink-0 items-center gap-4 border-t border-divider bg-bg px-5 font-mono text-xs text-fg-muted"
     >
-      {repository === undefined ? (
-        <span className="text-fg-muted">No repository open</span>
+      {current !== undefined ? (
+        <RunningOperation record={current} more={running - 1} />
+      ) : last !== undefined ? (
+        <span className="truncate" title={new Date(last.startedAt).toLocaleString()}>
+          {last.label.toLowerCase()} ·{" "}
+          {last.outcome === "failed" ? (
+            <span className="text-danger">failed</span>
+          ) : (
+            <span>done {formatDuration((last.finishedAt ?? last.startedAt) - last.startedAt)}</span>
+          )}
+        </span>
       ) : (
-        <>
-          <span className="truncate font-medium text-fg">{repository.name}</span>
-          <RepositoryState status={status.data} failed={status.isError} onShowChanges={() => showSection("changes")} />
-        </>
+        <span>idle</span>
       )}
 
       <span className="flex-1" />
 
-      {current !== undefined && <RunningOperation record={current} more={running - 1} />}
-
+      {unseenFailures > 0 && (
+        <span className="flex items-center gap-1 text-danger">
+          <CircleAlert aria-hidden className="size-3" />
+          {unseenFailures} failed
+        </span>
+      )}
       <button
         type="button"
         aria-pressed={activityOpen}
@@ -49,76 +55,12 @@ export function OperationShelf() {
         }
         title={`Activity (${formatShortcut("Mod+J")})`}
         onClick={() => setActivityOpen(!activityOpen)}
-        className={`flex h-5 items-center gap-1.5 rounded-sm px-1.5 hover:bg-hover hover:text-fg ${
-          activityOpen ? "text-accent" : ""
-        }`}
+        className={`flex h-5 items-center gap-1 rounded-sm px-1.5 hover:text-fg ${activityOpen ? "text-accent" : ""}`}
       >
-        {unseenFailures > 0 && (
-          <span className="flex items-center gap-1 text-danger">
-            <CircleAlert aria-hidden className="size-3" />
-            {unseenFailures} failed
-          </span>
-        )}
-        <PanelBottom aria-hidden className="size-3.5" />
-        Activity
+        activity
+        <ChevronUp aria-hidden className={`size-3 transition-transform duration-100 ${activityOpen ? "rotate-180" : ""}`} />
       </button>
     </footer>
-  );
-}
-
-function RepositoryState({
-  status,
-  failed,
-  onShowChanges,
-}: {
-  status: StatusSnapshot | undefined;
-  failed: boolean;
-  onShowChanges: () => void;
-}) {
-  if (status === undefined) {
-    return <span className="text-fg-muted">{failed ? "Status unavailable" : "Reading status…"}</span>;
-  }
-  const { branch } = status;
-  const counts = countChanges(status.files);
-  return (
-    <>
-      <span className="flex min-w-0 items-center gap-1 font-mono">
-        <GitBranch aria-hidden className="size-3 shrink-0 text-accent" />
-        <span className={`truncate ${branch.head === null ? "text-amber" : "text-fg"}`}>
-          {branch.head ?? `detached at ${branch.oid?.slice(0, 7) ?? "?"}`}
-        </span>
-      </span>
-      {branch.upstream === null ? (
-        <span className="text-fg-muted">no upstream</span>
-      ) : (
-        <span
-          className="flex items-center gap-1.5 font-mono tabular-nums"
-          title={`Compared with ${branch.upstream} as of the last fetch`}
-        >
-          <span className={`flex items-center ${branch.ahead > 0 ? "text-accent" : "text-fg-muted"}`}>
-            <ArrowUp aria-hidden className="size-3" />
-            <span className="sr-only">ahead </span>
-            {branch.ahead}
-          </span>
-          <span className={`flex items-center ${branch.behind > 0 ? "text-amber" : "text-fg-muted"}`}>
-            <ArrowDown aria-hidden className="size-3" />
-            <span className="sr-only">behind </span>
-            {branch.behind}
-          </span>
-        </span>
-      )}
-      <button type="button" onClick={onShowChanges} className="rounded-sm px-1 hover:bg-hover hover:text-fg">
-        {counts.conflicted > 0 ? (
-          <span className="text-danger">{counts.conflicted} conflicted</span>
-        ) : status.files.length === 0 ? (
-          <span className="text-success">Working tree clean</span>
-        ) : (
-          <span>
-            <span className="text-amber">{status.files.length}</span> changed
-          </span>
-        )}
-      </button>
-    </>
   );
 }
 
@@ -133,9 +75,9 @@ function RunningOperation({ record, more }: { record: OperationRecord; more: num
   return (
     <span role="status" className="flex items-center gap-1.5 text-fg">
       <LoaderCircle aria-hidden className="size-3 text-accent motion-safe:animate-spin" />
-      {record.label}
-      {seconds > 0 && <span className="font-mono tabular-nums text-fg-muted">{seconds}s</span>}
-      {more > 0 && <span className="text-fg-muted">+{more} more</span>}
+      {record.label.toLowerCase()}
+      {seconds > 0 && <span className="tabular-nums text-fg-muted">{seconds}s</span>}
+      {more > 0 && <span className="text-fg-muted">+{more}</span>}
     </span>
   );
 }

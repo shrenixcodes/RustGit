@@ -1,22 +1,41 @@
 import type { ReactNode } from "react";
+import { RidgeActions } from "../app/Ridge";
 
 interface PageHeaderProps {
   title: string;
+  /** Short state summary shown in the ridge before the actions (counts, totals). */
   subtitle?: ReactNode;
+  /** Workspace actions, rendered at the right of the ridge. */
   actions?: ReactNode;
+  /**
+   * Show the title in the content. Only for screens without repository
+   * context (Settings, Repositories); repository workspaces are named by the
+   * rail and the ridge, so their title is for assistive technology only.
+   */
+  visible?: boolean;
 }
 
-export function PageHeader({ title, subtitle, actions }: PageHeaderProps) {
+/**
+ * Workspace heading. There is no header bar: the ridge already carries the
+ * repository context, so the workspace contributes its summary and actions
+ * to the ridge and keeps the content area for content.
+ */
+export function PageHeader({ title, subtitle, actions, visible = false }: PageHeaderProps) {
   return (
-    <header
-      style={{ minHeight: "var(--rg-header)" }}
-      className="flex shrink-0 items-center gap-3 border-b border-border bg-bg px-3"
-    >
-      <div className="flex min-w-0 flex-1 items-baseline gap-3">
-        <h1 className="shrink-0 text-base font-semibold">{title}</h1>
-        {subtitle !== undefined && <div className="min-w-0 truncate text-sm text-fg-muted">{subtitle}</div>}
-      </div>
-      {actions !== undefined && <div className="flex shrink-0 items-center gap-1.5">{actions}</div>}
-    </header>
+    <>
+      {visible ? (
+        <div className="shrink-0 px-8 pt-8 pb-2">
+          <h1 className="text-xl font-medium text-fg">{title}</h1>
+        </div>
+      ) : (
+        <h1 className="sr-only">{title}</h1>
+      )}
+      {(subtitle !== undefined || actions !== undefined) && (
+        <RidgeActions>
+          {subtitle !== undefined && <span className="mr-3 truncate font-mono text-xs text-fg-muted">{subtitle}</span>}
+          {actions}
+        </RidgeActions>
+      )}
+    </>
   );
 }

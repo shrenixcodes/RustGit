@@ -28,6 +28,8 @@ const TEXT = [
   "text-muted",
   "accent",
   "accent-strong",
+  "clay-text",
+  "indigo-text",
   "lavender",
   "amber",
   "yellow",
@@ -36,10 +38,25 @@ const TEXT = [
   "danger",
   "info",
 ] as const;
-const GRAPHICAL = ["border-control", "violet", "lane-0", "lane-1", "lane-2", "lane-3", "lane-4", "lane-5"] as const;
+const GRAPHICAL = [
+  "border-control",
+  "moss",
+  "clay",
+  "indigo",
+  "violet",
+  "lane-0",
+  "lane-1",
+  "lane-2",
+  "lane-3",
+  "lane-4",
+  "lane-5",
+] as const;
 
+const dark: Record<string, string> = tokensFor(':root[data-theme="dark"]');
 const THEMES: Record<string, Record<string, string>> = {
-  dark: tokensFor(':root[data-theme="dark"]'),
+  dark,
+  // The deep workspace overrides surfaces on top of the dark theme.
+  "dark (deep workspace)": { ...dark, ...tokensFor(':root[data-theme="dark"][data-workspace="deep"]') },
   light: tokensFor(':root[data-theme="light"]'),
 };
 

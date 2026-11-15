@@ -2,7 +2,7 @@ import { memo, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent }
 import { ChevronDown, ChevronRight } from "lucide-react";
 import type { FileStatus } from "../../services/types";
 import { useVirtualRows } from "../../components/useVirtualRows";
-import { usePreferences } from "../../stores/preferences";
+import { rowHeightFor, usePreferences } from "../../stores/preferences";
 import type { ChangeSelection, ChangeSide } from "../../stores/workspace";
 import {
   CHANGE_LABELS,
@@ -69,7 +69,7 @@ export function ChangeTree({ files, query, selection, onSelect }: ChangeTreeProp
   const [activeIndex, setActiveIndex] = useState<number>(-1);
   const container = useRef<HTMLDivElement>(null);
   const idPrefix: string = useId();
-  const rowHeight: number = usePreferences((state) => (state.density === "compact" ? 24 : 28));
+  const rowHeight: number = usePreferences((state) => rowHeightFor(state.personality));
   const rows: TreeRow[] = useMemo(() => buildRows(files, query, collapsed), [files, query, collapsed]);
   const { start, end, totalHeight, ensureVisible } = useVirtualRows(container, rows.length, rowHeight);
 

@@ -4,7 +4,7 @@ import { PageHeader } from "../../components/PageHeader";
 import { SegmentedControl, type SegmentOption } from "../../components/SegmentedControl";
 import { useGitInfo, useSetTheme, useSettings } from "../../services/queries";
 import type { ThemePreference } from "../../services/types";
-import { usePreferences, type Density, type MotionPreference } from "../../stores/preferences";
+import { usePreferences, type MotionPreference, type Personality } from "../../stores/preferences";
 
 const THEME_OPTIONS: readonly SegmentOption<ThemePreference>[] = [
   { value: "system", label: "System" },
@@ -12,9 +12,9 @@ const THEME_OPTIONS: readonly SegmentOption<ThemePreference>[] = [
   { value: "dark", label: "Dark" },
 ];
 
-const DENSITY_OPTIONS: readonly SegmentOption<Density>[] = [
-  { value: "compact", label: "Compact" },
-  { value: "comfortable", label: "Comfortable" },
+const PERSONALITY_OPTIONS: readonly SegmentOption<Personality>[] = [
+  { value: "quiet", label: "Quiet" },
+  { value: "deep", label: "Deep" },
 ];
 
 const MOTION_OPTIONS: readonly SegmentOption<MotionPreference>[] = [
@@ -26,16 +26,16 @@ export function SettingsView() {
   const settings = useSettings();
   const setTheme = useSetTheme();
   const gitInfo = useGitInfo();
-  const density: Density = usePreferences((state) => state.density);
-  const setDensity = usePreferences((state) => state.setDensity);
+  const personality: Personality = usePreferences((state) => state.personality);
+  const setPersonality = usePreferences((state) => state.setPersonality);
   const motion: MotionPreference = usePreferences((state) => state.motion);
   const setMotion = usePreferences((state) => state.setMotion);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <PageHeader title="Settings" />
+      <PageHeader title="Settings" visible />
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="max-w-2xl divide-y divide-divider px-4">
+        <div className="max-w-2xl divide-y divide-divider px-8">
           <Setting label="Theme" description="System follows the operating system and updates when it changes.">
             {settings.isError && <ErrorNotice title="Could not load settings" error={settings.error} />}
             {setTheme.isError && <ErrorNotice title="Could not save theme" error={setTheme.error} />}
@@ -48,8 +48,11 @@ export function SettingsView() {
             />
           </Setting>
 
-          <Setting label="Density" description="Row height in lists. Diff text size does not change.">
-            <SegmentedControl label="Density" options={DENSITY_OPTIONS} value={density} onChange={setDensity} />
+          <Setting
+            label="Workspace"
+            description="Quiet is spacious, for daily work. Deep is darker and denser, for history and investigation. Ctrl+Shift+D switches."
+          >
+            <SegmentedControl label="Workspace" options={PERSONALITY_OPTIONS} value={personality} onChange={setPersonality} />
           </Setting>
 
           <Setting

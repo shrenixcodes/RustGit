@@ -1,99 +1,15 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from "react";
-import { ChevronsUpDown, FolderGit2, GitBranch, Pin, Search, Settings2 } from "lucide-react";
+import { Pin, Search, Settings2 } from "lucide-react";
 import { ErrorNotice } from "../components/ErrorNotice";
 import { Kbd } from "../components/Kbd";
 import { filterRepositories } from "../features/repositories/filterRepositories";
 import { toIpcError, type IpcError } from "../services/ipc";
-import { useOpenRepository, useRepositories, useRepositoryStatus } from "../services/queries";
-import type { RepositoryEntry, StatusSnapshot } from "../services/types";
-import { useUi } from "../stores/ui";
+import { useOpenRepository, useRepositories } from "../services/queries";
+import type { RepositoryEntry } from "../services/types";
 import { useWorkspace } from "../stores/workspace";
-import { countChanges } from "../features/changes/changeLabels";
 
-/** Repository switcher at the top of the rail; also opened with Mod+P. */
-export function RepositorySwitcher({ collapsed }: { collapsed: boolean }) {
-  const open: boolean = useUi((state) => state.switcherOpen);
-  const setOpen = useUi((state) => state.setSwitcherOpen);
-  const activeRepositoryId: number | null = useWorkspace((state) => state.activeRepositoryId);
-  const repositories = useRepositories();
-  const status = useRepositoryStatus(activeRepositoryId);
-  const trigger = useRef<HTMLButtonElement>(null);
-  const root = useRef<HTMLDivElement>(null);
-  const active: RepositoryEntry | undefined = repositories.data?.find((entry) => entry.id === activeRepositoryId);
-
-  const close = (): void => {
-    setOpen(false);
-    trigger.current?.focus();
-  };
-
-  return (
-    <div ref={root} className="relative border-b border-border p-1.5">
-      <button
-        ref={trigger}
-        type="button"
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        aria-label={active === undefined ? "Choose a repository" : `Repository ${active.name}. Switch repository`}
-        title={collapsed ? (active?.name ?? "Choose a repository") : undefined}
-        onClick={() => setOpen(!open)}
-        className={`flex w-full items-center gap-2 rounded-sm text-left hover:bg-hover ${
-          collapsed ? "h-9 justify-center" : "px-2 py-1.5"
-        } ${open ? "bg-hover" : ""}`}
-      >
-        <span
-          aria-hidden
-          className="flex size-6 shrink-0 items-center justify-center rounded-sm border border-border bg-canvas font-mono text-2xs font-semibold text-accent"
-        >
-          {active === undefined ? <FolderGit2 className="size-3.5" /> : initials(active.name)}
-        </span>
-        {!collapsed && (
-          <>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate font-medium">{active?.name ?? "No repository"}</span>
-              <ActiveStatusLine hasRepository={active !== undefined} status={status.data} pending={status.isPending} />
-            </span>
-            <ChevronsUpDown aria-hidden className="size-3.5 shrink-0 text-fg-muted" />
-          </>
-        )}
-      </button>
-      {open && <SwitcherPopover onClose={close} root={root} />}
-    </div>
-  );
-}
-
-function ActiveStatusLine({
-  hasRepository,
-  status,
-  pending,
-}: {
-  hasRepository: boolean;
-  status: StatusSnapshot | undefined;
-  pending: boolean;
-}) {
-  if (!hasRepository) {
-    return <span className="block truncate text-xs text-fg-muted">Open or add one</span>;
-  }
-  if (status === undefined) {
-    return <span className="block text-xs text-fg-muted">{pending ? "Reading…" : "Status unavailable"}</span>;
-  }
-  const counts = countChanges(status.files);
-  const changed: number = status.files.length;
-  return (
-    <span className="flex min-w-0 items-center gap-1 font-mono text-xs text-fg-muted">
-      <GitBranch aria-hidden className="size-3 shrink-0" />
-      <span className="truncate">{status.branch.head ?? "detached HEAD"}</span>
-      {counts.conflicted > 0 ? (
-        <span className="shrink-0 text-danger">· {counts.conflicted} conflicted</span>
-      ) : changed > 0 ? (
-        <span className="shrink-0 text-amber">· {changed} changed</span>
-      ) : (
-        <span className="shrink-0 text-success">· clean</span>
-      )}
-    </span>
-  );
-}
-
-function SwitcherPopover({ onClose, root }: { onClose: () => void; root: RefObject<HTMLDivElement | null> }) {
+/** Repository switcher popover, anchored under the repository name in the ridge (Mod+P). */
+export function SwitcherPopover({ onClose, root }: { onClose: () => void; root: RefObject<HTMLDivElement | null> }) {
   const repositories = useRepositories();
   const openRepository = useOpenRepository();
   const activate = useWorkspace((state) => state.openRepository);
@@ -161,7 +77,7 @@ function SwitcherPopover({ onClose, root }: { onClose: () => void; root: RefObje
       aria-label="Switch repository"
       onKeyDown={onKeyDown}
       // Explicit pixels: the root font size is 13 px, so rem-based widths would be too narrow.
-      className="absolute left-1.5 top-full z-40 mt-1 w-[340px] max-w-[calc(100vw-16px)] overflow-hidden rounded-md border border-border bg-elevated shadow-popover"
+      className="absolute left-0 top-full z-40 mt-1 w-[360px] max-w-[calc(100vw-16px)] overflow-hidden rounded-md border border-border bg-elevated shadow-popover"
     >
       <label className="flex h-9 items-center gap-2 border-b border-border px-2.5">
         <Search aria-hidden className="size-3.5 text-fg-muted" />
@@ -234,10 +150,4 @@ function SwitcherPopover({ onClose, root }: { onClose: () => void; root: RefObje
       </div>
     </div>
   );
-}
-
-function initials(name: string): string {
-  const parts: string[] = name.split(/[\s._-]+/).filter((part: string) => part.length > 0);
-  const letters: string = parts.length >= 2 ? `${parts[0]?.[0] ?? ""}${parts[1]?.[0] ?? ""}` : name.slice(0, 2);
-  return letters.toUpperCase();
 }

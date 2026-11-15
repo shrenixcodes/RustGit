@@ -1,7 +1,7 @@
 import { memo, useEffect, useId, useMemo, useRef, type KeyboardEvent } from "react";
 import { useVirtualRows } from "../../components/useVirtualRows";
 import type { HeadState, LogCommit, RefEntry } from "../../services/types";
-import { usePreferences } from "../../stores/preferences";
+import { rowHeightFor, usePreferences } from "../../stores/preferences";
 import { GraphCell, LANE_WIDTH, MAX_DRAWN_LANES } from "./GraphCell";
 import type { GraphRow } from "./graphLayout";
 import { ancestorsOf, descendantsOf, nearestChild, type LaidOutHistory } from "./historyLayout";
@@ -44,7 +44,7 @@ export function CommitList({
 }: CommitListProps) {
   const container = useRef<HTMLDivElement>(null);
   const idPrefix: string = useId();
-  const rowHeight: number = usePreferences((state) => (state.density === "compact" ? 26 : 30));
+  const rowHeight: number = usePreferences((state) => rowHeightFor(state.personality));
   const { commits, rows, indexByOid } = history;
   const { start, end, totalHeight, ensureVisible } = useVirtualRows(container, commits.length, rowHeight, 12);
   const graphWidth: number = graph ? Math.min(Math.max(history.maxLanes, 1), MAX_DRAWN_LANES) * LANE_WIDTH + 8 : 0;
@@ -122,7 +122,7 @@ export function CommitList({
   const now: number = useMemo(() => Date.now(), [commits]);
 
   if (commits.length === 0) {
-    return <p className="rg-grid flex-1 p-4 text-fg-muted">{emptyText}</p>;
+    return <p className="rg-canvas flex-1 p-4 text-fg-muted">{emptyText}</p>;
   }
 
   return (
@@ -151,7 +151,7 @@ export function CommitList({
       >
         <div style={{ height: totalHeight + (hasMore || loadingMore ? rowHeight : 0), position: "relative" }}>
           {graph && (
-            <div aria-hidden className="rg-grid absolute inset-y-0 left-0 border-r border-divider" style={{ width: graphWidth }} />
+            <div aria-hidden className="rg-canvas absolute inset-y-0 left-0 border-r border-divider" style={{ width: graphWidth }} />
           )}
           {commits.slice(start, end).map((commit: LogCommit, offset: number) => {
             const index: number = start + offset;

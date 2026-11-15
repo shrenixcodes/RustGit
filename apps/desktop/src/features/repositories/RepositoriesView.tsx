@@ -3,6 +3,7 @@ import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { FolderOpen, FolderPlus, Search } from "lucide-react";
 import { Button } from "../../components/Button";
 import { ErrorNotice } from "../../components/ErrorNotice";
+import { Mark } from "../../components/Mark";
 import { PageHeader } from "../../components/PageHeader";
 import { toIpcError, type IpcError } from "../../services/ipc";
 import {
@@ -114,22 +115,20 @@ export function RepositoriesView() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <PageHeader
-        title="Repositories"
-        subtitle="Repositories RustGit knows about. Removing one here never deletes files."
-        actions={
-          <>
-            <Button onClick={handleCreate}>
-              <FolderPlus aria-hidden className="size-3.5" /> Create…
-            </Button>
-            <Button variant="primary" onClick={handleAdd}>
-              <FolderOpen aria-hidden className="size-3.5" /> Add existing…
-            </Button>
-          </>
-        }
-      />
+      <PageHeader title="Repositories" visible />
 
-      <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
+      <div className="flex min-h-0 w-full max-w-3xl flex-1 flex-col gap-4 px-8 pb-6">
+        <div className="flex items-end gap-3">
+          <p className="flex-1 text-sm text-fg-muted">
+            Repositories RustGit knows about. Removing one here never deletes files.
+          </p>
+          <Button onClick={handleCreate}>
+            <FolderPlus aria-hidden className="size-3.5" /> Create…
+          </Button>
+          <Button variant="primary" onClick={handleAdd}>
+            <FolderOpen aria-hidden className="size-3.5" /> Add existing…
+          </Button>
+        </div>
         {failure !== null && (
           <ErrorNotice
             title={failure.title}
@@ -143,7 +142,7 @@ export function RepositoriesView() {
           />
         )}
 
-        <label className="flex h-8 items-center gap-2 rounded-sm border border-border-control bg-surface px-2.5 focus-within:outline-2 focus-within:outline-accent">
+        <label className="flex h-9 items-center gap-2 border-b border-border px-1 focus-within:border-accent">
           <Search aria-hidden className="size-3.5 text-fg-muted" />
           <span className="sr-only">Search repositories</span>
           <input
@@ -159,8 +158,9 @@ export function RepositoriesView() {
         {repositories.isError && <ErrorNotice title="Could not load repositories" error={repositories.error} />}
 
         {repositories.isSuccess && repositories.data.length === 0 && (
-          <div className="flex flex-1 flex-col items-center justify-center gap-1 text-center">
-            <p className="font-medium">No repositories yet</p>
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
+            <Mark size={40} />
+            <p className="mt-2 font-medium">No repositories yet</p>
             <p className="max-w-sm text-fg-muted">
               Add a folder that already contains a Git repository, or create a new one.
             </p>
@@ -172,7 +172,7 @@ export function RepositoriesView() {
         )}
 
         {visible.length > 0 && (
-          <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto rounded-md border border-border bg-surface">
+          <ul className="min-h-0 flex-1 divide-y divide-divider overflow-y-auto">
             {visible.map((entry: RepositoryEntry) => (
               <RepositoryRow
                 key={entry.id}

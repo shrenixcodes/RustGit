@@ -232,7 +232,7 @@ export function HistoryView({ repositoryId }: { repositoryId: number }) {
               {REVEAL_LIMIT.toLocaleString()} commits).
             </p>
           )}
-          {log.isPending && <p className="rg-grid flex-1 p-4 text-fg-muted">Reading history…</p>}
+          {log.isPending && <p className="rg-canvas flex-1 p-4 text-fg-muted">Reading history…</p>}
           {log.isError && (
             <div className="p-3">
               <ErrorNotice title="Could not read history" error={log.error} />

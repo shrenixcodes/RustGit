@@ -20,12 +20,7 @@ export function OverviewView({ repositoryId }: { repositoryId: number }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <PageHeader
-        title={repository?.name ?? "Repository"}
-        subtitle={
-          <span data-selectable className="font-mono">
-            {repository?.path}
-          </span>
-        }
+        title="Overview"
         actions={
           <Button variant="ghost" onClick={() => void status.refetch()} disabled={status.isFetching}>
             <RefreshCw aria-hidden className={`size-3.5 ${status.isFetching ? "motion-safe:animate-spin" : ""}`} />
@@ -41,7 +36,10 @@ export function OverviewView({ repositoryId }: { repositoryId: number }) {
           </div>
         )}
         {status.data !== undefined && counts !== null && (
-          <div className="max-w-4xl space-y-px">
+          <div className="max-w-4xl space-y-px px-4 pt-4">
+            <p data-selectable className="px-4 pb-2 font-mono text-xs text-fg-muted">
+              {repository?.path}
+            </p>
             <Panel label="Head">
               <BranchSummary branch={status.data.branch} />
             </Panel>
@@ -70,8 +68,8 @@ export function OverviewView({ repositoryId }: { repositoryId: number }) {
 
 function Panel({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <section aria-label={label} className="border-b border-divider px-4 py-3">
-      <h2 className="rg-label mb-2">{label}</h2>
+    <section aria-label={label} className="px-4 py-4">
+      <h2 className="rg-label mb-3">{label.toLowerCase()}</h2>
       {children}
     </section>
   );

@@ -12,6 +12,7 @@ import {
 } from "@tanstack/react-query";
 import { ipc, toIpcError, type IpcError } from "./ipc";
 import type {
+  CommandRecord,
   CommitDetails,
   GitInfo,
   LogPage,
@@ -51,6 +52,7 @@ export const queryKeys = {
   gitInfo: ["git-info"] as const,
   settings: ["settings"] as const,
   repositories: ["repositories"] as const,
+  commandHistory: ["command-history"] as const,
   repository: (repositoryId: number) => ["repositories", repositoryId] as const,
   status: (repositoryId: number) => ["repositories", repositoryId, "status"] as const,
   refs: (repositoryId: number) => ["repositories", repositoryId, "refs"] as const,
@@ -72,6 +74,8 @@ function repositoryIdOf(variables: unknown): number | null {
 }
 
 export function createQueryClient(): QueryClient {
+  // Assigned below; callbacks only run after construction.
+  let client: QueryClient | null = null;
   // Every labelled mutation is an operation the user started; record its real outcome.
   const mutationCache: MutationCache = new MutationCache({
     onMutate: (variables, mutation) => {
@@ -87,21 +91,36 @@ export function createQueryClient(): QueryClient {
           .getState()
           .finished(mutation.mutationId, failure === null ? null : { kind: failure.kind, message: failure.message });
       }
+      // Any mutation may have run Git commands.
+      void client?.invalidateQueries({ queryKey: queryKeys.commandHistory });
     },
   });
 
-  return new QueryClient({
+  client = new QueryClient({
     mutationCache,
     defaultOptions: {
       queries: {
-        // Data changes through user actions or (later) filesystem events,
-        // never through timers.
+        // Data changes through user actions or filesystem events, never through timers.
         staleTime: 30_000,
         retry: false,
         refetchOnWindowFocus: true,
       },
       mutations: { retry: false },
     },
+  });
+  return client;
+}
+
+/**
+ * Git commands the backend ran (redacted), newest last from the backend;
+ * fetched only while the activity panel shows them.
+ */
+export function useCommandHistory(repositoryId: number | null, enabled: boolean): UseQueryResult<CommandRecord[], IpcError> {
+  return useQuery({
+    queryKey: [...queryKeys.commandHistory, repositoryId],
+    queryFn: () => ipc.commandHistory({ repositoryId }),
+    enabled,
+    staleTime: 0,
   });
 }
 

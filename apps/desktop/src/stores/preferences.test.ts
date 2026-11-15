@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { PANEL_LIMITS, applyPreferences, clampSize, usePreferences } from "./preferences";
+import { PANEL_LIMITS, applyPreferences, clampSize, rowHeightFor, usePreferences } from "./preferences";
 
 beforeEach(() => {
   localStorage.clear();
+  usePreferences.setState({ personality: "quiet", historyZoom: 0 });
 });
 
 describe("preferences", () => {
@@ -12,32 +13,54 @@ describe("preferences", () => {
     expect(clampSize("inspector", 301.6)).toBe(302);
   });
 
-  it("persists layout changes to localStorage", () => {
+  it("persists layout and personality to localStorage", () => {
     usePreferences.getState().setSize("fileList", 400);
-    usePreferences.getState().setDensity("comfortable");
+    usePreferences.getState().togglePersonality();
     const stored = JSON.parse(localStorage.getItem("rustgit.preferences") ?? "{}") as {
-      state: { sizes: { fileList: number }; density: string };
+      state: { sizes: { fileList: number }; personality: string };
     };
     expect(stored.state.sizes.fileList).toBe(400);
-    expect(stored.state.density).toBe("comfortable");
+    expect(stored.state.personality).toBe("deep");
   });
 
-  it("re-clamps corrupted stored sizes on rehydration", async () => {
+  it("migrates the old density setting to a personality", async () => {
+    localStorage.setItem("rustgit.preferences", JSON.stringify({ state: { density: "compact" }, version: 1 }));
+    await usePreferences.persist.rehydrate();
+    expect(usePreferences.getState().personality).toBe("deep");
+  });
+
+  it("re-validates corrupted stored values on rehydration", async () => {
     localStorage.setItem(
       "rustgit.preferences",
-      JSON.stringify({ state: { sizes: { inspector: 5, rail: "wide" }, density: "huge" }, version: 1 }),
+      JSON.stringify({ state: { sizes: { inspector: 5, strand: "wide" }, personality: "loud", historyZoom: 9 }, version: 2 }),
     );
     await usePreferences.persist.rehydrate();
     const state = usePreferences.getState();
     expect(state.sizes.inspector).toBe(PANEL_LIMITS.inspector.min);
-    expect(state.sizes.rail).toBe(PANEL_LIMITS.rail.initial);
-    expect(state.density).toBe("compact");
+    expect(state.sizes.strand).toBe(PANEL_LIMITS.strand.initial);
+    expect(state.personality).toBe("quiet");
+    expect(state.historyZoom).toBe(1);
   });
 
-  it("mirrors density and motion onto the root element", () => {
+  it("zooms history within three steps and resets", () => {
+    const { zoomHistory } = usePreferences.getState();
+    zoomHistory(1);
+    zoomHistory(1);
+    expect(usePreferences.getState().historyZoom).toBe(1);
+    zoomHistory(-1);
+    zoomHistory(-1);
+    zoomHistory(-1);
+    expect(usePreferences.getState().historyZoom).toBe(-1);
+    zoomHistory(0);
+    expect(usePreferences.getState().historyZoom).toBe(0);
+  });
+
+  it("maps personality to row height and mirrors it onto the root element", () => {
+    expect(rowHeightFor("quiet")).toBe(30);
+    expect(rowHeightFor("deep")).toBe(24);
     const root: HTMLElement = document.createElement("html");
-    applyPreferences({ density: "comfortable", motion: "reduce" }, root);
-    expect(root.dataset.density).toBe("comfortable");
+    applyPreferences({ personality: "deep", motion: "reduce" }, root);
+    expect(root.dataset.workspace).toBe("deep");
     expect(root.dataset.motion).toBe("reduce");
   });
 });

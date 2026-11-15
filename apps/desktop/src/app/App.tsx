@@ -4,7 +4,7 @@ import { AppShell } from "./AppShell";
 import { createQueryClient, useSettings } from "../services/queries";
 import { applyTheme } from "../styles/theme";
 import type { ThemePreference } from "../services/types";
-import { applyPreferences, usePreferences, type Density, type MotionPreference } from "../stores/preferences";
+import { applyPreferences, usePreferences, type MotionPreference, type Personality } from "../stores/preferences";
 
 export function App() {
   const [queryClient] = useState<QueryClient>(createQueryClient);
@@ -25,10 +25,10 @@ function ThemeController() {
   return null;
 }
 
-/** Mirrors density and motion preferences onto the document root. */
+/** Mirrors the workspace personality and motion preferences onto the document root. */
 function PreferencesController() {
-  const density: Density = usePreferences((state) => state.density);
+  const personality: Personality = usePreferences((state) => state.personality);
   const motion: MotionPreference = usePreferences((state) => state.motion);
-  useEffect(() => applyPreferences({ density, motion }, document.documentElement), [density, motion]);
+  useEffect(() => applyPreferences({ personality, motion }, document.documentElement), [personality, motion]);
   return null;
 }

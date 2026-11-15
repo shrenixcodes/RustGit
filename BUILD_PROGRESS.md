@@ -51,6 +51,13 @@ Local machine issues found (not project defects, not changed by the build):
 | B-2 | Engine: staging, diff, hunk/line, commit     | COMMITTED | `6fa0900` |
 | B-3 | IPC commands for contract C-1                | COMMITTED | `c510fc0` |
 | B-4 | Native smoke test covers contract C-1        | COMMITTED | `b9f3a5e` |
+| C-1 | Contract C-2 definition (UI requests R-1…R-14) | COMMITTED | `a5c8bad` |
+| C-2 | C-1 amendments, streaming/cancellable exec   | VERIFIED  | `969f594` |
+| C-3 | History, refs, branches, integrations, conflicts | VERIFIED | `7921b64`, `a97525b` |
+| C-4 | Remotes and network operations               | VERIFIED  | `1116a0c`, `0d79e94` |
+| C-5 | Stash and worktrees                          | VERIFIED  | `20e9b00`, `0d79e94` |
+| C-6 | Filesystem watcher and repository-changed    | VERIFIED  | `2dd7adc` |
+| C-7 | Event permission fix, native C-2 verification | COMMITTED | `73504d1` |
 
 ### F-1 Repository configuration and license
 
@@ -230,6 +237,47 @@ change_totals, author_identity, discard_paths, stage_paths, create_commit
 (oid compared with `git rev-parse HEAD`, clean tree afterwards),
 last_commit_message, command_history. Local result: passed.
 
+### C-1 … C-7 Contract C-2
+
+Answers the UI session's requests R-1 … R-14 (its branch
+`worktree-ui-orbital`, `docs/integration/INTEGRATION_STATUS.md`), plus
+rebase, cherry-pick, revert, remotes, stash and worktrees from the master
+specification. Details and deviations: `docs/integration/API_CONTRACT.md`.
+
+Notable engineering decisions:
+
+- Git runs with `LC_ALL=C` so failures can be classified into typed error
+  kinds; paths and commit text are unaffected.
+- Cancellation kills the whole process tree (`taskkill /T` on Windows,
+  process groups on Unix). Found by a test: killing only `git.exe` left its
+  child holding the output pipe, so cancel took 30 s instead of ~1 s.
+- `CancelToken` has a committed state so `cancel_operation` reports
+  truthfully whether cancelling took effect (pull after its fetch, push).
+- Fetch and push hold the repository read lock (status keeps working),
+  pull the write lock.
+- The watcher never watches `.git/objects` or Git-ignored top-level
+  directories, and picks up new top-level directories.
+- The window capability was missing `core:event:default`; without it the UI
+  could not have received any backend event. Found by the native test.
+
+Tests (all passing on Linux, Windows and macOS CI, run 43737147860):
+`rustgit-git-engine` 27 unit + 18 changes + 13 history/branches + 8
+repository + 7 remotes + 4 stash/worktree + 4 streaming integration tests;
+`rustgit-core` 18 unit + 3 watcher integration tests (real OS backend).
+Vitest 19 passed.
+
+Native verification (Windows, local): the smoke test drives the UI for
+repository add/open/overview/changes/theme and then calls every C-1 and C-2
+command through the WebView IPC, including a merge conflict resolved end to
+end, push/fetch/clone with `operation-finished` events received through the
+event bridge, and a `repository-changed` event. Result: passed, application
+exited with code 0, no errors in its log.
+
+Known limitations: GitHub integration BLOCKED (needs an OAuth App client ID
+from the project owner); interactive rebase, submodule management, Git LFS
+operations and signing configuration UI are not implemented; line staging
+needs UTF-8 text; macOS and Linux have no native smoke test.
+
 ## Initial quality checks (2026-11-15)
 
 | Check                                 | Result                         |
@@ -247,7 +295,8 @@ last_commit_message, command_history. Local result: passed.
 
 ## Not started
 
-Staging, diff and commit UI (UI session), commits, branches, history
+UI for staging, diffs, commits, history, branches, remotes, stash,
+worktrees and conflicts (UI session); GitHub integration (blocked); commits, branches, history
 graph, diff viewer, remotes, stashes, worktrees, GitHub integration, settings
 persistence (SQLite), filesystem watching, performance benchmarks, native
 smoke tests in CI, installers and releases.

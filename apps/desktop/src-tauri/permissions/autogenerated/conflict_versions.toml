@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-conflict-versions"
+description = "Enables the conflict_versions command without any pre-configured scope."
+commands.allow = ["conflict_versions"]
+
+[[permission]]
+identifier = "deny-conflict-versions"
+description = "Denies the conflict_versions command without any pre-configured scope."
+commands.deny = ["conflict_versions"]

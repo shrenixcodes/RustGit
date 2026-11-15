@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-set-upstream"
+description = "Enables the set_upstream command without any pre-configured scope."
+commands.allow = ["set_upstream"]
+
+[[permission]]
+identifier = "deny-set-upstream"
+description = "Denies the set_upstream command without any pre-configured scope."
+commands.deny = ["set_upstream"]

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-start-push"
+description = "Enables the start_push command without any pre-configured scope."
+commands.allow = ["start_push"]
+
+[[permission]]
+identifier = "deny-start-push"
+description = "Denies the start_push command without any pre-configured scope."
+commands.deny = ["start_push"]

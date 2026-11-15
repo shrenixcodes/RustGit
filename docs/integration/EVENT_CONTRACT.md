@@ -5,31 +5,32 @@ and received with `listen(name, handler)` from `@tauri-apps/api/event`.
 Handlers must be removed with the returned unlisten function when the
 component unmounts.
 
-**Current state: no events are emitted yet; the events below are DEFINED by contract C-2.** All state reaches the UI through
-command responses. Until the events below are IMPLEMENTED, the UI refreshes
-status on window focus, after its own mutations (from the returned
-`StatusSnapshot`), and on explicit user refresh.
+**Current state: all three events below are IMPLEMENTED (contract C-2) and verified in the native app.** The window capability grants `core:event:default`. All state reaches the UI through
+command responses and these events. The UI should still refresh on window
+focus (events can be missed while a repository is not watched).
 
 ## State invalidation rules (in force now)
 
 | After                                         | Invalidate                          |
 | --------------------------------------------- | ----------------------------------- |
 | Any staging command (`stage_*`, `unstage_*`, `discard_paths`, `apply_hunk`) | status (replace with response), all `file_diff` and `change_totals` for that repository |
-| `create_commit`                               | status (replace), diffs, totals, `last_commit_message`, history (when it exists) |
+| `create_commit`                               | status (replace), diffs, totals, `commit_context`, `log_page`, `list_refs` |
 | `add/init/remove_repository`, `set_repository_pinned`, `open_repository` | `list_repositories` |
 | Window regains focus                          | status of the open repository       |
 | Branch mutations, merge/rebase/cherry-pick/revert, stash apply, `continue_operation`, `abort_operation` | status, diffs, `list_refs`, `log_page`, `commit_context` |
 | `operation-finished` (fetch/pull/push)        | status, `list_refs`, `log_page`; pull also diffs |
 
-## Planned events
+## Events
 
-### `repository-changed` — DEFINED (C-2)
+### `repository-changed` — IMPLEMENTED
 
 Emitted for repositories registered with `watch_repository` when the
 filesystem watcher (notify) sees changes, debounced 300 ms trailing and at
 most one event per 2 s of continuous activity. Includes changes RustGit made
-itself (the UI's invalidation is idempotent). `.git/objects`, `.git/logs`
-and `*.lock` files are ignored. Linked worktrees: the worktree's own git
+itself (the UI's invalidation is idempotent). `.git/objects`, `.git/logs`,
+`*.lock` files and top-level directories Git ignores (e.g. `node_modules`,
+`target`) are not watched. Call `watch_repository({ id })` when a
+repository is opened and `unwatch_repository({ id })` when it is closed. Linked worktrees: the worktree's own git
 directory (index, HEAD) and the common directory (refs, config) are watched.
 
 ```ts
@@ -43,7 +44,7 @@ The UI invalidates status for `worktree`/`index`/`head`, and branch/history
 queries for `refs`/`head`. If watching fails or events overflow, the backend
 emits one event with every scope so the UI performs a full refresh.
 
-### `operation-progress` — DEFINED (C-2)
+### `operation-progress` — IMPLEMENTED
 
 For long-running operations (clone, fetch, pull, push).
 
@@ -58,7 +59,7 @@ interface OperationProgress {
 }
 ```
 
-### `operation-finished` — DEFINED (C-2)
+### `operation-finished` — IMPLEMENTED
 
 ```ts
 interface OperationFinished {

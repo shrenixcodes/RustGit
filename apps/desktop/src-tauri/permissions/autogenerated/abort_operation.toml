@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-abort-operation"
+description = "Enables the abort_operation command without any pre-configured scope."
+commands.allow = ["abort_operation"]
+
+[[permission]]
+identifier = "deny-abort-operation"
+description = "Denies the abort_operation command without any pre-configured scope."
+commands.deny = ["abort_operation"]

@@ -280,7 +280,7 @@ interface CommitResult { oid: string; summary: string; status: StatusSnapshot }
   return `git_command_failed` with Git's stderr and exit code in `message`.
   Nothing is retried and the message is not lost: the UI keeps its fields.
 
-## Contract C-2 — DEFINED
+## Contract C-2 — IMPLEMENTED
 
 C-2 answers the UI session's requests R-1 … R-14 (filed on branch
 `worktree-ui-orbital`, `docs/integration/INTEGRATION_STATUS.md`). Shapes
@@ -531,13 +531,16 @@ background and reports through `operation-progress` and
 | Command | Arguments | Cancellable |
 | ------- | --------- | ----------- |
 | `start_fetch` | `{ id, remote: string \| null, prune: boolean }` (`null` = all remotes) | yes |
-| `start_pull` | `{ id, mode: "ff_only" \| "merge" \| "rebase" }` | fetch phase only |
+| `start_pull` | `{ id, mode: "ff_only" \| "merge" \| "rebase" }` | fetch phase only (afterwards `cancel_operation` returns `false`) |
 | `start_push` | `{ id, remote: string \| null, branch: string \| null, setUpstream: boolean, forceWithLease: boolean }` | no |
 | `start_delete_remote_branch` | `{ id, remote, branch }` | no |
 | `start_clone` | `{ url, parentDirectory, directoryName: string \| null }` | yes |
 | `cancel_operation` | `{ operationId }` -> `boolean` (false if not running or not cancellable now) | — |
 
-- Repository operations hold the write lock for their duration; reads wait.
+- Locking (refined during implementation): fetch, push and remote branch
+  deletion only update refs and hold the **read** lock, so status and other
+  reads continue while mutations wait; pull changes the working tree and
+  holds the **write** lock.
 - Push never uses plain `--force`; `forceWithLease` passes
   `--force-with-lease` (UI confirms).
 - `start_clone` registers the new repository; its `operation-finished` event
@@ -545,7 +548,12 @@ background and reports through `operation-progress` and
 - Credentials: Git's configured credential helper is used; RustGit never sees
   or stores secrets and never prompts in a terminal. Failures give
   `authentication_failed`.
-- Cancelling kills the Git process; Git leaves no partial refs for fetch or
+- The window must hold `core:event:default` to `listen` to these events;
+  it is granted in `capabilities/default.json`.
+- `operation-finished` for a pull does not carry the integration result;
+  the UI refreshes status (conflicts appear as `inProgress` and conflicted
+  files).
+- Cancelling kills the Git process tree (remote helpers and ssh included); Git leaves no partial refs for fetch or
   clone (a cancelled clone's directory is removed). Push is not cancellable
   because the remote may already have accepted it.
 
@@ -607,7 +615,9 @@ watches the open repository; at most 8 repositories are watched at once
   by `commit_context`; `create_commit` gains typed pre-check errors;
   `StatusSnapshot` gains `inProgress`; `DiffSide` gains `"commit"` (output
   only); `CommandError` gains optional `details`. Events renamed to the UI
-  session's names. Everything else in C-2 is new.
+  session's names. Everything else in C-2 is new. Implemented in
+  `969f594`, `7921b64`, `a97525b`, `1116a0c`, `20e9b00`, `0d79e94`,
+  `2dd7adc`; verified natively in `73504d1`.
 
 ## Known limitations of C-1
 

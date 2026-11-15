@@ -185,3 +185,181 @@ export interface CommitResult {
   summary: string;
   status: StatusSnapshot;
 }
+
+// --- History (contract C-2) ---------------------------------------------
+
+export type LogSearchField = "message" | "author" | "sha";
+
+export interface LogSearch {
+  text: string;
+  field: LogSearchField;
+}
+
+export interface LogCommit {
+  oid: string;
+  /** First parent first. */
+  parents: string[];
+  summary: string;
+  authorName: string;
+  authorEmail: string;
+  /** Unix seconds. */
+  authorTime: number;
+  committerTime: number;
+}
+
+export interface LogPage {
+  commits: LogCommit[];
+  hasMore: boolean;
+}
+
+export interface CommitFile {
+  path: string;
+  originalPath: string | null;
+  kind: ChangeKind;
+  /** null for binary files. */
+  additions: number | null;
+  deletions: number | null;
+}
+
+export interface CommitDetails {
+  oid: string;
+  parents: string[];
+  authorName: string;
+  authorEmail: string;
+  authorTime: number;
+  committerName: string;
+  committerEmail: string;
+  committerTime: number;
+  message: string;
+  files: CommitFile[];
+}
+
+// --- References and branches (contract C-2) ---------------------------------
+
+export type HeadState =
+  | { kind: "branch"; name: string }
+  | { kind: "detached"; oid: string }
+  | { kind: "unborn"; name: string };
+
+export type RefKind = "local" | "remote" | "tag";
+
+export interface RefEntry {
+  fullName: string;
+  shortName: string;
+  kind: RefKind;
+  /** Peeled commit id for annotated tags. */
+  oid: string;
+  upstream: string | null;
+  ahead: number | null;
+  behind: number | null;
+  upstreamGone: boolean;
+  lastCommitTime: number;
+  lastCommitSummary: string;
+}
+
+export interface RefList {
+  head: HeadState;
+  refs: RefEntry[];
+}
+
+export type CheckoutMode = "keep_changes" | "abort_if_dirty";
+export type MergeStrategy = "default" | "no_ff" | "ff_only";
+export type IntegrationOutcome = "up_to_date" | "fast_forward" | "completed" | "conflicts";
+
+export interface IntegrationResult {
+  outcome: IntegrationOutcome;
+  conflicted: string[];
+  status: StatusSnapshot;
+}
+
+export interface ConflictVersions {
+  base: string | null;
+  ours: string | null;
+  theirs: string | null;
+  working: string;
+  oursLabel: string;
+  theirsLabel: string;
+  binary: boolean;
+}
+
+export type ConflictSide = "ours" | "theirs";
+
+// --- Remotes and long-running operations (contract C-2) ---------------------
+
+export interface Remote {
+  name: string;
+  /** Credentials are redacted. */
+  fetchUrl: string | null;
+  pushUrl: string | null;
+}
+
+export type PullMode = "ff_only" | "merge" | "rebase";
+
+export interface OperationStarted {
+  operationId: string;
+}
+
+export type OperationKind = "clone" | "fetch" | "pull" | "push" | "delete_remote_branch";
+
+/** Payload of the `operation-progress` event. */
+export interface OperationProgressEvent {
+  operationId: string;
+  repositoryId: number | null;
+  kind: OperationKind;
+  /** Git's own phase text, e.g. "Receiving objects". */
+  phase: string;
+  /** Only when Git reported counts; never synthesized. */
+  progress: { current: number; total: number } | null;
+}
+
+/** Payload of the `operation-finished` event; emitted exactly once per operation. */
+export interface OperationFinishedEvent {
+  operationId: string;
+  /** For clone: the newly registered repository. */
+  repositoryId: number | null;
+  outcome: "succeeded" | "failed" | "cancelled";
+  error: CommandError | null;
+}
+
+// --- Stash and worktrees (contract C-2) -------------------------------------
+
+export interface StashEntry {
+  index: number;
+  /** Stable identity; stash@{n} positions shift. */
+  oid: string;
+  message: string;
+  createdAt: number;
+}
+
+export interface StashFile {
+  path: string;
+  kind: ChangeKind;
+  untracked: boolean;
+}
+
+export interface StashDetails {
+  files: StashFile[];
+}
+
+export interface Worktree {
+  path: string;
+  head: string | null;
+  branch: string | null;
+  isMain: boolean;
+  detached: boolean;
+  bare: boolean;
+  /** Lock reason ("" when locked without a reason). */
+  locked: string | null;
+  /** Why the worktree can be pruned (directory missing). */
+  prunable: string | null;
+}
+
+// --- Filesystem watching (contract C-2) -------------------------------------
+
+export type ChangeScope = "worktree" | "index" | "refs" | "head" | "config";
+
+/** Payload of the `repository-changed` event (debounced 300 ms, max 2 s). */
+export interface RepositoryChangedEvent {
+  repositoryId: number;
+  scopes: ChangeScope[];
+}

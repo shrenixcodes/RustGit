@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-start-delete-remote-branch"
+description = "Enables the start_delete_remote_branch command without any pre-configured scope."
+commands.allow = ["start_delete_remote_branch"]
+
+[[permission]]
+identifier = "deny-start-delete-remote-branch"
+description = "Denies the start_delete_remote_branch command without any pre-configured scope."
+commands.deny = ["start_delete_remote_branch"]

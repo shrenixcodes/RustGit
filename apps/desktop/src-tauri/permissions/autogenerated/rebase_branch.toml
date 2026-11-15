@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-rebase-branch"
+description = "Enables the rebase_branch command without any pre-configured scope."
+commands.allow = ["rebase_branch"]
+
+[[permission]]
+identifier = "deny-rebase-branch"
+description = "Denies the rebase_branch command without any pre-configured scope."
+commands.deny = ["rebase_branch"]

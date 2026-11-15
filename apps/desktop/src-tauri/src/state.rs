@@ -2,13 +2,17 @@ use std::sync::Arc;
 
 use rustgit_git_engine::GitExecutor;
 
-use rustgit_core::{CommandError, CommandResult, Database, RepositoryLocks};
+use rustgit_core::{
+    CommandError, CommandResult, Database, OperationRegistry, RepositoryLocks, RepositoryWatchers,
+};
 
 /// Shared application state managed by Tauri.
 pub struct AppState {
     pub git: GitExecutor,
     pub database: Arc<Database>,
     pub locks: RepositoryLocks,
+    pub operations: OperationRegistry,
+    pub watchers: RepositoryWatchers,
 }
 
 impl AppState {
@@ -17,6 +21,8 @@ impl AppState {
             git,
             database: Arc::new(database),
             locks: RepositoryLocks::default(),
+            operations: OperationRegistry::default(),
+            watchers: RepositoryWatchers::default(),
         }
     }
 }

@@ -15,9 +15,9 @@ a real repository (or by component tests where noted); **Partial**;
 | 7  | Commit staged changes            | Not started       | Backend ready (C-1 `create_commit`, C-2 `commit_context`)   |
 | 8  | Amend a commit                   | Not started       | Backend ready (C-1, C-2)                                    |
 | 9  | Create and switch branches       | Blocked (R-9, R-11)|                                                            |
-| 10 | Compare branches                 | Blocked (R-8, R-9)|                                                             |
-| 11 | Browse commit graph              | Blocked (R-8, R-9)| Lane layout engine done and tested                          |
-| 12 | Search commits                   | Blocked (R-8)     |                                                             |
+| 10 | Compare branches                 | Blocked (R-16)    | Needs a range comparison from the backend                   |
+| 11 | Browse commit graph              | Pass              | Native QA 2026-11-16, incl. 4 636-commit repository (U-9)   |
+| 12 | Search commits                   | Pass              | Native QA: message search; author and id search in tests    |
 | 13 | Fetch                            | Blocked (R-13)    |                                                             |
 | 14 | Pull                             | Blocked (R-13)    |                                                             |
 | 15 | Push                             | Blocked (R-13)    |                                                             |

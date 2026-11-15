@@ -54,7 +54,7 @@ are mostly blocked on backend capabilities, so the order is:
 | U-6  | Commit graph lane layout engine               | COMMITTED  | see git log |
 | U-7  | UI test plan and acceptance tracker           | COMMITTED  | see git log |
 | U-8  | Diff viewer, staging, commit composer         | NOT STARTED | backend ready: C-1 + C-2 amendments |
-| —    | History screen                                | BLOCKED    | C-2 `log_page`, `list_refs` defined, not implemented (layout engine ready) |
+| U-9  | History workspace                             | COMMITTED  | see git log |
 | —    | Branches workspace                            | BLOCKED    | C-2 branch commands defined, not implemented |
 | —    | Command palette                               | NOT STARTED | |
 
@@ -145,3 +145,32 @@ staging, diff, hunk/line staging, discard, commit, command history) and C-2
 (defined; log, refs, branches, network, conflicts, stash, worktrees,
 watching). The next UI task is the diff viewer, staging controls and commit
 composer against C-1/C-2.
+
+### U-9 History workspace (2026-11-16)
+
+On `log_page` (pages of 300, on demand), `list_refs`, `commit_details`, and
+`watch_repository` + `repository-changed` for live updates (status, refs and
+log are invalidated by scope; this also makes Changes and the shelf live).
+Graph: incremental lane layout (`historyLayout.ts` reuses unchanged pages by
+object identity and resumes from the saved lane state), one SVG cell per
+row, distinct node shapes for commit / merge / HEAD, labels for current
+branch, local, remote, tag and detached HEAD. Commit inspector, keyboard
+navigation (first parent, nearest child, copy SHA), refs / search / date
+filters, ancestors/descendants focus. Search results are shown without the
+graph (they are not connected history), with "Show in graph" to reveal a
+commit in context.
+
+Native QA (debug build, Windows, real repositories):
+- Small repository with a `--no-ff` merge, a tag and remote-tracking
+  branches: labels, merge marker, HEAD, first-parent navigation, message
+  search, and a commit made outside RustGit appearing without refresh all
+  pass, in dark and light themes.
+- Large repository (4 636 commits, a merged topic branch every 25 commits,
+  generated with fast-import): first page in 307–460 ms, 40 rows mounted,
+  scrolling 40 half-viewports at median 7–11 ms and p95 19–21 ms per frame,
+  further pages loaded while scrolling.
+- No console or application log errors; the native smoke test passes.
+
+Not done: commit file diffs (need the diff viewer), compare (request R-16),
+context menu, minimap. A new search briefly shows "Reading history…" in
+place of the previous list while the backend query runs.

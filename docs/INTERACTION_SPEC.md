@@ -20,13 +20,14 @@ their header string, one hunk per `apply_hunk` call).
 
 | Shortcut               | Action                                   | Status    |
 | ---------------------- | ---------------------------------------- | --------- |
-| `Ctrl/Cmd+1`…`9`       | Go to the n-th available section         | [planned] |
-| `Ctrl/Cmd+B`           | Toggle navigation rail                   | [planned] |
-| `Ctrl/Cmd+I`           | Toggle inspector                         | [planned] |
-| `Ctrl/Cmd+J`           | Toggle activity panel                    | [planned] |
-| `Ctrl/Cmd+R` / `F5`    | Refresh repository status                | [planned] |
+| `Ctrl/Cmd+1`…`3`       | Overview, Changes, History               | [live]    |
+| `Ctrl/Cmd+,`           | Settings                                 | [live]    |
+| `Ctrl/Cmd+B`           | Toggle navigation rail                   | [live]    |
+| `Ctrl/Cmd+I`           | Toggle inspector                         | [live]    |
+| `Ctrl/Cmd+J`           | Toggle activity panel                    | [live]    |
+| `Ctrl/Cmd+R` / `F5`    | Refresh repository data                  | [live]    |
 | `Ctrl/Cmd+K`           | Command palette                          | [planned] |
-| `Ctrl/Cmd+P`           | Quick repository switcher                | [planned] |
+| `Ctrl/Cmd+P`           | Quick repository switcher                | [live]    |
 | `?`                    | Shortcut reference                       | [planned] |
 
 Shortcuts never fire while focus is in a text field, except
@@ -95,14 +96,41 @@ templates **[planned]** after R-7.
 
 ## History workspace
 
-- Graph column aligned with log rows; lanes assigned by a single sweep over
-  topologically ordered commits (children before parents). Lane layout engine
-  **[planned]**; screen **[blocked R-8, R-9]**.
-- Node shapes: circle = commit, double ring = merge, filled cyan with ring =
-  HEAD; ref labels: solid = local branch, outlined = remote, amber tag shape
-  = tag. **[blocked R-9]**
-- Keyboard: `↑`/`↓` move selection, `←` first parent, `→` first child,
-  `Ctrl+C` copy full SHA. **[blocked R-8]**
+All items in this section are **[live]** on `log_page`, `list_refs` and
+`commit_details`, verified in the native app (see `UI_PROGRESS.md` U-9),
+except where marked.
+
+- `Ctrl/Cmd+3` opens History. History loads in pages of 300 as the list
+  scrolls; it never loads the whole log. Only visible rows are mounted.
+- Graph column aligned with log rows on a faint grid; lanes assigned by a
+  single sweep over topologically ordered commits, incrementally per page.
+  HEAD's first-parent line is cyan (lane color 0); other lanes cycle
+  lavender, amber, green, blue, yellow.
+- Node shapes: hollow circle = commit, ring with centre dot = merge, filled
+  cyan with halo = HEAD. Ref labels: filled cyan = current branch, solid
+  outline = local branch, outlined with a cloud = remote branch, amber with
+  a tag icon = tag, amber "HEAD" = detached HEAD. Each label's accessible
+  text names its kind.
+- Columns: message (with labels), author (email in tooltip), relative date
+  (absolute in tooltip), short commit id.
+- Selection opens the commit inspector: full SHA with Copy, labels, full
+  message, author and committer (committer only when different), parents as
+  buttons, changed files with +/− (merges compared with the first parent).
+- Keyboard in the list: `↑`/`↓`, `PageUp`/`PageDown`, `Home`/`End`, `←` first
+  parent (pages in more history if needed, up to 20 000 commits), `→`
+  nearest loaded child, `C` copies the full SHA.
+- Filters (toolbar): refs (all, HEAD, any local or remote branch), search by
+  message / author / commit id prefix (debounced 300 ms, runs in the backend),
+  from/to dates. Search results are a flat list without the graph, because
+  matches are not connected history; "Show in graph" in the inspector clears
+  the search and reveals the commit in the graph.
+- Focus: ancestors or descendants of the selected commit (within loaded
+  history); other rows are dimmed.
+- Live: commits, branch and tag changes made outside RustGit appear without
+  refresh (`repository-changed`).
+- Compare commits / compare branches, file diffs of a commit, context menu,
+  minimap: **[planned]** (diffs reuse the diff viewer being built for
+  Changes; comparing needs request R-16).
 
 ## Operation shelf and activity panel
 

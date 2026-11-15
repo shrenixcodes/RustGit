@@ -73,8 +73,8 @@ Branch `worktree-ui-orbital`, merged with `main` at `0cca721`:
   switcher, inspector host, operation shelf, activity panel), Changes file
   tree on `repository_status`, dense Overview, density and motion settings,
   commit graph lane layout engine.
-- In progress: History workspace on `log_page`, `list_refs`,
-  `commit_details`. Then the diff viewer, staging and commit composer on C-1.
+- Done: History workspace on `log_page`, `list_refs`, `commit_details` and
+  `repository-changed` (U-9). Next: diff viewer, staging, commit composer.
 - `types.ts` / `ipc.ts` untouched by the UI session.
 - The UI stores UI preferences and the last-opened repository **path** in
   WebView `localStorage` (per WebView profile, not per `RUSTGIT_DATA_DIR`).
@@ -104,3 +104,27 @@ branch `worktree-ui-orbital`. The persisted default is the backend's:
 
 Until this lands, a fresh install shows dark for the first paint and then
 follows the OS (the backend's `"system"`).
+
+## Request R-16 from the UI session — compare two revisions (2026-11-16)
+
+Feature: "Compare two commits" and "Compare branches" in History and
+Branches. `log_page` can already list commits for a range if it accepts
+`A..B` revisions (please confirm), but the file-level comparison needs a
+range diff.
+
+```ts
+compare_revisions({ id, base: string, head: string, mergeBase: boolean })
+  -> {
+    base: string; head: string;        // resolved full object ids
+    mergeBase: string | null;          // when mergeBase: true (three-dot comparison)
+    ahead: number; behind: number;     // commits in head not in base, and the reverse
+    files: Array<{ path: string; originalPath: string | null; kind: ChangeKind;
+                   additions: number | null; deletions: number | null }>;
+  }
+compare_file_diff({ id, base, head, mergeBase, path, originalPath?, contextLines? }) -> FileDiff  // side "commit"
+```
+
+Errors: `invalid_request` for unknown revisions (message names which one).
+Same revision validation as `log_page` (no leading `-`).
+UI depending on it: History "Compare with selected", Branches "Compare".
+Priority: P1 (spec acceptance workflow 10).

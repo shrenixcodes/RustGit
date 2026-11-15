@@ -1,0 +1,26 @@
+# Rust
+/target/
+**/*.rs.bk
+
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+coverage/
+
+# Tauri generated
+apps/desktop/src-tauri/gen/schemas/
+
+# Local configuration and secrets
+.env
+.env.*
+*.pem
+*.key
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Test and benchmark output
+/test-results/
+/playwright-report/

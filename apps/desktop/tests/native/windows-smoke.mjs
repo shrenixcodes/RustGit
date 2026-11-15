@@ -125,22 +125,29 @@ try {
   await page.getByRole("button", { name: "Open smoke-repo" }).click();
   step("repository added and opened through the UI");
 
+  // The thread (UI branch worktree-ui-orbital): the seal names the branch, the
+  // loose end summarises the working tree, commits follow.
   await page.getByText("main", { exact: true }).first().waitFor();
-  const overview = await page.locator("main").innerText();
-  expectText(overview, "Staged\n1", "staged count");
-  expectText(overview, "Unstaged\n2", "unstaged count");
-  expectText(overview, "Untracked\n1", "untracked count");
-  expectText(overview, git("rev-parse", "HEAD").slice(0, 12), "commit id");
-  step("overview shows branch, commit and change counts from Git");
-  await shoot(page, "02-overview");
+  const looseEnd = page.getByRole("treeitem", { name: /^Uncommitted changes:/ });
+  await looseEnd.waitFor();
+  const summary = await looseEnd.getAttribute("aria-label");
+  expectText(summary, "1 staged", "staged count");
+  expectText(summary, "2 unstaged", "unstaged count");
+  expectText(summary, "1 untracked", "untracked count");
+  const head = git("rev-parse", "HEAD").slice(0, 7);
+  await page.locator("main").getByText(head, { exact: true }).waitFor();
+  step("thread shows branch, HEAD commit and change counts from Git");
+  await shoot(page, "02-thread");
 
-  await page.getByRole("button", { name: "Changes", exact: true }).click();
-  const changes = page.locator("main");
+  // Unfold the loose end with the keyboard: every changed file is listed.
+  await page.getByRole("tree", { name: "Thread" }).focus();
+  await page.keyboard.press("Enter");
+  const changes = page.getByRole("group", { name: "Uncommitted changes" });
   await changes.getByText("staged.txt").waitFor();
   for (const name of ["tracked.txt", "remove-me.txt", "untracked.md"]) {
     await changes.getByText(name).waitFor();
   }
-  step("changes view lists every changed file");
+  step("unfolded loose end lists every changed file");
   await shoot(page, "03-changes");
 
   // External change, then explicit refresh.

@@ -23,7 +23,7 @@ a real repository (or by component tests where noted); **Partial**;
 | 15 | Push                             | Blocked (R-13)    |                                                             |
 | 16 | Stash                            | Blocked           | Defined in contract C-2, not implemented yet                |
 | 17 | Restore stash                    | Blocked           | Defined in contract C-2, not implemented yet                |
-| 18 | Resolve merge conflict           | Blocked (R-14)    | Conflicts are listed and explained                          |
+| 18 | Resolve merge conflict           | Pass              | Native QA: real merge and rebase conflicts, CLI checked     |
 | 19 | Inspect operation history        | Pass              | Activity panel: operations and Git commands (command_history) |
 | 20 | Use command palette              | Pass              | Native QA: palette → map → switch                           |
 | 21 | Navigate with keyboard only      | Partial           | Rail, switcher, file tree, splitters, settings; see `INTERACTION_SPEC.md` |

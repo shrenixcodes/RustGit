@@ -196,3 +196,21 @@ Git CLI; native staging QA 13/13; native smoke test passes. Three visual
 defects found in native QA and fixed (duplicate open ring on HEAD, lanes
 interrupted by folds, oversized commit fold). Remaining work is listed in
 `INTERACTION_SPEC.md` as [planned] / [blocked].
+
+### U-12 Conflict resolution (2026-11-16)
+
+At the loose end: the resolver (blocks with per-block choices, full
+versions, editable result) on `conflict_versions` / `resolve_conflict`, and
+the operation banner (continue / abort) on `continue_operation` /
+`abort_operation`. Resolution is confirmed from the status the backend
+returns, not from the click. The parser and assembler (`thread/conflicts.ts`)
+handle merge, diff3 and zdiff3 markers and keep CRLF. Built without
+CodeMirror Merge: per-block choices against the backend's stages did not
+need an editor dependency.
+
+Verification: 191 Vitest tests (13 new); native conflict QA 15/15 against
+real merge and rebase conflicts (block and whole-file resolution, continue
+to a two-parent merge commit, abort of a merge and of a rebase); thread QA
+16/16 and the native smoke test still pass. One defect found and fixed: the
+resolver was keyed on query update time, so refetches and watcher events
+discarded the user's choices.

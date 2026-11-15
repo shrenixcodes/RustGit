@@ -63,8 +63,23 @@ Shortcuts never fire inside text fields, except those with `Ctrl` and
 - Lines: click to select add/delete lines of a modified file; hunk actions
   become `Stage N lines`. A refreshed diff clears selections. **[live]**
 - `stale_diff`: says nothing was applied and shows the refreshed diff. **[live]**
-- Conflict resolution (base / ours / theirs / result): **[planned]**
-  (backend `conflict_versions`, `resolve_conflict` exist).
+- Conflict resolution: a conflicted file (click, `Enter` or Resolve…) opens
+  the resolver in place of the stream; `Esc` returns. **[live]**
+  - Header: which branch is ours and theirs (labels from the backend, with
+    the rebase meaning spelled out), conflicts left, take ours / take theirs
+    for the whole file, Blocks / Versions view.
+  - Blocks: each conflict side by side (ours, diff3 base when recorded,
+    theirs) with Ours / Theirs / Both / Both, theirs first / Edit; unchanged
+    text between conflicts folded beyond three lines of context.
+  - Result: assembled live; unresolved blocks keep their markers; the whole
+    result can be edited by hand. Versions: base, ours, theirs in full.
+  - Mark resolved: asks before writing a result that still has markers;
+    the file counts as resolved only when the returned status no longer
+    lists it as conflicted, otherwise the resolver says it is still
+    reported as conflicted. Binary files: whole-file sides only.
+- Operation in progress (merge, rebase, cherry-pick, revert): banner with
+  conflicts left, Continue (disabled until none remain) and Abort (confirms,
+  states that resolutions are discarded). **[live]**
 
 ## Commit fold
 

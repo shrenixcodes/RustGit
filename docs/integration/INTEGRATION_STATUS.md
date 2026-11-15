@@ -143,6 +143,8 @@ Priority: P1 (spec acceptance workflow 10).
   steps that drove the old Overview and Changes pages now drive the thread
   (same assertions: counts, HEAD id, changed files, refresh, theme). The C-1
   and C-2 IPC checks are untouched. Commit `98cf47f`.
-- Still open for the UI: conflict resolution editor (`conflict_versions`,
-  `resolve_conflict`), stash, worktrees, remotes and network operations on
+- Conflict resolution is now in the UI (commit `6202628`), using
+  `conflict_versions`, `resolve_conflict`, `continue_operation` and
+  `abort_operation`, verified against real merge and rebase conflicts.
+- Still open for the UI: stash, worktrees, remotes and network operations on
   the map. Backend requests still open: R-15 (dark default), R-16 (compare).

@@ -31,6 +31,8 @@ against Git. Screenshots are kept outside the repository (scratch QA runs).
 | Branch switch refused by Git | Fold says "Nothing changed" and names the blocking file; shelf records the failure |
 | Console errors / application log errors | None in any run |
 | Native smoke test (core session's, updated selectors) | Passes |
+| Conflict resolver (real merge and rebase conflicts) | 15/15 native checks; ours/theirs named correctly in both, including the rebase swap |
+| Resolver state lost on refetch or watcher events | Found in testing; resolver now keyed on the conflicted content |
 
 ## Not yet verified
 

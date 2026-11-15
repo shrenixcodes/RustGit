@@ -46,6 +46,18 @@ pub fn run() {
             commands::repositories::set_repository_pinned,
             commands::repositories::remove_repository,
             commands::repositories::repository_status,
+            commands::changes::stage_paths,
+            commands::changes::unstage_paths,
+            commands::changes::stage_all,
+            commands::changes::unstage_all,
+            commands::changes::discard_paths,
+            commands::changes::file_diff,
+            commands::changes::apply_hunk,
+            commands::changes::change_totals,
+            commands::changes::author_identity,
+            commands::changes::last_commit_message,
+            commands::changes::create_commit,
+            commands::changes::command_history,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run the RustGit application");

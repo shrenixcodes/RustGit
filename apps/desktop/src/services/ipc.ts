@@ -1,8 +1,15 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
+  AuthorIdentity,
+  ChangeTotals,
   CommandError,
+  CommandRecord,
+  CommitResult,
+  DiffSide,
   ErrorKind,
+  FileDiff,
   GitInfo,
+  HunkAction,
   RepositoryEntry,
   Settings,
   StatusSnapshot,
@@ -61,4 +68,37 @@ export const ipc = {
     call("set_repository_pinned", { id, pinned }),
   removeRepository: (id: number): Promise<void> => call("remove_repository", { id }),
   repositoryStatus: (id: number): Promise<StatusSnapshot> => call("repository_status", { id }),
+
+  // Changes and staging (contract C-1). Mutations return the status after the change.
+  stagePaths: (id: number, paths: string[]): Promise<StatusSnapshot> => call("stage_paths", { id, paths }),
+  unstagePaths: (id: number, paths: string[]): Promise<StatusSnapshot> => call("unstage_paths", { id, paths }),
+  stageAll: (id: number): Promise<StatusSnapshot> => call("stage_all", { id }),
+  unstageAll: (id: number): Promise<StatusSnapshot> => call("unstage_all", { id }),
+  /** Destructive: confirm with the user first. */
+  discardPaths: (id: number, paths: string[]): Promise<StatusSnapshot> => call("discard_paths", { id, paths }),
+  fileDiff: (args: {
+    id: number;
+    path: string;
+    originalPath?: string | null;
+    side: DiffSide;
+    ignoreWhitespace: boolean;
+  }): Promise<FileDiff> => call("file_diff", { originalPath: null, ...args }),
+  /** "discard" is destructive: confirm with the user first. */
+  applyHunk: (args: {
+    id: number;
+    path: string;
+    side: DiffSide;
+    action: HunkAction;
+    hunkHeader: string;
+    lineIndices?: number[] | null;
+  }): Promise<StatusSnapshot> => call("apply_hunk", { lineIndices: null, ...args }),
+  changeTotals: (id: number, side: DiffSide): Promise<ChangeTotals> => call("change_totals", { id, side }),
+
+  // Commits (contract C-1).
+  authorIdentity: (id: number): Promise<AuthorIdentity> => call("author_identity", { id }),
+  lastCommitMessage: (id: number): Promise<string | null> => call("last_commit_message", { id }),
+  createCommit: (id: number, message: string, amend: boolean): Promise<CommitResult> =>
+    call("create_commit", { id, message, amend }),
+
+  commandHistory: (): Promise<CommandRecord[]> => call("command_history"),
 } as const;

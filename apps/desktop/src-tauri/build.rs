@@ -11,6 +11,18 @@ const COMMANDS: &[&str] = &[
     "set_repository_pinned",
     "remove_repository",
     "repository_status",
+    "stage_paths",
+    "unstage_paths",
+    "stage_all",
+    "unstage_all",
+    "discard_paths",
+    "file_diff",
+    "apply_hunk",
+    "change_totals",
+    "author_identity",
+    "last_commit_message",
+    "create_commit",
+    "command_history",
 ];
 
 fn main() {

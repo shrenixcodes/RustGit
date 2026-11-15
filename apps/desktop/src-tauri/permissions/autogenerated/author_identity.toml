@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-author-identity"
+description = "Enables the author_identity command without any pre-configured scope."
+commands.allow = ["author_identity"]
+
+[[permission]]
+identifier = "deny-author-identity"
+description = "Denies the author_identity command without any pre-configured scope."
+commands.deny = ["author_identity"]

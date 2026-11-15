@@ -65,6 +65,8 @@
     "allow-list-worktrees",
     "allow-add-worktree",
     "allow-remove-worktree",
-    "allow-prune-worktrees"
+    "allow-prune-worktrees",
+    "allow-watch-repository",
+    "allow-unwatch-repository"
   ]
 }

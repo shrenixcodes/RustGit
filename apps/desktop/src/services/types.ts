@@ -353,3 +353,13 @@ export interface Worktree {
   /** Why the worktree can be pruned (directory missing). */
   prunable: string | null;
 }
+
+// --- Filesystem watching (contract C-2) -------------------------------------
+
+export type ChangeScope = "worktree" | "index" | "refs" | "head" | "config";
+
+/** Payload of the `repository-changed` event (debounced 300 ms, max 2 s). */
+export interface RepositoryChangedEvent {
+  repositoryId: number;
+  scopes: ChangeScope[];
+}

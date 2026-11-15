@@ -13,6 +13,8 @@ pub struct RepositoryLocation {
     pub root: PathBuf,
     /// Absolute Git directory. For linked worktrees this is not `<root>/.git`.
     pub git_dir: PathBuf,
+    /// Directory shared by all worktrees (refs, config, objects).
+    pub common_dir: PathBuf,
     /// Whether `root` is a linked worktree rather than the main working tree.
     pub is_linked_worktree: bool,
 }
@@ -69,6 +71,7 @@ pub fn discover(git: &GitExecutor, path: &Path) -> GitResult<RepositoryLocation>
         is_linked_worktree: normalize(&git_dir) != normalize(&common_dir),
         root,
         git_dir,
+        common_dir,
     })
 }
 

@@ -94,6 +94,8 @@ pub fn run() {
             commands::workspace::add_worktree,
             commands::workspace::remove_worktree,
             commands::workspace::prune_worktrees,
+            commands::repositories::watch_repository,
+            commands::repositories::unwatch_repository,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run the RustGit application");

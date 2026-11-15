@@ -83,6 +83,9 @@ export const ipc = {
     call("set_repository_pinned", { id, pinned }),
   removeRepository: (id: number): Promise<void> => call("remove_repository", { id }),
   repositoryStatus: (id: number): Promise<StatusSnapshot> => call("repository_status", { id }),
+  /** Starts repository-changed events for this repository (max 8 watched). */
+  watchRepository: (id: number): Promise<void> => call("watch_repository", { id }),
+  unwatchRepository: (id: number): Promise<void> => call("unwatch_repository", { id }),
 
   // Changes and staging (contract C-1). Mutations return the status after the change.
   stagePaths: (id: number, paths: string[]): Promise<StatusSnapshot> => call("stage_paths", { id, paths }),

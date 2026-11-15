@@ -4,6 +4,7 @@ pub mod database;
 pub mod error;
 pub mod locks;
 pub mod operations;
+pub mod watcher;
 
 pub use database::{
     Database, DatabaseError, RepositoryEntry, Settings, ThemePreference, owning_repository,
@@ -14,3 +15,4 @@ pub use operations::{
     OperationFinished, OperationKind, OperationOutcome, OperationProgress, OperationRegistry,
     OperationStarted, ProgressCounts, ProgressThrottle,
 };
+pub use watcher::{ChangeScope, RepositoryChanged, RepositoryWatchers, WatchError};

@@ -59,6 +59,8 @@ const COMMANDS: &[&str] = &[
     "add_worktree",
     "remove_worktree",
     "prune_worktrees",
+    "watch_repository",
+    "unwatch_repository",
 ];
 
 fn main() {

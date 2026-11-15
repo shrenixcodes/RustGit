@@ -2,10 +2,11 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use rustgit_git_engine::{GitExecutor, RepositoryLocation, StatusSnapshot};
-use tauri::State;
+use tauri::{AppHandle, Emitter, State};
 
 use crate::state::{AppState, blocking};
-use rustgit_core::{CommandResult, Database, RepositoryEntry};
+use rustgit_core::watcher::ChangeSink;
+use rustgit_core::{CommandError, CommandResult, Database, RepositoryChanged, RepositoryEntry};
 
 const DEFAULT_INITIAL_BRANCH: &str = "main";
 
@@ -78,6 +79,7 @@ pub async fn remove_repository(state: State<'_, AppState>, id: i64) -> CommandRe
     let database: Arc<Database> = Arc::clone(&state.database);
     blocking(move || Ok(database.remove_repository(id)?)).await?;
     state.locks.forget(id);
+    state.watchers.unwatch(id);
     Ok(())
 }
 
@@ -109,4 +111,36 @@ pub(crate) fn register(
         .map(|name| name.to_string_lossy().into_owned())
         .unwrap_or_else(|| root.to_string_lossy().into_owned());
     Ok(database.upsert_repository(&root.to_string_lossy(), &name)?)
+}
+
+pub const REPOSITORY_CHANGED_EVENT: &str = "repository-changed";
+
+/// Starts emitting `repository-changed` for this repository.
+#[tauri::command]
+pub async fn watch_repository(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: i64,
+) -> CommandResult<()> {
+    let git: GitExecutor = state.git.clone();
+    let database: Arc<Database> = Arc::clone(&state.database);
+    let location: RepositoryLocation = blocking(move || {
+        let entry: RepositoryEntry = database.get_repository(id)?;
+        Ok(rustgit_git_engine::discover(&git, Path::new(&entry.path))?)
+    })
+    .await?;
+    let sink: ChangeSink = Arc::new(move |change: RepositoryChanged| {
+        if let Err(error) = app.emit(REPOSITORY_CHANGED_EVENT, change) {
+            tracing::warn!(%error, "could not emit repository-changed");
+        }
+    });
+    state
+        .watchers
+        .watch(&state.git, id, &location, sink)
+        .map_err(|error| CommandError::internal(error.to_string()))
+}
+
+#[tauri::command]
+pub fn unwatch_repository(state: State<'_, AppState>, id: i64) {
+    state.watchers.unwatch(id);
 }

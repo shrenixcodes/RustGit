@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-unwatch-repository"
+description = "Enables the unwatch_repository command without any pre-configured scope."
+commands.allow = ["unwatch_repository"]
+
+[[permission]]
+identifier = "deny-unwatch-repository"
+description = "Denies the unwatch_repository command without any pre-configured scope."
+commands.deny = ["unwatch_repository"]

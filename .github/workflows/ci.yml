@@ -77,6 +77,19 @@ jobs:
           toolchain: stable
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - run: pnpm install --frozen-lockfile
+      - name: Ensure WebView2 runtime is installed
+        shell: pwsh
+        run: |
+          $key = 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}'
+          $version = (Get-ItemProperty $key -ErrorAction SilentlyContinue).pv
+          if (-not $version) {
+            $installer = Join-Path $env:RUNNER_TEMP 'MicrosoftEdgeWebview2Setup.exe'
+            Invoke-WebRequest 'https://go.microsoft.com/fwlink/p/?LinkId=2124703' -OutFile $installer
+            Start-Process $installer -ArgumentList '/silent', '/install' -Wait
+            $version = (Get-ItemProperty $key -ErrorAction SilentlyContinue).pv
+          }
+          if (-not $version) { throw 'WebView2 runtime is not available' }
+          "WebView2 runtime $version"
       - name: Build application (debug, embedded frontend)
         run: pnpm --filter @rustgit/desktop tauri build --debug --no-bundle
       - name: Launch and drive the native application

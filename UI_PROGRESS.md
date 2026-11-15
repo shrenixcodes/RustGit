@@ -174,3 +174,25 @@ Native QA (debug build, Windows, real repositories):
 Not done: commit file diffs (need the diff viewer), compare (request R-16),
 context menu, minimap. A new search briefly shows "Reading history…" in
 place of the previous list while the backend query runs.
+
+### U-10 ShrenixCodes design system (2026-11-16)
+
+Palette, typography, signature labels, quiet/deep personalities, the mark
+and the open node; contrast enforced for dark, deep and light surfaces.
+Design documents: `SHRENIXCODES_DESIGN_SYSTEM.md`, `SHRENIXCODES_UX_DECISIONS.md`.
+
+### U-11 The thread (2026-11-16)
+
+Replaced the panel model (rail, pages, navigator, diff panel, inspector)
+with one canvas, approved by the user from wireframes (`SCREEN_MODEL.md`).
+Built on real commands: review stream with hunk and line staging, inline
+commit from the loose end, commit folds with cherry-pick and revert, the
+map with branch operations, seal, command palette, sheets. Shared-file
+changes: `IpcError` now keeps `CommandError.details`; the native smoke test
+drives the thread (both recorded in `docs/integration/INTEGRATION_STATUS.md`).
+
+Verification: 178 Vitest tests; native thread QA 16/16 checks against the
+Git CLI; native staging QA 13/13; native smoke test passes. Three visual
+defects found in native QA and fixed (duplicate open ring on HEAD, lanes
+interrupted by folds, oversized commit fold). Remaining work is listed in
+`INTERACTION_SPEC.md` as [planned] / [blocked].

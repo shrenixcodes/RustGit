@@ -1,3 +1,7 @@
+> **Composition superseded** by `SCREEN_MODEL.md` and the ShrenixCodes design
+> system. Decisions D-1 (real index), D-6 (destructive actions), D-12
+> (rendering) and D-14/D-15 (ownership, state) still apply.
+
 # RustGit UX decisions
 
 Each decision names the Git workflow it serves. Design codename:

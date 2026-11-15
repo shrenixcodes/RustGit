@@ -1,3 +1,7 @@
+> **Superseded** by `SCREEN_MODEL.md` (the thread). Kept for the record of
+> the panel layouts that were rejected as a rearrangement of conventional
+> regions.
+
 # RustGit · ShrenixCodes wireframes
 
 Structural wireframes for the three core workspaces, drawn before

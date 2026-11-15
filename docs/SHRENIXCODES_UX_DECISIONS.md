@@ -1,3 +1,7 @@
+> **Composition superseded** by `SCREEN_MODEL.md`: S-1 (rail and ridge),
+> S-2 (navigator, canvas, inspector) and S-3 (strand) were replaced by one
+> canvas. S-4 (personalities), S-5 (metadata on demand) and S-6 still apply.
+
 # RustGit · ShrenixCodes UX decisions
 
 Each decision states what changes compared with the previous ("Orbital")

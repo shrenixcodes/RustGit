@@ -128,3 +128,21 @@ Errors: `invalid_request` for unknown revisions (message names which one).
 Same revision validation as `log_page` (no leading `-`).
 UI depending on it: History "Compare with selected", Branches "Compare".
 Priority: P1 (spec acceptance workflow 10).
+
+## UI session update (2026-11-16): the thread
+
+- The UI no longer has pages: the repository is one canvas (see
+  `docs/SCREEN_MODEL.md`). Commands used: everything in C-1, plus `log_page`,
+  `list_refs`, `commit_details`, `commit_file_diff`, branch mutations,
+  `merge_branch`, `rebase_branch`, `cherry_pick`, `revert_commit`,
+  `command_history`, `watch_repository`, `repository-changed`.
+- **Shared file changed:** `apps/desktop/src/services/ipc.ts`: `IpcError`
+  now carries the optional `details` from `CommandError` (needed to list the
+  paths of `would_overwrite_changes`). Backward compatible; commit `560264d`.
+- **Core-owned test changed:** `apps/desktop/tests/native/windows-smoke.mjs`
+  steps that drove the old Overview and Changes pages now drive the thread
+  (same assertions: counts, HEAD id, changed files, refresh, theme). The C-1
+  and C-2 IPC checks are untouched. Commit `98cf47f`.
+- Still open for the UI: conflict resolution editor (`conflict_versions`,
+  `resolve_conflict`), stash, worktrees, remotes and network operations on
+  the map. Backend requests still open: R-15 (dark default), R-16 (compare).

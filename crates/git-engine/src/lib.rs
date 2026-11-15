@@ -7,10 +7,13 @@ pub mod commit;
 pub mod diff;
 pub mod error;
 pub mod executor;
+pub mod history;
 pub mod index;
+pub mod integrate;
 pub mod patch;
 pub mod pathspec;
 pub mod redact;
+pub mod refs;
 pub mod repository;
 pub mod status;
 
@@ -23,8 +26,21 @@ pub use diff::{
 };
 pub use error::{GitError, GitErrorKind, GitResult};
 pub use executor::{CancelToken, CommandRecord, GitExecutor};
+pub use history::{
+    CommitDetails, CommitFile, LogCommit, LogPage, LogQuery, commit_details, commit_file_diff,
+    log_page,
+};
 pub use index::{discard_paths, stage_all, stage_paths, unstage_all, unstage_paths};
+pub use integrate::{
+    ConflictVersions, IntegrationOutcome, IntegrationResult, abort_operation, cherry_pick,
+    conflict_versions, continue_operation, merge_branch, rebase_branch, resolve_conflict,
+    revert_commit,
+};
 pub use patch::{HunkAction, HunkRequest, apply_hunk};
+pub use refs::{
+    HeadState, RefEntry, RefKind, RefList, checkout_branch, create_branch, delete_branch,
+    list_refs, rename_branch, set_upstream,
+};
 pub use repository::{RepositoryLocation, discover, init};
 pub use status::{
     BranchStatus, ChangeKind, FileStatus, InProgress, StatusSnapshot, in_progress, read_status,

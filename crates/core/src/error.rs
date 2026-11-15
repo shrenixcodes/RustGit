@@ -10,6 +10,8 @@ pub enum ErrorKind {
     GitNotFound,
     NotARepository,
     InvalidPath,
+    InvalidRequest,
+    StaleDiff,
     GitCommandFailed,
     GitOutputUnrecognized,
     RepositoryNotFound,
@@ -42,6 +44,8 @@ impl From<GitError> for CommandError {
             GitErrorKind::InvalidPath => ErrorKind::InvalidPath,
             GitErrorKind::CommandFailed => ErrorKind::GitCommandFailed,
             GitErrorKind::Parse => ErrorKind::GitOutputUnrecognized,
+            GitErrorKind::InvalidRequest => ErrorKind::InvalidRequest,
+            GitErrorKind::StaleDiff => ErrorKind::StaleDiff,
             GitErrorKind::Io => ErrorKind::Internal,
         };
         Self {
@@ -81,6 +85,11 @@ mod tests {
 
         let error: CommandError = GitError::GitNotFound(PathBuf::from("git")).into();
         assert_eq!(error.kind, ErrorKind::GitNotFound);
+
+        let error: CommandError = GitError::StaleDiff("@@ -1 +1 @@".to_owned()).into();
+        assert_eq!(error.kind, ErrorKind::StaleDiff);
+        let json: String = serde_json::to_string(&error).expect("serialize");
+        assert!(json.contains(r#""kind":"stale_diff""#), "{json}");
     }
 
     #[test]

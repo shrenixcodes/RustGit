@@ -26,6 +26,12 @@ pub enum GitError {
     #[error("Unexpected output from git {command}: {detail}")]
     Parse { command: String, detail: String },
 
+    #[error("Invalid request: {0}")]
+    InvalidRequest(String),
+
+    #[error("The diff changed since it was displayed ({0}). Reload it and try again.")]
+    StaleDiff(String),
+
     #[error("I/O error while running Git: {0}")]
     Io(#[from] std::io::Error),
 }
@@ -39,6 +45,8 @@ pub enum GitErrorKind {
     InvalidPath,
     CommandFailed,
     Parse,
+    InvalidRequest,
+    StaleDiff,
     Io,
 }
 
@@ -50,6 +58,8 @@ impl GitError {
             Self::InvalidPath(_) => GitErrorKind::InvalidPath,
             Self::CommandFailed { .. } => GitErrorKind::CommandFailed,
             Self::Parse { .. } => GitErrorKind::Parse,
+            Self::InvalidRequest(_) => GitErrorKind::InvalidRequest,
+            Self::StaleDiff(_) => GitErrorKind::StaleDiff,
             Self::Io(_) => GitErrorKind::Io,
         }
     }

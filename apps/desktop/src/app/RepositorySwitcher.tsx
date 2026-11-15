@@ -56,7 +56,7 @@ export function RepositorySwitcher({ collapsed }: { collapsed: boolean }) {
           </>
         )}
       </button>
-      {open && <SwitcherPopover onClose={close} collapsed={collapsed} root={root} />}
+      {open && <SwitcherPopover onClose={close} root={root} />}
     </div>
   );
 }
@@ -93,15 +93,7 @@ function ActiveStatusLine({
   );
 }
 
-function SwitcherPopover({
-  onClose,
-  collapsed,
-  root,
-}: {
-  onClose: () => void;
-  collapsed: boolean;
-  root: RefObject<HTMLDivElement | null>;
-}) {
+function SwitcherPopover({ onClose, root }: { onClose: () => void; root: RefObject<HTMLDivElement | null> }) {
   const repositories = useRepositories();
   const openRepository = useOpenRepository();
   const activate = useWorkspace((state) => state.openRepository);
@@ -168,9 +160,8 @@ function SwitcherPopover({
       role="dialog"
       aria-label="Switch repository"
       onKeyDown={onKeyDown}
-      className={`absolute top-full z-40 mt-1 w-80 overflow-hidden rounded-md border border-border bg-elevated shadow-popover ${
-        collapsed ? "left-1.5" : "inset-x-1.5 w-auto min-w-72"
-      }`}
+      // Explicit pixels: the root font size is 13 px, so rem-based widths would be too narrow.
+      className="absolute left-1.5 top-full z-40 mt-1 w-[340px] max-w-[calc(100vw-16px)] overflow-hidden rounded-md border border-border bg-elevated shadow-popover"
     >
       <label className="flex h-9 items-center gap-2 border-b border-border px-2.5">
         <Search aria-hidden className="size-3.5 text-fg-muted" />
@@ -233,12 +224,12 @@ function SwitcherPopover({
         <button
           type="button"
           onClick={manage}
-          className="flex h-7 items-center gap-1.5 rounded-sm px-2 text-sm text-fg-secondary hover:bg-hover hover:text-fg"
+          className="flex h-7 items-center gap-1.5 whitespace-nowrap rounded-sm px-2 text-sm text-fg-secondary hover:bg-hover hover:text-fg"
         >
           <Settings2 aria-hidden className="size-3.5" /> Manage repositories…
         </button>
-        <span className="flex items-center gap-1 pr-1.5 text-2xs text-fg-muted">
-          <Kbd shortcut="Mod+P" /> to open
+        <span className="flex shrink-0 items-center gap-1 whitespace-nowrap pr-1.5 text-2xs text-fg-muted">
+          <Kbd shortcut="Mod+P" />
         </span>
       </div>
     </div>

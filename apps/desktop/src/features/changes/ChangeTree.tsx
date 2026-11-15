@@ -258,7 +258,8 @@ const TreeRowView = memo(function TreeRowView({ id, row, top, height, active, se
         {meta?.letter}
       </span>
       <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
-        <span className="truncate text-fg">{name}</span>
+        {/* The file name keeps priority; the directory gives up space first. */}
+        <span className="max-w-[75%] shrink-0 truncate text-fg">{name}</span>
         {row.file.originalPath !== null && row.group === "staged" && (
           <span className="shrink-0 truncate font-mono text-2xs text-fg-muted">← {splitPath(row.file.originalPath).name}</span>
         )}

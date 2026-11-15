@@ -6,6 +6,8 @@ import { ErrorNotice } from "../components/ErrorNotice";
 import { SegmentedControl, type SegmentOption } from "../components/SegmentedControl";
 import { useVirtualRows } from "../components/useVirtualRows";
 import { useFileDiffs, useStaging, type DiffRequest, type StagingRequest } from "../services/queries";
+import { ConflictResolver } from "./ConflictResolver";
+import { OperationBanner } from "./OperationBanner";
 import type { DiffHunk, FileDiff, FileStatus, StatusSnapshot, WorkingDiffSide } from "../services/types";
 import { useWorkspace } from "../stores/workspace";
 import {
@@ -78,6 +80,12 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
   const [selection, setSelection] = useState<ReadonlyMap<string, ReadonlySet<number>>>(new Map());
   const [activeHunk, setActiveHunk] = useState<number>(-1);
   const [discard, setDiscard] = useState<PendingDiscard | null>(null);
+  /** Conflicted file open in the resolver, in place of the stream. */
+  const [resolving, setResolving] = useState<string | null>(null);
+  // Close the resolver when Git no longer reports the file as conflicted (resolved here or elsewhere).
+  useEffect(() => {
+    if (resolving !== null && !status.files.some((file) => file.path === resolving && file.conflicted)) setResolving(null);
+  }, [resolving, status.files]);
   const container = useRef<HTMLDivElement>(null);
 
   const files: FileStatus[] = useMemo(() => status.files.filter((file) => matchesFilter(file, filter)), [status.files, filter]);
@@ -112,7 +120,7 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
         out.push({ kind: "file", file, expanded: isOpen, position: index + 1, setSize: members.length });
         if (!isOpen) return;
         if (file.conflicted) {
-          out.push({ kind: "message", path: file.path, text: "Merge conflicts: resolve them in the file, then stage the result." });
+          out.push({ kind: "message", path: file.path, text: "Open the resolver (Enter or Resolve…) to choose between both sides." });
           return;
         }
         const entry = diffsByPath.get(file.path);
@@ -241,7 +249,8 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
         moveFile(-1);
         break;
       case "Enter":
-        if (file !== undefined) toggleExpanded(file.path);
+        if (file?.conflicted === true) setResolving(file.path);
+        else if (file !== undefined) toggleExpanded(file.path);
         break;
       case " ":
         if (file !== undefined) toggleStage(file);
@@ -283,6 +292,13 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
 
   return (
     <div style={{ height }} className="flex flex-col">
+      <OperationBanner repositoryId={repositoryId} status={status} />
+      {resolving !== null ? (
+        <div className="min-h-0 flex-1">
+          <ConflictResolver repositoryId={repositoryId} path={resolving} status={status} height="100%" onBack={() => setResolving(null)} />
+        </div>
+      ) : (
+      <>
       {/* The rest of the next commit: body, amend, identity, and Git's answer. */}
       <div className="flex shrink-0 gap-6 py-3 pr-5 pl-[72px]">
         <div className="min-w-0 flex-1 space-y-2">
@@ -424,6 +440,7 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
                   hunkKey={hunkKey}
                   lineSelectable={lineSelectable}
                   onSelectFile={(file) => selectChange({ path: file.path, side: "unstaged" })}
+                  onResolve={(file) => setResolving(file.path)}
                   onToggleExpanded={toggleExpanded}
                   onToggleStage={toggleStage}
                   onDiscardFile={discardFile}
@@ -438,6 +455,9 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
           </div>
         )}
       </div>
+
+      </>
+      )}
 
       {discard !== null && (
         <ConfirmDialog
@@ -481,6 +501,7 @@ interface StreamRowViewProps {
   hunkKey: (path: string, side: WorkingDiffSide, hunkIndex: number) => string;
   lineSelectable: (path: string, side: WorkingDiffSide) => boolean;
   onSelectFile: (file: FileStatus) => void;
+  onResolve: (file: FileStatus) => void;
   onToggleExpanded: (path: string) => void;
   onToggleStage: (file: FileStatus) => void;
   onDiscardFile: (file: FileStatus) => void;
@@ -586,6 +607,7 @@ function FileRow({
   active,
   busy,
   onSelectFile,
+  onResolve,
   onToggleExpanded,
   onToggleStage,
   onDiscardFile,
@@ -608,7 +630,8 @@ function FileRow({
       aria-label={`${file.path}, ${meta?.label ?? "changed"}, ${stagingState(file)}`}
       onClick={() => {
         onSelectFile(file);
-        onToggleExpanded(file.path);
+        if (file.conflicted) onResolve(file);
+        else onToggleExpanded(file.path);
       }}
       style={style}
       className={`group flex cursor-default items-center gap-2 pr-5 font-sans ${active ? "bg-selection-strong" : "hover:bg-hover"}`}
@@ -650,6 +673,20 @@ function FileRow({
         </span>
         {isPartiallyStaged(file) && <span className="shrink-0 font-mono text-2xs text-clay-text">partly staged</span>}
       </span>
+      {file.conflicted && (
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={(event) => {
+            event.stopPropagation();
+            onSelectFile(file);
+            onResolve(file);
+          }}
+          className="shrink-0 text-xs text-danger hover:underline"
+        >
+          Resolve…
+        </button>
+      )}
       {changed && (
         <button
           type="button"

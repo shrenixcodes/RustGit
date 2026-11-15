@@ -18,6 +18,8 @@ import type {
   CommitContext,
   CommitDetails,
   CommitResult,
+  ConflictSide,
+  ConflictVersions,
   FileDiff,
   HunkAction,
   IntegrationResult,
@@ -512,6 +514,46 @@ export function useBranchOperation(repositoryId: number): UseMutationResult<Bran
       void client.invalidateQueries({ queryKey: queryKeys.status(repositoryId) });
       void client.invalidateQueries({ queryKey: queryKeys.refs(repositoryId) });
       void client.invalidateQueries({ queryKey: queryKeys.logAll(repositoryId) });
+      void client.invalidateQueries({ queryKey: queryKeys.diffs(repositoryId) });
+      void client.invalidateQueries({ queryKey: queryKeys.totals(repositoryId) });
+      void client.invalidateQueries({ queryKey: queryKeys.commitContext(repositoryId) });
+    },
+  });
+}
+
+export function useConflictVersions(repositoryId: number, path: string | null): UseQueryResult<ConflictVersions, IpcError> {
+  return useQuery({
+    queryKey: [...queryKeys.diffs(repositoryId), "conflict", path ?? ""],
+    queryFn: () => ipc.conflictVersions(repositoryId, path ?? ""),
+    enabled: path !== null,
+    // The file may be edited outside RustGit at any time.
+    staleTime: 0,
+  });
+}
+
+export type ConflictResolutionRequest = { path: string; content: string } | { path: string; take: ConflictSide };
+
+/**
+ * Resolves one conflicted file. The returned status (Git's view after
+ * `git add`) replaces the cached one; the UI reads resolution from it, never
+ * from its own assumption.
+ */
+export function useResolveConflict(repositoryId: number): UseMutationResult<StatusSnapshot, IpcError, ConflictResolutionRequest> {
+  const client: QueryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (request: ConflictResolutionRequest) =>
+      "take" in request
+        ? ipc.resolveConflict(repositoryId, request.path, { take: request.take })
+        : ipc.resolveConflict(repositoryId, request.path, { content: request.content }),
+    meta: {
+      operation: "Resolve conflict",
+      describe: (variables: unknown) => {
+        const request = variables as ConflictResolutionRequest;
+        return "take" in request ? `Resolve ${request.path} with ${request.take}` : `Resolve ${request.path}`;
+      },
+    },
+    onSuccess: (status: StatusSnapshot) => client.setQueryData(queryKeys.status(repositoryId), status),
+    onSettled: () => {
       void client.invalidateQueries({ queryKey: queryKeys.diffs(repositoryId) });
       void client.invalidateQueries({ queryKey: queryKeys.totals(repositoryId) });
       void client.invalidateQueries({ queryKey: queryKeys.commitContext(repositoryId) });

@@ -1,12 +1,12 @@
 import type { ChangeKind, FileStatus } from "../../services/types";
 
 export const CHANGE_LABELS: Record<ChangeKind, { letter: string; label: string; tone: string }> = {
-  modified: { letter: "M", label: "Modified", tone: "text-warning" },
-  type_changed: { letter: "T", label: "Type changed", tone: "text-warning" },
+  modified: { letter: "M", label: "Modified", tone: "text-amber" },
+  type_changed: { letter: "T", label: "Type changed", tone: "text-amber" },
   added: { letter: "A", label: "Added", tone: "text-success" },
   deleted: { letter: "D", label: "Deleted", tone: "text-danger" },
-  renamed: { letter: "R", label: "Renamed", tone: "text-accent" },
-  copied: { letter: "C", label: "Copied", tone: "text-accent" },
+  renamed: { letter: "R", label: "Renamed", tone: "text-lavender" },
+  copied: { letter: "C", label: "Copied", tone: "text-lavender" },
   untracked: { letter: "U", label: "Untracked", tone: "text-success" },
   unmerged: { letter: "!", label: "Conflicted", tone: "text-danger" },
 };
@@ -37,15 +37,25 @@ export function countChanges(files: readonly FileStatus[]): StatusCounts {
   return counts;
 }
 
-export interface SplitChanges {
-  staged: FileStatus[];
-  unstaged: FileStatus[];
-  conflicted: FileStatus[];
-}
+export type ChangeGroupId = "conflicted" | "staged" | "unstaged" | "untracked";
 
-/** A file with both staged and unstaged edits appears in both lists, as in Git. */
+export const GROUP_ORDER: readonly ChangeGroupId[] = ["conflicted", "staged", "unstaged", "untracked"];
+
+export const GROUP_TITLES: Record<ChangeGroupId, string> = {
+  conflicted: "Conflicted",
+  staged: "Staged",
+  unstaged: "Unstaged",
+  untracked: "Untracked",
+};
+
+export type SplitChanges = Record<ChangeGroupId, FileStatus[]>;
+
+/**
+ * Groups files the way Git reports them. A file with both staged and
+ * unstaged edits appears in both Staged and Unstaged (see `isPartiallyStaged`).
+ */
 export function splitChanges(files: readonly FileStatus[]): SplitChanges {
-  const result: SplitChanges = { staged: [], unstaged: [], conflicted: [] };
+  const result: SplitChanges = { conflicted: [], staged: [], unstaged: [], untracked: [] };
   for (const file of files) {
     if (file.conflicted) {
       result.conflicted.push(file);
@@ -54,9 +64,48 @@ export function splitChanges(files: readonly FileStatus[]): SplitChanges {
     if (file.staged !== null) {
       result.staged.push(file);
     }
-    if (file.unstaged !== null) {
+    if (file.unstaged === "untracked") {
+      result.untracked.push(file);
+    } else if (file.unstaged !== null) {
       result.unstaged.push(file);
     }
   }
   return result;
+}
+
+/** True when only part of the file's changes are in the index. */
+export function isPartiallyStaged(file: FileStatus): boolean {
+  return !file.conflicted && file.staged !== null && file.unstaged !== null && file.unstaged !== "untracked";
+}
+
+/** The change kind shown for a file within a group. */
+export function kindInGroup(file: FileStatus, group: ChangeGroupId): ChangeKind | null {
+  switch (group) {
+    case "conflicted":
+      return "unmerged";
+    case "staged":
+      return file.staged;
+    case "unstaged":
+    case "untracked":
+      return file.unstaged;
+  }
+}
+
+/** Splits a repository-relative path into its file name and directory. */
+export function splitPath(path: string): { name: string; directory: string } {
+  const trimmed: string = path.endsWith("/") ? path.slice(0, -1) : path;
+  const slash: number = trimmed.lastIndexOf("/");
+  return slash < 0
+    ? { name: trimmed, directory: "" }
+    : { name: trimmed.slice(slash + 1), directory: trimmed.slice(0, slash) };
+}
+
+/** Case-insensitive match on the path (and original path for renames); all terms must match. */
+export function matchesFilter(file: FileStatus, query: string): boolean {
+  const terms: string[] = query.toLowerCase().split(/\s+/).filter((term: string) => term.length > 0);
+  if (terms.length === 0) {
+    return true;
+  }
+  const haystack: string = `${file.path}\n${file.originalPath ?? ""}`.toLowerCase();
+  return terms.every((term: string) => haystack.includes(term));
 }

@@ -19,10 +19,10 @@ interface WorkspaceState {
    */
   activeRepositoryPath: string | null;
   section: SectionId;
-  /** Last section used per repository, restored when switching back. */
+  /** Last section used per repository path, restored when switching back. */
   lastSectionByRepository: Record<string, SectionId>;
   selectedChange: ChangeSelection | null;
-  openRepository: (repositoryId: number, path?: string) => void;
+  openRepository: (repositoryId: number, path: string) => void;
   closeRepository: () => void;
   showSection: (section: SectionId) => void;
   selectChange: (selection: ChangeSelection | null) => void;
@@ -40,14 +40,14 @@ export const useWorkspace = create<WorkspaceState>()(
       section: "repositories",
       lastSectionByRepository: {},
       selectedChange: null,
-      openRepository: (repositoryId: number, path?: string) =>
+      openRepository: (repositoryId: number, path: string) =>
         set((state) => {
-          const remembered: SectionId | undefined = state.lastSectionByRepository[String(repositoryId)];
+          const remembered: SectionId | undefined = state.lastSectionByRepository[path];
           const section: SectionId =
             remembered !== undefined && REPOSITORY_SECTIONS.has(remembered) ? remembered : "overview";
           return {
             activeRepositoryId: repositoryId,
-            activeRepositoryPath: path ?? (repositoryId === state.activeRepositoryId ? state.activeRepositoryPath : null),
+            activeRepositoryPath: path,
             section,
             selectedChange: repositoryId === state.activeRepositoryId ? state.selectedChange : null,
           };
@@ -58,15 +58,17 @@ export const useWorkspace = create<WorkspaceState>()(
         set((state) => ({
           section,
           lastSectionByRepository:
-            state.activeRepositoryId !== null && REPOSITORY_SECTIONS.has(section)
-              ? { ...state.lastSectionByRepository, [String(state.activeRepositoryId)]: section }
+            state.activeRepositoryPath !== null && REPOSITORY_SECTIONS.has(section)
+              ? { ...state.lastSectionByRepository, [state.activeRepositoryPath]: section }
               : state.lastSectionByRepository,
         })),
       selectChange: (selectedChange: ChangeSelection | null) => set({ selectedChange }),
     }),
     {
       name: "rustgit.workspace",
-      version: 1,
+      // Version 2 keys sections by path; version 1 keyed them by database id.
+      version: 2,
+      migrate: () => ({ lastSectionByRepository: {}, lastRepositoryPath: null }),
       storage: createJSONStorage(() => localStorage),
       // The active repository itself is not restored from storage: only its
       // path, which is matched against the registry and reopened through

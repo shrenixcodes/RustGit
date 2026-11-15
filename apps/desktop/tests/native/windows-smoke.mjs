@@ -13,6 +13,7 @@ import { join, resolve } from "node:path";
 import { chromium } from "playwright-core";
 
 const CDP_PORT = 9333;
+const COMMIT_MESSAGE = "Smoke commit\n\nBody";
 const executable = process.argv[2];
 const screenshotDir = process.argv[3] ? resolve(process.argv[3]) : null;
 if (!executable) {
@@ -156,6 +157,86 @@ try {
   await page.reload();
   await page.waitForFunction(() => document.documentElement.dataset.theme === "light");
   step("theme preference persists across reload");
+
+  // --- IPC contract C-1 through the real backend -------------------------
+  const invoke = (command, args) =>
+    page.evaluate(
+      ([name, payload]) =>
+        window.__TAURI_INTERNALS__.invoke(name, payload).then(
+          (value) => ({ ok: true, value }),
+          (error) => ({ ok: false, error }),
+        ),
+      [command, args ?? {}],
+    );
+  const ok = async (command, args) => {
+    const result = await invoke(command, args);
+    if (!result.ok) {
+      throw new Error(`${command} failed: ${JSON.stringify(result.error)}`);
+    }
+    return result.value;
+  };
+  const failsWith = async (kind, command, args) => {
+    const result = await invoke(command, args);
+    if (result.ok || result.error.kind !== kind) {
+      throw new Error(`${command}: expected ${kind}, got ${JSON.stringify(result)}`);
+    }
+  };
+  const id = added.id;
+
+  const diff = await ok("file_diff", {
+    id, path: "tracked.txt", originalPath: null, side: "unstaged", ignoreWhitespace: false,
+  });
+  if (diff.hunks.length !== 1 || diff.added !== 1 || diff.deleted !== 1) {
+    throw new Error(`unexpected diff ${JSON.stringify(diff)}`);
+  }
+  let status = await ok("apply_hunk", {
+    id, path: "tracked.txt", side: "unstaged", action: "stage",
+    hunkHeader: diff.hunks[0].header, lineIndices: null,
+  });
+  const tracked = status.files.find((file) => file.path === "tracked.txt");
+  if (tracked?.staged !== "modified" || tracked.unstaged !== null) {
+    throw new Error(`hunk not staged: ${JSON.stringify(tracked)}`);
+  }
+  step("file_diff and apply_hunk stage a hunk");
+
+  await failsWith("stale_diff", "apply_hunk", {
+    id, path: "tracked.txt", side: "unstaged", action: "stage",
+    hunkHeader: diff.hunks[0].header, lineIndices: null,
+  });
+  await failsWith("invalid_request", "stage_paths", { id, paths: ["../escape.txt"] });
+  step("stale_diff and invalid_request reach the UI as typed errors");
+
+  const totals = await ok("change_totals", { id, side: "staged" });
+  if (totals.added !== 2 || totals.deleted !== 1) {
+    throw new Error(`unexpected totals ${JSON.stringify(totals)}`);
+  }
+  const identity = await ok("author_identity", { id });
+  if (identity.name !== "RustGit Smoke") {
+    throw new Error(`unexpected identity ${JSON.stringify(identity)}`);
+  }
+  step("change_totals and author_identity");
+
+  status = await ok("discard_paths", { id, paths: ["untracked.md", "later.txt"] });
+  if (status.files.some((file) => file.path === "untracked.md" || file.path === "later.txt")) {
+    throw new Error("untracked files were not discarded");
+  }
+  status = await ok("stage_paths", { id, paths: ["remove-me.txt"] });
+  const commit = await ok("create_commit", { id, message: COMMIT_MESSAGE, amend: false });
+  if (commit.oid !== git("rev-parse", "HEAD") || commit.summary !== "Smoke commit") {
+    throw new Error(`unexpected commit ${JSON.stringify(commit)}`);
+  }
+  if (commit.status.files.length !== 0) {
+    throw new Error(`tree not clean after commit: ${JSON.stringify(commit.status.files)}`);
+  }
+  const message = await ok("last_commit_message", { id });
+  if (message !== COMMIT_MESSAGE) {
+    throw new Error(`unexpected last message ${JSON.stringify(message)}`);
+  }
+  const history = await ok("command_history");
+  if (!history.some((record) => record.args.includes("commit"))) {
+    throw new Error("command history does not contain the commit");
+  }
+  step("discard, stage, commit, last_commit_message and command_history");
 
   await browser.close();
   // taskkill without /F posts WM_CLOSE, i.e. a normal window close.

@@ -17,6 +17,7 @@ import type {
   StashEntry,
   Worktree,
   CommandError,
+  ErrorDetails,
   CommandRecord,
   CommitContext,
   CommitResult,
@@ -34,11 +35,14 @@ import type {
 /** Error thrown by every IPC call; always carries a typed kind. */
 export class IpcError extends Error {
   readonly kind: ErrorKind;
+  /** `CommandError.details` (exit code, affected paths) when the backend sent them. */
+  readonly details: ErrorDetails | undefined;
 
-  constructor(kind: ErrorKind, message: string) {
+  constructor(kind: ErrorKind, message: string, details?: ErrorDetails) {
     super(message);
     this.name = "IpcError";
     this.kind = kind;
+    this.details = details;
   }
 }
 
@@ -56,7 +60,7 @@ export function toIpcError(error: unknown): IpcError {
     return error;
   }
   if (isCommandError(error)) {
-    return new IpcError(error.kind, error.message);
+    return new IpcError(error.kind, error.message, error.details);
   }
   const message: string = error instanceof Error ? error.message : String(error);
   return new IpcError("internal", message);

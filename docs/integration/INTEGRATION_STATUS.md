@@ -46,7 +46,8 @@ implemented. The typed wrappers are in `apps/desktop/src/services/ipc.ts`
 
 ## UI session update (2026-11-15)
 
-Branch `worktree-ui-orbital` (merged with `main` at `969f594`):
+Branch `worktree-ui-orbital` (merged with `main` at `7921b64`; `a97525b`, which
+exposes history, branch and conflict commands over IPC, is not merged yet):
 
 - Implemented against real commands: Orbital design tokens (contrast
   enforced by `styles/tokens.test.ts`), shell (rail with repository

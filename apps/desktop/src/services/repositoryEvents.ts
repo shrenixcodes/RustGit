@@ -11,6 +11,11 @@ export function invalidateForChange(client: QueryClient, event: RepositoryChange
   const scopes: ReadonlySet<string> = new Set(event.scopes);
   if (scopes.has("worktree") || scopes.has("index") || scopes.has("head")) {
     void client.invalidateQueries({ queryKey: queryKeys.status(id) });
+    void client.invalidateQueries({ queryKey: queryKeys.diffs(id) });
+    void client.invalidateQueries({ queryKey: queryKeys.totals(id) });
+  }
+  if (scopes.has("head")) {
+    void client.invalidateQueries({ queryKey: queryKeys.commitContext(id) });
   }
   if (scopes.has("refs") || scopes.has("head")) {
     void client.invalidateQueries({ queryKey: queryKeys.refs(id) });

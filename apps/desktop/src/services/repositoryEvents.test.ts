@@ -10,8 +10,12 @@ function invalidatedKeys(scopes: Parameters<typeof invalidateForChange>[1]["scop
 }
 
 describe("invalidateForChange", () => {
-  it("refreshes only status for working tree changes", () => {
-    expect(invalidatedKeys(["worktree"])).toEqual([["repositories", 4, "status"]]);
+  it("refreshes status, diffs and totals for working tree changes", () => {
+    expect(invalidatedKeys(["worktree"])).toEqual([
+      ["repositories", 4, "status"],
+      ["repositories", 4, "diff"],
+      ["repositories", 4, "totals"],
+    ]);
   });
 
   it("refreshes refs and history for reference changes", () => {
@@ -24,6 +28,9 @@ describe("invalidateForChange", () => {
   it("refreshes everything affected when HEAD moves", () => {
     expect(invalidatedKeys(["head"])).toEqual([
       ["repositories", 4, "status"],
+      ["repositories", 4, "diff"],
+      ["repositories", 4, "totals"],
+      ["repositories", 4, "commit-context"],
       ["repositories", 4, "refs"],
       ["repositories", 4, "log"],
     ]);

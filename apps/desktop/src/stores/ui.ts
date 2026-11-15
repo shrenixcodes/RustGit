@@ -1,6 +1,14 @@
 import { create } from "zustand";
 import type { IpcError } from "../services/ipc";
 
+export interface CommitDraft {
+  summary: string;
+  description: string;
+  amend: boolean;
+}
+
+export const EMPTY_DRAFT: CommitDraft = { summary: "", description: "", amend: false };
+
 /** Transient UI state that is not persisted. */
 interface UiState {
   switcherOpen: boolean;
@@ -10,6 +18,11 @@ interface UiState {
   restoreFailure: { repositoryId: number; error: IpcError } | null;
   /** DOM node in the ridge where the current workspace renders its actions. */
   ridgeActions: HTMLElement | null;
+  /** Unsent commit messages per repository, kept while the app runs. */
+  commitDrafts: Record<number, CommitDraft>;
+  setCommitDraft: (repositoryId: number, draft: CommitDraft) => void;
+  /** Merges into the current draft (never a stale copy from a render). */
+  updateCommitDraft: (repositoryId: number, patch: Partial<CommitDraft>) => void;
   setSwitcherOpen: (open: boolean) => void;
   setNarrowInspectorOpen: (open: boolean) => void;
   setRestoreFailure: (failure: UiState["restoreFailure"]) => void;
@@ -21,6 +34,13 @@ export const useUi = create<UiState>()((set) => ({
   narrowInspectorOpen: false,
   restoreFailure: null,
   ridgeActions: null,
+  commitDrafts: {},
+  setCommitDraft: (repositoryId: number, draft: CommitDraft) =>
+    set((state) => ({ commitDrafts: { ...state.commitDrafts, [repositoryId]: draft } })),
+  updateCommitDraft: (repositoryId: number, patch: Partial<CommitDraft>) =>
+    set((state) => ({
+      commitDrafts: { ...state.commitDrafts, [repositoryId]: { ...(state.commitDrafts[repositoryId] ?? EMPTY_DRAFT), ...patch } },
+    })),
   setSwitcherOpen: (switcherOpen: boolean) => set({ switcherOpen }),
   setNarrowInspectorOpen: (narrowInspectorOpen: boolean) => set({ narrowInspectorOpen }),
   setRestoreFailure: (restoreFailure) => set({ restoreFailure }),

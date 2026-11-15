@@ -12,8 +12,13 @@ import {
 } from "@tanstack/react-query";
 import { ipc, toIpcError, type IpcError } from "./ipc";
 import type {
+  ChangeTotals,
   CommandRecord,
+  CommitContext,
   CommitDetails,
+  CommitResult,
+  FileDiff,
+  HunkAction,
   GitInfo,
   LogPage,
   LogSearch,
@@ -22,6 +27,7 @@ import type {
   Settings,
   StatusSnapshot,
   ThemePreference,
+  WorkingDiffSide,
 } from "./types";
 import { useActivity } from "../stores/activity";
 
@@ -30,6 +36,8 @@ declare module "@tanstack/react-query" {
     mutationMeta: {
       /** Human-readable operation name shown in the activity panel. */
       operation: string;
+      /** Optional precise label computed from the mutation variables. */
+      describe?: (variables: unknown) => string;
     };
   }
 }
@@ -59,7 +67,15 @@ export const queryKeys = {
   logAll: (repositoryId: number) => ["repositories", repositoryId, "log"] as const,
   log: (repositoryId: number, filters: LogFilters) => ["repositories", repositoryId, "log", filters] as const,
   commit: (repositoryId: number, oid: string) => ["repositories", repositoryId, "commit", oid] as const,
+  diffs: (repositoryId: number) => ["repositories", repositoryId, "diff"] as const,
+  diff: (repositoryId: number, path: string, side: WorkingDiffSide, ignoreWhitespace: boolean) =>
+    ["repositories", repositoryId, "diff", path, side, ignoreWhitespace] as const,
+  totals: (repositoryId: number) => ["repositories", repositoryId, "totals"] as const,
+  commitContext: (repositoryId: number) => ["repositories", repositoryId, "commit-context"] as const,
 };
+
+/** Context lines for staging diffs; `apply_hunk` must receive the same value. */
+export const DIFF_CONTEXT_LINES = 3;
 
 /** Extracts a repository id from mutation variables when the variables carry one. */
 function repositoryIdOf(variables: unknown): number | null {
@@ -79,7 +95,7 @@ export function createQueryClient(): QueryClient {
   // Every labelled mutation is an operation the user started; record its real outcome.
   const mutationCache: MutationCache = new MutationCache({
     onMutate: (variables, mutation) => {
-      const label: string | undefined = mutation.meta?.operation;
+      const label: string | undefined = mutation.meta?.describe?.(variables) ?? mutation.meta?.operation;
       if (label !== undefined) {
         useActivity.getState().started(mutation.mutationId, label, repositoryIdOf(variables));
       }
@@ -215,5 +231,147 @@ export function useCommitDetails(repositoryId: number, oid: string | null): UseQ
     enabled: oid !== null,
     // A commit id names immutable content.
     staleTime: Infinity,
+  });
+}
+
+export function useFileDiff(
+  repositoryId: number,
+  path: string | null,
+  originalPath: string | null,
+  side: WorkingDiffSide,
+  ignoreWhitespace: boolean,
+  enabled: boolean,
+): UseQueryResult<FileDiff, IpcError> {
+  return useQuery({
+    queryKey: queryKeys.diff(repositoryId, path ?? "", side, ignoreWhitespace),
+    queryFn: () =>
+      ipc.fileDiff({
+        id: repositoryId,
+        path: path ?? "",
+        originalPath,
+        side,
+        ignoreWhitespace,
+        contextLines: DIFF_CONTEXT_LINES,
+      }),
+    enabled: enabled && path !== null,
+    staleTime: 5_000,
+  });
+}
+
+export function useStagedTotals(repositoryId: number): UseQueryResult<ChangeTotals, IpcError> {
+  return useQuery({
+    queryKey: [...queryKeys.totals(repositoryId), "staged"],
+    queryFn: () => ipc.changeTotals(repositoryId, "staged"),
+    staleTime: 5_000,
+  });
+}
+
+export function useCommitContext(repositoryId: number): UseQueryResult<CommitContext, IpcError> {
+  return useQuery({ queryKey: queryKeys.commitContext(repositoryId), queryFn: () => ipc.commitContext(repositoryId) });
+}
+
+/** Everything that depends on the index or working tree, after a staging change. */
+function invalidateWorkingState(client: QueryClient, repositoryId: number): void {
+  void client.invalidateQueries({ queryKey: queryKeys.diffs(repositoryId) });
+  void client.invalidateQueries({ queryKey: queryKeys.totals(repositoryId) });
+  void client.invalidateQueries({ queryKey: queryKeys.commitContext(repositoryId) });
+}
+
+export type StagingRequest =
+  | { kind: "stage"; paths: string[] }
+  | { kind: "unstage"; paths: string[] }
+  | { kind: "stage_all" }
+  | { kind: "unstage_all" }
+  | { kind: "discard"; paths: string[] }
+  | {
+      kind: "hunk";
+      path: string;
+      side: WorkingDiffSide;
+      action: HunkAction;
+      hunkHeader: string;
+      lineIndices: number[] | null;
+    };
+
+/** Activity label for a staging request, e.g. "Stage 3 lines". */
+export function describeStaging(request: StagingRequest): string {
+  const files = (count: number): string => (count === 1 ? "file" : `${count} files`);
+  switch (request.kind) {
+    case "stage":
+      return `Stage ${files(request.paths.length)}`;
+    case "unstage":
+      return `Unstage ${files(request.paths.length)}`;
+    case "stage_all":
+      return "Stage all";
+    case "unstage_all":
+      return "Unstage all";
+    case "discard":
+      return `Discard changes in ${files(request.paths.length)}`;
+    case "hunk": {
+      const what: string =
+        request.lineIndices === null ? "hunk" : `${request.lineIndices.length} line${request.lineIndices.length === 1 ? "" : "s"}`;
+      const verb: string = request.action === "stage" ? "Stage" : request.action === "unstage" ? "Unstage" : "Discard";
+      return `${verb} ${what}`;
+    }
+  }
+}
+
+/**
+ * All index and working-tree changes. The returned status replaces the
+ * cached one (it is the repository's state after the change); diffs, totals
+ * and commit context are refetched. Nothing is updated optimistically.
+ */
+export function useStaging(repositoryId: number): UseMutationResult<StatusSnapshot, IpcError, StagingRequest> {
+  const client: QueryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (request: StagingRequest): Promise<StatusSnapshot> => {
+      switch (request.kind) {
+        case "stage":
+          return ipc.stagePaths(repositoryId, request.paths);
+        case "unstage":
+          return ipc.unstagePaths(repositoryId, request.paths);
+        case "stage_all":
+          return ipc.stageAll(repositoryId);
+        case "unstage_all":
+          return ipc.unstageAll(repositoryId);
+        case "discard":
+          return ipc.discardPaths(repositoryId, request.paths);
+        case "hunk":
+          return ipc.applyHunk({
+            id: repositoryId,
+            path: request.path,
+            side: request.side,
+            action: request.action,
+            hunkHeader: request.hunkHeader,
+            lineIndices: request.lineIndices,
+            contextLines: DIFF_CONTEXT_LINES,
+          });
+      }
+    },
+    meta: { operation: "Change staging", describe: (variables: unknown) => describeStaging(variables as StagingRequest) },
+    onSuccess: (status: StatusSnapshot) => client.setQueryData(queryKeys.status(repositoryId), status),
+    onSettled: (_data, error) => {
+      // After a failure (for example a stale diff) the cached status may be out of date too.
+      if (error !== null) void client.invalidateQueries({ queryKey: queryKeys.status(repositoryId) });
+      invalidateWorkingState(client, repositoryId);
+    },
+  });
+}
+
+export function useCreateCommit(
+  repositoryId: number,
+): UseMutationResult<CommitResult, IpcError, { message: string; amend: boolean }> {
+  const client: QueryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ message, amend }: { message: string; amend: boolean }) => ipc.createCommit(repositoryId, message, amend),
+    meta: {
+      operation: "Commit",
+      describe: (variables: unknown) => ((variables as { amend: boolean }).amend ? "Amend commit" : "Commit"),
+    },
+    onSuccess: (result: CommitResult) => {
+      client.setQueryData(queryKeys.status(repositoryId), result.status);
+      void client.invalidateQueries({ queryKey: queryKeys.logAll(repositoryId) });
+      void client.invalidateQueries({ queryKey: queryKeys.refs(repositoryId) });
+    },
+    onSettled: () => invalidateWorkingState(client, repositoryId),
   });
 }

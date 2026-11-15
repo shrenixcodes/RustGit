@@ -82,3 +82,25 @@ Branch `worktree-ui-orbital`, merged with `main` at `0cca721`:
   across data directories.
 - Rail section buttons keep exact accessible names ("Changes", "Settings").
 - No new backend requests.
+
+## Request R-15 from the UI session — default theme is dark (2026-11-16)
+
+Product decision from the user: **dark mode is the default.** The UI's own
+fallbacks (first paint, settings not yet loaded or failed) are dark on
+branch `worktree-ui-orbital`. The persisted default is the backend's:
+
+- `crates/core/src/database/settings.rs`: `ThemePreference` has
+  `#[default] System`. Requested: `#[default] Dark`, so a fresh install and
+  an invalid stored value both resolve to `"dark"`. Users who explicitly
+  chose `"system"` or `"light"` keep their choice (stored values are
+  unchanged).
+- Tests `theme_defaults_to_system_and_persists` and
+  `invalid_stored_theme_falls_back_to_default` assert `System` and need the
+  same update.
+- No contract shape change: `get_settings` still returns
+  `"system" | "light" | "dark"`.
+- Native smoke test: it switches to Light and checks persistence, so it is
+  unaffected.
+
+Until this lands, a fresh install shows dark for the first paint and then
+follows the OS (the backend's `"system"`).

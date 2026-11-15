@@ -17,10 +17,10 @@ export function App() {
   );
 }
 
-/** Applies the saved theme preference (System until settings load). */
+/** Applies the saved theme preference (dark, the default look, until settings load or if they fail). */
 function ThemeController() {
   const settings = useSettings();
-  const theme: ThemePreference = settings.data?.theme ?? "system";
+  const theme: ThemePreference = settings.data?.theme ?? "dark";
   useEffect(() => applyTheme(theme), [theme]);
   return null;
 }

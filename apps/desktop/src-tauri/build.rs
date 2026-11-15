@@ -22,6 +22,23 @@ const COMMANDS: &[&str] = &[
     "commit_context",
     "create_commit",
     "command_history",
+    "log_page",
+    "commit_details",
+    "commit_file_diff",
+    "list_refs",
+    "create_branch",
+    "checkout_branch",
+    "rename_branch",
+    "delete_branch",
+    "set_upstream",
+    "merge_branch",
+    "rebase_branch",
+    "cherry_pick",
+    "revert_commit",
+    "continue_operation",
+    "abort_operation",
+    "conflict_versions",
+    "resolve_conflict",
 ];
 
 fn main() {

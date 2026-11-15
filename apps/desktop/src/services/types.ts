@@ -185,3 +185,101 @@ export interface CommitResult {
   summary: string;
   status: StatusSnapshot;
 }
+
+// --- History (contract C-2) ---------------------------------------------
+
+export type LogSearchField = "message" | "author" | "sha";
+
+export interface LogSearch {
+  text: string;
+  field: LogSearchField;
+}
+
+export interface LogCommit {
+  oid: string;
+  /** First parent first. */
+  parents: string[];
+  summary: string;
+  authorName: string;
+  authorEmail: string;
+  /** Unix seconds. */
+  authorTime: number;
+  committerTime: number;
+}
+
+export interface LogPage {
+  commits: LogCommit[];
+  hasMore: boolean;
+}
+
+export interface CommitFile {
+  path: string;
+  originalPath: string | null;
+  kind: ChangeKind;
+  /** null for binary files. */
+  additions: number | null;
+  deletions: number | null;
+}
+
+export interface CommitDetails {
+  oid: string;
+  parents: string[];
+  authorName: string;
+  authorEmail: string;
+  authorTime: number;
+  committerName: string;
+  committerEmail: string;
+  committerTime: number;
+  message: string;
+  files: CommitFile[];
+}
+
+// --- References and branches (contract C-2) ---------------------------------
+
+export type HeadState =
+  | { kind: "branch"; name: string }
+  | { kind: "detached"; oid: string }
+  | { kind: "unborn"; name: string };
+
+export type RefKind = "local" | "remote" | "tag";
+
+export interface RefEntry {
+  fullName: string;
+  shortName: string;
+  kind: RefKind;
+  /** Peeled commit id for annotated tags. */
+  oid: string;
+  upstream: string | null;
+  ahead: number | null;
+  behind: number | null;
+  upstreamGone: boolean;
+  lastCommitTime: number;
+  lastCommitSummary: string;
+}
+
+export interface RefList {
+  head: HeadState;
+  refs: RefEntry[];
+}
+
+export type CheckoutMode = "keep_changes" | "abort_if_dirty";
+export type MergeStrategy = "default" | "no_ff" | "ff_only";
+export type IntegrationOutcome = "up_to_date" | "fast_forward" | "completed" | "conflicts";
+
+export interface IntegrationResult {
+  outcome: IntegrationOutcome;
+  conflicted: string[];
+  status: StatusSnapshot;
+}
+
+export interface ConflictVersions {
+  base: string | null;
+  ours: string | null;
+  theirs: string | null;
+  working: string;
+  oursLabel: string;
+  theirsLabel: string;
+  binary: boolean;
+}
+
+export type ConflictSide = "ours" | "theirs";

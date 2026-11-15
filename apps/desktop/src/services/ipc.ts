@@ -1,6 +1,15 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
   ChangeTotals,
+  CheckoutMode,
+  CommitDetails,
+  ConflictSide,
+  ConflictVersions,
+  IntegrationResult,
+  LogPage,
+  LogSearch,
+  MergeStrategy,
+  RefList,
   CommandError,
   CommandRecord,
   CommitContext,
@@ -106,4 +115,53 @@ export const ipc = {
   commandHistory: (filter: { repositoryId?: number | null; sinceSequence?: number | null } = {}): Promise<
     CommandRecord[]
   > => call("command_history", { repositoryId: null, sinceSequence: null, ...filter }),
+
+  // History (contract C-2).
+  logPage: (args: {
+    id: number;
+    revisions?: string[] | null;
+    skip: number;
+    /** 1..2000 */
+    limit: number;
+    search?: LogSearch | null;
+    since?: number | null;
+    until?: number | null;
+  }): Promise<LogPage> => call("log_page", { revisions: null, search: null, since: null, until: null, ...args }),
+  commitDetails: (id: number, oid: string): Promise<CommitDetails> => call("commit_details", { id, oid }),
+  commitFileDiff: (args: {
+    id: number;
+    oid: string;
+    path: string;
+    originalPath?: string | null;
+    contextLines?: number | null;
+  }): Promise<FileDiff> => call("commit_file_diff", { originalPath: null, contextLines: null, ...args }),
+
+  // References and branches (contract C-2).
+  listRefs: (id: number): Promise<RefList> => call("list_refs", { id }),
+  createBranch: (id: number, name: string, startPoint: string | null, checkout: boolean): Promise<RefList> =>
+    call("create_branch", { id, name, startPoint, checkout }),
+  checkoutBranch: (id: number, name: string, mode: CheckoutMode): Promise<StatusSnapshot> =>
+    call("checkout_branch", { id, name, mode }),
+  renameBranch: (id: number, from: string, to: string): Promise<RefList> => call("rename_branch", { id, from, to }),
+  /** force deletes unmerged work: confirm with the user first. */
+  deleteBranch: (id: number, name: string, force: boolean): Promise<RefList> =>
+    call("delete_branch", { id, name, force }),
+  setUpstream: (id: number, branch: string, upstream: string | null): Promise<RefList> =>
+    call("set_upstream", { id, branch, upstream }),
+
+  // Integrations and conflicts (contract C-2).
+  mergeBranch: (id: number, source: string, strategy: MergeStrategy): Promise<IntegrationResult> =>
+    call("merge_branch", { id, source, strategy }),
+  rebaseBranch: (id: number, onto: string): Promise<IntegrationResult> => call("rebase_branch", { id, onto }),
+  cherryPick: (id: number, oids: string[]): Promise<IntegrationResult> => call("cherry_pick", { id, oids }),
+  revertCommit: (id: number, oid: string): Promise<IntegrationResult> => call("revert_commit", { id, oid }),
+  continueOperation: (id: number): Promise<IntegrationResult> => call("continue_operation", { id }),
+  abortOperation: (id: number): Promise<StatusSnapshot> => call("abort_operation", { id }),
+  conflictVersions: (id: number, path: string): Promise<ConflictVersions> => call("conflict_versions", { id, path }),
+  /** Exactly one of content or take. */
+  resolveConflict: (
+    id: number,
+    path: string,
+    resolution: { content: string; take?: null } | { take: ConflictSide; content?: null },
+  ): Promise<StatusSnapshot> => call("resolve_conflict", { id, path, content: null, take: null, ...resolution }),
 } as const;

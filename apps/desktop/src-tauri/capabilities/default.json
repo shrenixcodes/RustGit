@@ -28,6 +28,23 @@
     "allow-change-totals",
     "allow-create-commit",
     "allow-command-history",
-    "allow-commit-context"
+    "allow-commit-context",
+    "allow-log-page",
+    "allow-commit-details",
+    "allow-commit-file-diff",
+    "allow-list-refs",
+    "allow-create-branch",
+    "allow-checkout-branch",
+    "allow-rename-branch",
+    "allow-delete-branch",
+    "allow-set-upstream",
+    "allow-merge-branch",
+    "allow-rebase-branch",
+    "allow-cherry-pick",
+    "allow-revert-commit",
+    "allow-continue-operation",
+    "allow-abort-operation",
+    "allow-conflict-versions",
+    "allow-resolve-conflict"
   ]
 }

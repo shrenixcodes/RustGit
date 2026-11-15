@@ -34,13 +34,26 @@ pub(crate) async fn mutate<F>(
 where
     F: FnOnce(&GitExecutor, &Path) -> GitResult<()> + Send + 'static,
 {
+    write(state, id, move |git, root| {
+        operation(git, root)?;
+        rustgit_git_engine::read_status(git, root)
+    })
+    .await
+}
+
+/// Runs `operation` under the repository write lock. Anything it reads back
+/// (status, refs) reflects exactly the state after the mutation.
+pub(crate) async fn write<T, F>(state: &AppState, id: i64, operation: F) -> CommandResult<T>
+where
+    T: Send + 'static,
+    F: FnOnce(&GitExecutor, &Path) -> GitResult<T> + Send + 'static,
+{
     let _guard = state.locks.write(id).await;
     let git: GitExecutor = state.git.clone();
     let database: Arc<Database> = Arc::clone(&state.database);
     blocking(move || {
         let root: PathBuf = repository_root(&database, id)?;
-        operation(&git, &root)?;
-        Ok(rustgit_git_engine::read_status(&git, &root)?)
+        Ok(operation(&git, &root)?)
     })
     .await
 }

@@ -282,6 +282,8 @@ pub fn push(
     }
     if request.force_with_lease {
         args.push("--force-with-lease".to_owned());
+        // Also require that the remote tip was integrated locally, not just fetched.
+        args.push("--force-if-includes".to_owned());
     }
     match (request.remote, request.branch) {
         (Some(remote), branch) => {

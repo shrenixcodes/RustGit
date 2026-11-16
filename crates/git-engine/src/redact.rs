@@ -14,6 +14,8 @@ pub fn redact_credentials(input: &str) -> String {
             .unwrap_or(after_scheme.len());
         let authority: &str = &after_scheme[..authority_end];
         match authority.rfind('@') {
+            // A bare ssh user such as `git@host` is not a secret.
+            Some(at) if is_plain_ssh_user(&output, &authority[..at]) => output.push_str(authority),
             Some(at) => {
                 output.push_str("***");
                 output.push_str(&authority[at..]);
@@ -24,6 +26,11 @@ pub fn redact_credentials(input: &str) -> String {
     }
     output.push_str(rest);
     output
+}
+
+/// `output` ends with `scheme://`; true for `ssh://` with a user name and no password.
+fn is_plain_ssh_user(output: &str, userinfo: &str) -> bool {
+    output.ends_with("ssh://") && !userinfo.contains(':')
 }
 
 #[cfg(test)]
@@ -43,7 +50,7 @@ mod tests {
         let text: &str = "push to https://github.com/o/r.git and ssh://git@host/r";
         assert_eq!(
             redact_credentials(text),
-            "push to https://github.com/o/r.git and ssh://***@host/r"
+            "push to https://github.com/o/r.git and ssh://git@host/r"
         );
         assert_eq!(redact_credentials("no url here"), "no url here");
     }

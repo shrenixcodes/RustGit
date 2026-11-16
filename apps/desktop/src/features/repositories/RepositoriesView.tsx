@@ -8,7 +8,6 @@ import { PageHeader } from "../../components/PageHeader";
 import { toIpcError, type IpcError } from "../../services/ipc";
 import {
   useAddRepository,
-  useInitRepository,
   useOpenRepository,
   useRemoveRepository,
   useRepositories,
@@ -18,6 +17,7 @@ import type { RepositoryEntry } from "../../services/types";
 import { useUi } from "../../stores/ui";
 import { useWorkspace } from "../../stores/workspace";
 import { CloneForm } from "./CloneForm";
+import { NewRepositoryForm } from "./NewRepositoryForm";
 import { RepositoryRow } from "./RepositoryRow";
 import { filterRepositories } from "./filterRepositories";
 
@@ -30,7 +30,6 @@ interface FailedAction {
 export function RepositoriesView() {
   const repositories = useRepositories();
   const addRepository = useAddRepository();
-  const initRepository = useInitRepository();
   const openRepository = useOpenRepository();
   const removeRepository = useRemoveRepository();
   const setPinned = useSetRepositoryPinned();
@@ -40,6 +39,7 @@ export function RepositoriesView() {
 
   const [query, setQuery] = useState<string>("");
   const [cloning, setCloning] = useState<boolean>(false);
+  const [creating, setCreating] = useState<boolean>(false);
   const [actionFailure, setActionFailure] = useState<FailedAction | null>(null);
   const restoreFailure = useUi((state) => state.restoreFailure);
   const setRestoreFailure = useUi((state) => state.setRestoreFailure);
@@ -82,15 +82,6 @@ export function RepositoriesView() {
       }
     });
 
-  const handleCreate = () =>
-    run("Could not create repository", null, async () => {
-      const path: string | null = await pickFolder("Choose a folder for the new repository");
-      if (path !== null) {
-        const created: RepositoryEntry = await initRepository.mutateAsync(path);
-        activate(created.id, created.path);
-      }
-    });
-
   const handleOpen = (entry: RepositoryEntry) =>
     run(`Could not open ${entry.name}`, entry.id, async () => {
       const opened: RepositoryEntry = await openRepository.mutateAsync(entry.id);
@@ -124,10 +115,10 @@ export function RepositoriesView() {
           <p className="flex-1 text-sm text-fg-muted">
             Repositories RustGit knows about. Removing one here never deletes files.
           </p>
-          <Button onClick={() => setCloning(true)} disabled={cloning}>
+          <Button onClick={() => { setCreating(false); setCloning(true); }} disabled={cloning}>
             <Download aria-hidden className="size-3.5" /> Clone…
           </Button>
-          <Button onClick={handleCreate}>
+          <Button onClick={() => { setCloning(false); setCreating(true); }} disabled={creating}>
             <FolderPlus aria-hidden className="size-3.5" /> Create…
           </Button>
           <Button variant="primary" onClick={handleAdd}>
@@ -135,6 +126,7 @@ export function RepositoriesView() {
           </Button>
         </div>
         {cloning && <CloneForm onDone={() => setCloning(false)} />}
+        {creating && <NewRepositoryForm onDone={() => setCreating(false)} />}
         {failure !== null && (
           <ErrorNotice
             title={failure.title}

@@ -4,19 +4,38 @@
 
 A lightweight, cross-platform Git desktop client built with Rust and Tauri.
 
-> **Status: early development.** RustGit is not yet usable as a Git client.
-> There are no releases. The list below shows what exists today; everything
-> else is planned and tracked in [BUILD_PROGRESS.md](BUILD_PROGRESS.md).
+> **Status: 0.1.0, first release.** Installers for Windows, macOS and Linux
+> are on the [releases page](https://github.com/shrenixcodes/RustGit/releases).
+> They are not code-signed yet, so your OS will warn on first launch.
 
-## What is implemented
+## Features
 
-- Tauri 2 desktop shell with a React + TypeScript frontend.
-- `rustgit-git-engine` crate: runs the Git CLI with explicit arguments (no
-  shell), discovers repositories (including linked worktrees), and parses
-  `git status --porcelain=v2 -z`. Credentials in URLs are redacted from errors
-  and from the command log.
-- Design tokens for dark and light themes (WCAG AA text contrast), with the
-  theme following the operating system.
+- **The thread:** one canvas for the repository. The working tree (the
+  "loose end") sits on top of the commit graph; unfold any node in place.
+- **Changes:** stage and unstage files, hunks or single lines; discard with
+  confirmation; commit and amend inline.
+- **History:** live commit graph with branch, remote and tag labels, search
+  by message, author or commit id, and per-file commit diffs. Handles
+  repositories with thousands of commits.
+- **Branches (the map):** create, switch, rename, delete, track, merge,
+  rebase, cherry-pick and revert.
+- **Conflicts:** resolve merge and rebase conflicts block by block, then
+  continue or abort.
+- **Compare:** commits on each side and changed files between any two
+  branches, tags or commits.
+- **Sync:** fetch, pull (fast-forward, merge or rebase), push and publish,
+  with Git's own progress and cancel; clone. Authentication goes through
+  Git's credential helper; RustGit never stores passwords or tokens.
+- **Remotes, stash and worktrees:** manage all three from the app.
+- **Everywhere:** command palette (`Ctrl/Cmd+K`), full keyboard shortcuts
+  (`?`), dark and light themes, live updates when files change on disk, and
+  an activity log of every Git command run.
+
+RustGit drives the Git CLI with explicit arguments (no shell). Credentials
+in URLs are redacted from errors and from the command log.
+
+Not yet supported: GitHub sign-in and pull requests, interactive rebase,
+submodules, Git LFS.
 
 ## Technology
 

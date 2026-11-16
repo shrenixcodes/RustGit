@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowDown, ArrowUp, ChevronDown, LoaderCircle, RefreshCcw } from "lucide-react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Menu, type MenuItem } from "../components/Menu";
@@ -12,7 +12,28 @@ import { useUi } from "../stores/ui";
 const PULL_MODES: readonly PullMode[] = ["ff_only", "merge", "rebase"];
 
 const CONTROL =
-  "flex h-6 items-center gap-1 rounded-sm px-1.5 font-mono text-xs text-fg-secondary hover:bg-hover hover:text-fg disabled:cursor-not-allowed disabled:opacity-45";
+  "flex h-8 min-w-8 items-center gap-1.5 rounded-sm px-2.5 font-mono text-sm text-fg-secondary hover:bg-hover hover:text-fg disabled:cursor-not-allowed disabled:opacity-45";
+
+/** "5 min ago" style age of the last successful fetch in this session. */
+function useLastFetched(repositoryId: number): string {
+  const operations = useOperations((state) => state.operations);
+  const [now, setNow] = useState<number>(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+  let latest: number | null = null;
+  for (const operation of Object.values(operations)) {
+    if (operation.repositoryId === repositoryId && operation.kind === "fetch" && operation.outcome === "succeeded") {
+      if (operation.finishedAt !== null && (latest === null || operation.finishedAt > latest)) latest = operation.finishedAt;
+    }
+  }
+  if (latest === null) return "not fetched in this session";
+  const minutes: number = Math.floor(Math.max(0, now - latest) / 60_000);
+  if (minutes < 1) return "fetched just now";
+  if (minutes < 60) return `fetched ${minutes} min ago`;
+  return `fetched ${Math.floor(minutes / 60)} h ago`;
+}
 
 /**
  * Fetch, pull and push for the current branch, next to its path in the
@@ -27,6 +48,7 @@ export function SyncControls({ repositoryId, branch }: { repositoryId: number; b
   const setPullMode = usePreferences((state) => state.setPullMode);
   const setSheet = useUi((state) => state.setSheet);
   const [forcePush, setForcePush] = useState<boolean>(false);
+  const lastFetched: string = useLastFetched(repositoryId);
   const actions = networkActions(repositoryId);
   const running: NetworkOperation[] = runningOperations(operations, repositoryId);
   const busy = (kind: OperationKind): boolean => running.some((operation) => operation.kind === kind);
@@ -45,16 +67,23 @@ export function SyncControls({ repositoryId, branch }: { repositoryId: number; b
     );
   }
 
-  const pullItems: MenuItem[] = PULL_MODES.map((mode) => ({
-    id: mode,
-    label: PULL_LABEL[mode],
-    hint: mode === pullMode ? "default" : undefined,
-    disabled: !hasUpstream || busy("pull"),
-    run: () => {
-      setPullMode(mode);
-      actions.pull(mode).catch(ignore);
-    },
-  }));
+  // Running a mode once never changes the default; that has its own entries.
+  const pullItems: MenuItem[] = [
+    ...PULL_MODES.map((mode) => ({
+      id: mode,
+      label: PULL_LABEL[mode],
+      hint: mode === pullMode ? "default" : undefined,
+      disabled: !hasUpstream || busy("pull"),
+      run: () => {
+        actions.pull(mode).catch(ignore);
+      },
+    })),
+    ...PULL_MODES.filter((mode) => mode !== pullMode).map((mode) => ({
+      id: `default-${mode}`,
+      label: `Make "${PULL_LABEL[mode]}" the default`,
+      run: () => setPullMode(mode),
+    })),
+  ];
 
   const publishItems: MenuItem[] = list.map((remote) => ({
     id: remote.name,
@@ -93,6 +122,9 @@ export function SyncControls({ repositoryId, branch }: { repositoryId: number; b
         {busy("fetch") ? <LoaderCircle aria-hidden className="size-3 motion-safe:animate-spin" /> : <RefreshCcw aria-hidden className="size-3" />}
         fetch
       </button>
+      <span className="px-1 font-sans text-xs text-fg-muted" title="The ahead and behind counts only change after a fetch">
+        {lastFetched}
+      </span>
 
       <div className="flex items-center">
         <button
@@ -104,7 +136,7 @@ export function SyncControls({ repositoryId, branch }: { repositoryId: number; b
         >
           {busy("pull") ? <LoaderCircle aria-hidden className="size-3 motion-safe:animate-spin" /> : <ArrowDown aria-hidden className="size-3" />}
           pull
-          {branch.behind > 0 && <span className="text-clay-text">{branch.behind}</span>}
+          {branch.behind > 0 && <span className="rounded-sm bg-hover px-1 font-semibold text-clay-text">{branch.behind}</span>}
         </button>
         <Menu
           label="Pull options"
@@ -126,7 +158,7 @@ export function SyncControls({ repositoryId, branch }: { repositoryId: number; b
           >
             {busy("push") ? <LoaderCircle aria-hidden className="size-3 motion-safe:animate-spin" /> : <ArrowUp aria-hidden className="size-3" />}
             push
-            {branch.ahead > 0 && <span className="text-accent">{branch.ahead}</span>}
+            {branch.ahead > 0 && <span className="rounded-sm bg-hover px-1 font-semibold text-accent">{branch.ahead}</span>}
           </button>
         ) : list.length === 1 && list[0] !== undefined ? (
           <button
@@ -178,8 +210,8 @@ export function SyncControls({ repositoryId, branch }: { repositoryId: number; b
         >
           <p>
             Replaces {branch.upstream} with your {branch.head}. Commits on the remote that you do not have are removed from the
-            branch. The lease makes Git refuse if the remote moved since your last fetch, so nobody else's new work is lost
-            silently.
+            branch. Git refuses if the remote moved since your last fetch, or if that fetch brought in commits you have not
+            merged or rebased onto, so work you have not seen is not lost silently.
           </p>
         </ConfirmDialog>
       )}

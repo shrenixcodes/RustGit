@@ -30,9 +30,9 @@ pub fn run() {
                 None => app.path().app_data_dir()?,
             };
             let database_path: PathBuf = data_dir.join(DATABASE_FILE);
-            tracing::info!(path = %database_path.display(), "opening database");
+            tracing::debug!(path = %database_path.display(), "opening database");
             let database: Database = Database::open(&database_path)?;
-            app.manage(AppState::new(GitExecutor::new("git"), database));
+            app.manage(AppState::new(GitExecutor::new(resolve_git()), database));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -101,4 +101,26 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("failed to run the RustGit application");
+}
+
+/// Resolves `git` against absolute `PATH` entries only, so a `git.exe` that
+/// happens to sit in the working directory is never picked up. Falls back to
+/// the bare name, which lets the "Git not found" notice appear as before.
+fn resolve_git() -> PathBuf {
+    let names: &[&str] = if cfg!(windows) {
+        &["git.exe", "git.cmd"]
+    } else {
+        &["git"]
+    };
+    if let Some(path) = std::env::var_os("PATH") {
+        for directory in std::env::split_paths(&path).filter(|directory| directory.is_absolute()) {
+            for name in names {
+                let candidate: PathBuf = directory.join(name);
+                if candidate.is_file() {
+                    return candidate;
+                }
+            }
+        }
+    }
+    PathBuf::from("git")
 }

@@ -2,12 +2,14 @@
 //!
 //! The working tree root is watched non-recursively and each top-level
 //! directory recursively, except `.git` and directories Git ignores, so
-//! `.git/objects`, `node_modules` or `target` never generate events. The
+//! `.git/objects`, `node_modules` or `target` never generate events. Events
+//! from ignored directories nested deeper (`apps/app/node_modules`) are
+//! dropped by the debouncer using a per-directory ignore cache. The
 //! per-worktree Git directory (index, HEAD) and the common directory's refs
 //! are watched separately so linked worktrees work. Events are debounced:
 //! 300 ms after the last event, at most 2 s after the first.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::sync::{Arc, Mutex, Weak};
@@ -161,6 +163,66 @@ fn ignored_names(git: &GitExecutor, root: &Path, names: &[String]) -> BTreeSet<S
     }
 }
 
+const IGNORE_CACHE_LIMIT: usize = 4096;
+
+/// Remembers which directories Git ignores, so events from nested ignored
+/// trees (`apps/app/node_modules`, `crates/x/target`) can be dropped cheaply.
+#[derive(Default)]
+struct IgnoreCache {
+    directories: HashMap<PathBuf, bool>,
+}
+
+impl IgnoreCache {
+    /// True when `path` lies inside a directory below `root` that Git ignores.
+    fn in_ignored_directory(&mut self, git: &GitExecutor, root: &Path, path: &Path) -> bool {
+        if path.file_name().is_some_and(|name| name == ".gitignore") {
+            self.directories.clear();
+            return false;
+        }
+        let Ok(relative) = path.strip_prefix(root) else {
+            return false;
+        };
+        let Some(parent) = relative.parent() else {
+            return false;
+        };
+        let mut current: PathBuf = PathBuf::new();
+        for component in parent.components() {
+            current.push(component);
+            if self.is_ignored(git, root, &current) {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn is_ignored(&mut self, git: &GitExecutor, root: &Path, relative: &Path) -> bool {
+        if let Some(known) = self.directories.get(relative) {
+            return *known;
+        }
+        if self.directories.len() >= IGNORE_CACHE_LIMIT {
+            self.directories.clear();
+        }
+        let argument: String = format!("{}/", relative.to_string_lossy().replace('\\', "/"));
+        // Exit 0 means ignored; any failure means "watch it" (not ignored).
+        let ignored: bool = git
+            .run_unchecked(
+                root,
+                [
+                    "--literal-pathspecs",
+                    "check-ignore",
+                    "-q",
+                    "--",
+                    argument.as_str(),
+                ],
+                None,
+            )
+            .map(|output| output.status.success())
+            .unwrap_or(false);
+        self.directories.insert(relative.to_path_buf(), ignored);
+        ignored
+    }
+}
+
 struct WatchedRepository {
     // Dropping the watcher closes the event channel and ends the debounce
     // thread, which only holds a weak reference.
@@ -276,6 +338,7 @@ fn spawn_debouncer(
         let mut pending: BTreeSet<ChangeScope> = BTreeSet::new();
         let mut first: Option<Instant> = None;
         let mut last: Instant = Instant::now();
+        let mut ignore_cache: IgnoreCache = IgnoreCache::default();
         loop {
             let timeout: Duration = match first {
                 None => Duration::from_secs(3600),
@@ -292,6 +355,11 @@ fn spawn_debouncer(
                     }
                     for path in &event.paths {
                         if let Some(scope) = layout.classify(path) {
+                            if scope == ChangeScope::Worktree
+                                && ignore_cache.in_ignored_directory(&git, &layout.root, path)
+                            {
+                                continue;
+                            }
                             pending.insert(scope);
                         }
                         let top_level: bool = path

@@ -8,6 +8,7 @@ import { Sheet } from "./Sheet";
 import { useShortcuts } from "./shortcuts";
 import { RepositoriesView } from "../features/repositories/RepositoriesView";
 import { toIpcError } from "../services/ipc";
+import { CredentialPrompt } from "./CredentialPrompt";
 import { networkActions, useOperationEvents } from "../services/network";
 import { useRepositoryWatcher } from "../services/repositoryEvents";
 import { queryKeys, useOpenRepository, useRepositories, useRepositoryStatus } from "../services/queries";
@@ -41,6 +42,7 @@ export function AppShell() {
       {activityOpen && <ActivityPanel />}
       <OperationShelf />
       <Sheet />
+      <CredentialPrompt />
       {paletteOpen && <CommandPalette />}
     </div>
   );

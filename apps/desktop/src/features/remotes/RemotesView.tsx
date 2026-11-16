@@ -59,7 +59,7 @@ function RemotesList({ repositoryId }: { repositoryId: number }) {
     <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-6">
       <div className="max-w-2xl space-y-5">
         <p className="text-sm text-fg-muted">
-          Git's credential helper authenticates every network operation; RustGit never sees or stores passwords or tokens.
+          Git's credential helper authenticates network operations. When it has nothing, RustGit asks for the password or key passphrase and passes it straight to Git without storing it.
         </p>
         {remotes.isError && <ErrorNotice title="Could not list remotes" error={remotes.error} />}
         {remotes.data?.length === 0 && <p className="text-fg-muted">No remotes yet. Add one to fetch from it and push to it.</p>}

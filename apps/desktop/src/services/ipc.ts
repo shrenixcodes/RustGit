@@ -216,6 +216,8 @@ export const ipc = {
     call("start_clone", { url, parentDirectory, directoryName }),
   /** false when unknown, finished, or no longer cancellable (push, pull after fetch). */
   cancelOperation: (operationId: string): Promise<boolean> => call("cancel_operation", { operationId }),
+  respondCredential: (requestId: string, answer: string | null): Promise<boolean> =>
+    call("respond_credential", { requestId, answer }),
 
   // Stash (contract C-2).
   listStashes: (id: number): Promise<StashEntry[]> => call("list_stashes", { id }),

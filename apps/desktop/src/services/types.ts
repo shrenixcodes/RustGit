@@ -307,6 +307,14 @@ export interface Remote {
 
 export type PullMode = "ff_only" | "merge" | "rebase";
 
+/** Payload of the `credential-requested` event: a prompt from Git or ssh waiting for an answer. */
+export interface CredentialRequest {
+  requestId: string;
+  prompt: string;
+  /** The answer should be hidden while it is typed. */
+  secret: boolean;
+}
+
 export interface OperationStarted {
   operationId: string;
 }

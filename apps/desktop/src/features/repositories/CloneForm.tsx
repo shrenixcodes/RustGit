@@ -10,6 +10,7 @@ import type { OperationFinishedEvent, RepositoryEntry } from "../../services/typ
 import { describeProgress, useOperations, type NetworkOperation } from "../../stores/operations";
 import { useWorkspace } from "../../stores/workspace";
 import { ProgressLine } from "../../app/ProgressLine";
+import { GithubRepositoryPicker } from "./GithubRepositoryPicker";
 
 /** The folder name Git would choose for a URL ("…/rustgit.git" → "rustgit"); only a placeholder. */
 export function directoryNameFor(url: string): string {
@@ -73,6 +74,12 @@ export function CloneForm({ onDone }: { onDone: () => void }) {
 
   return (
     <form onSubmit={(event) => void submit(event)} aria-label="Clone a repository" className="space-y-3 border-l-2 border-accent py-1 pl-4">
+      <GithubRepositoryPicker
+        onPick={(cloneUrl, repositoryName) => {
+          setUrl(cloneUrl);
+          setName(repositoryName);
+        }}
+      />
       <label className="block">
         <span className="rg-label">url</span>
         <input

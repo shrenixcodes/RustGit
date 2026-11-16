@@ -26,6 +26,9 @@ import type {
   ErrorKind,
   FileDiff,
   GitInfo,
+  GithubDeviceCode,
+  GithubRepository,
+  GithubStatus,
   HunkAction,
   RepositoryEntry,
   Settings,
@@ -216,6 +219,13 @@ export const ipc = {
     call("start_clone", { url, parentDirectory, directoryName }),
   /** false when unknown, finished, or no longer cancellable (push, pull after fetch). */
   cancelOperation: (operationId: string): Promise<boolean> => call("cancel_operation", { operationId }),
+  githubStatus: (): Promise<GithubStatus> => call("github_status"),
+  githubStartSignIn: (): Promise<GithubDeviceCode> => call("github_start_sign_in"),
+  githubCancelSignIn: (): Promise<void> => call("github_cancel_sign_in"),
+  githubSignOut: (): Promise<void> => call("github_sign_out"),
+  githubListRepositories: (page: number): Promise<GithubRepository[]> => call("github_list_repositories", { page }),
+  githubCreateRepository: (name: string, isPrivate: boolean): Promise<GithubRepository> =>
+    call("github_create_repository", { name, private: isPrivate }),
   respondCredential: (requestId: string, answer: string | null): Promise<boolean> =>
     call("respond_credential", { requestId, answer }),
 

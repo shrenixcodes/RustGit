@@ -315,6 +315,37 @@ export interface CredentialRequest {
   secret: boolean;
 }
 
+export interface GithubAccount {
+  login: string;
+}
+
+export interface GithubStatus {
+  /** False when this build has no OAuth client id, so sign-in is unavailable. */
+  configured: boolean;
+  account: GithubAccount | null;
+}
+
+/** What the person must enter on github.com to finish signing in. */
+export interface GithubDeviceCode {
+  user_code: string;
+  verification_uri: string;
+  expires_in: number;
+  interval: number;
+}
+
+/** Payload of the `github-sign-in-finished` event. */
+export interface GithubSignInFinished {
+  account: GithubAccount | null;
+  error: string | null;
+}
+
+export interface GithubRepository {
+  fullName: string;
+  description: string | null;
+  private: boolean;
+  cloneUrl: string;
+}
+
 export interface OperationStarted {
   operationId: string;
 }

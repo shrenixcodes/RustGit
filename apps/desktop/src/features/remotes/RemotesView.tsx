@@ -4,6 +4,8 @@ import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { ErrorNotice } from "../../components/ErrorNotice";
 import { PageHeader } from "../../components/PageHeader";
 import { networkActions } from "../../services/network";
+import { useRepositories } from "../../services/queries";
+import { PublishToGithub } from "./PublishToGithub";
 import { useRemoteOperation, useRemotes, type RemoteRequest } from "../../services/repositoryQueries";
 import type { Remote } from "../../services/types";
 import { runningOperations, useOperations } from "../../stores/operations";
@@ -34,6 +36,8 @@ function RemotesList({ repositoryId }: { repositoryId: number }) {
   const [name, setName] = useState<string>("");
   const [url, setUrl] = useState<string>("");
   const actions = networkActions(repositoryId);
+  const repositoryPath: string | undefined = useRepositories().data?.find((entry) => entry.id === repositoryId)?.path;
+  const defaultName: string = (repositoryPath ?? "").replace(/[/\\]+$/, "").split(/[/\\]/).pop() ?? "";
 
   const run = (request: RemoteRequest, after?: () => void): void =>
     operation.mutate(request, {
@@ -118,6 +122,8 @@ function RemotesList({ repositoryId }: { repositoryId: number }) {
             </li>
           ))}
         </ul>
+
+        {remotes.data?.length === 0 && <PublishToGithub repositoryId={repositoryId} defaultName={defaultName} />}
 
         <form onSubmit={add} aria-label="Add a remote" className="flex flex-wrap items-end gap-3">
           <label className="block w-32">

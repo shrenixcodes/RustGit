@@ -5,6 +5,7 @@ import { SegmentedControl, type SegmentOption } from "../../components/Segmented
 import { useGitInfo, useSetTheme, useSettings } from "../../services/queries";
 import type { ThemePreference } from "../../services/types";
 import { usePreferences, type MotionPreference, type Personality } from "../../stores/preferences";
+import { GithubAccount } from "./GithubAccount";
 
 const THEME_OPTIONS: readonly SegmentOption<ThemePreference>[] = [
   { value: "system", label: "System" },
@@ -60,6 +61,13 @@ export function SettingsView() {
             description="Reduce turns off transitions even when the operating system allows them."
           >
             <SegmentedControl label="Motion" options={MOTION_OPTIONS} value={motion} onChange={setMotion} />
+          </Setting>
+
+          <Setting
+            label="GitHub"
+            description="Sign in to clone from your GitHub repositories and publish new ones. The token is kept in the system credential store."
+          >
+            <GithubAccount />
           </Setting>
 
           <Setting label="Git" description="RustGit runs the Git executable found on PATH.">

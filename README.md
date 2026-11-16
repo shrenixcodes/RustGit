@@ -67,6 +67,15 @@ pnpm dev
 
 `pnpm dev` starts the Vite dev server and launches the native application.
 
+### GitHub sign-in
+
+Sign-in uses GitHub's OAuth device flow and is enabled only when the build knows
+a public OAuth App client id. Register an OAuth App on GitHub with device flow
+enabled, then set `RUSTGIT_GITHUB_CLIENT_ID` when building (or running). No
+client secret is needed. Without it the GitHub settings section says sign-in is
+unavailable; Git itself keeps working through the credential helper and
+RustGit's own password prompts.
+
 ## Testing
 
 ```bash

@@ -2,19 +2,31 @@ mod commands;
 mod state;
 
 use std::path::PathBuf;
+use std::sync::Arc;
+use std::time::Duration;
 
+use rustgit_core::askpass::{self, PromptHandler, is_secret_prompt};
+use rustgit_core::{AskpassBroker, CredentialRequest, Database, PendingPrompts};
 use rustgit_git_engine::GitExecutor;
-use tauri::Manager;
+use rustgit_git_engine::redact::redact_credentials;
+use tauri::{Emitter, Manager};
 use tracing_subscriber::EnvFilter;
-
-use rustgit_core::Database;
 
 use crate::state::AppState;
 
 const DATABASE_FILE: &str = "rustgit.sqlite3";
+const CREDENTIAL_EVENT: &str = "credential-requested";
+/// How long a credential prompt waits for the user before Git gives up.
+const PROMPT_TIMEOUT: Duration = Duration::from_secs(300);
 
 /// Builds and runs the RustGit desktop application.
 pub fn run() {
+    // Git and ssh start this executable to ask for a password or passphrase.
+    let arguments: Vec<String> = std::env::args().collect();
+    if let Some(code) = askpass::run_helper(&arguments) {
+        std::process::exit(code);
+    }
+
     tracing_subscriber::fmt()
         .with_env_filter(
             EnvFilter::try_from_env("RUSTGIT_LOG").unwrap_or_else(|_| EnvFilter::new("info")),
@@ -32,11 +44,21 @@ pub fn run() {
             let database_path: PathBuf = data_dir.join(DATABASE_FILE);
             tracing::debug!(path = %database_path.display(), "opening database");
             let database: Database = Database::open(&database_path)?;
-            app.manage(AppState::new(GitExecutor::new(resolve_git()), database));
+            let prompts: Arc<PendingPrompts> = Arc::new(PendingPrompts::default());
+            let git: GitExecutor = GitExecutor::new(resolve_git());
+            let git: GitExecutor = match start_credential_broker(app.handle(), &prompts) {
+                Ok(environment) => git.with_env(environment),
+                Err(error) => {
+                    tracing::warn!(%error, "credential prompts are unavailable");
+                    git
+                }
+            };
+            app.manage(AppState::new(git, database, prompts));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             commands::system::git_info,
+            commands::credentials::respond_credential,
             commands::system::get_settings,
             commands::system::set_theme,
             commands::repositories::list_repositories,
@@ -123,4 +145,32 @@ fn resolve_git() -> PathBuf {
         }
     }
     PathBuf::from("git")
+}
+
+/// Starts the prompt broker and returns the environment that points Git and
+/// ssh at this executable. Each prompt becomes a `credential-requested` event.
+fn start_credential_broker(
+    app: &tauri::AppHandle,
+    prompts: &Arc<PendingPrompts>,
+) -> std::io::Result<Vec<(std::ffi::OsString, std::ffi::OsString)>> {
+    let helper: PathBuf = std::env::current_exe()?;
+    let handle: tauri::AppHandle = app.clone();
+    let pending: Arc<PendingPrompts> = Arc::clone(prompts);
+    let handler: PromptHandler = Arc::new(move |prompt: &str| {
+        let (request_id, receiver) = pending.register();
+        let request: CredentialRequest = CredentialRequest {
+            request_id: request_id.clone(),
+            prompt: redact_credentials(prompt),
+            secret: is_secret_prompt(prompt),
+        };
+        if handle.emit(CREDENTIAL_EVENT, request).is_err() {
+            pending.forget(&request_id);
+            return None;
+        }
+        let answer: Option<String> = receiver.recv_timeout(PROMPT_TIMEOUT).ok().flatten();
+        pending.forget(&request_id);
+        answer
+    });
+    let broker: AskpassBroker = AskpassBroker::start(handler)?;
+    Ok(broker.environment(&helper))
 }

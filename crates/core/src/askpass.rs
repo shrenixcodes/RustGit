@@ -8,18 +8,69 @@
 //! through memory only: they are never stored, logged or put in a command
 //! line. Git credential helpers (Git Credential Manager) still run first.
 
+use std::collections::HashMap;
 use std::ffi::OsString;
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::path::Path;
-use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
+
+use serde::Serialize;
 
 pub const ADDRESS_VARIABLE: &str = "RUSTGIT_ASKPASS_ADDR";
 pub const TOKEN_VARIABLE: &str = "RUSTGIT_ASKPASS_TOKEN";
 
 const MAX_LINE: u64 = 8 * 1024;
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// Payload of the `credential-requested` event. The prompt has any
+/// credentials embedded in URLs removed.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CredentialRequest {
+    pub request_id: String,
+    pub prompt: String,
+    /// The answer should be hidden while it is typed.
+    pub secret: bool,
+}
+
+/// Prompts waiting for an answer from the user interface.
+#[derive(Debug, Default)]
+pub struct PendingPrompts {
+    next: AtomicU64,
+    waiting: Mutex<HashMap<String, Sender<Option<String>>>>,
+}
+
+impl PendingPrompts {
+    /// Registers a prompt; the receiver yields the user's answer.
+    pub fn register(&self) -> (String, Receiver<Option<String>>) {
+        let id: String = format!("credential-{}", self.next.fetch_add(1, Ordering::Relaxed));
+        let (sender, receiver) = mpsc::channel();
+        if let Ok(mut waiting) = self.waiting.lock() {
+            waiting.insert(id.clone(), sender);
+        }
+        (id, receiver)
+    }
+
+    /// Delivers an answer (`None` = declined). False if the prompt is gone.
+    pub fn answer(&self, id: &str, answer: Option<String>) -> bool {
+        let sender: Option<Sender<Option<String>>> = self
+            .waiting
+            .lock()
+            .ok()
+            .and_then(|mut waiting| waiting.remove(id));
+        sender.is_some_and(|sender| sender.send(answer).is_ok())
+    }
+
+    pub fn forget(&self, id: &str) {
+        if let Ok(mut waiting) = self.waiting.lock() {
+            waiting.remove(id);
+        }
+    }
+}
 
 /// Answers one prompt; `None` means the user declined. May block for a long time.
 pub type PromptHandler = Arc<dyn Fn(&str) -> Option<String> + Send + Sync>;
@@ -174,6 +225,16 @@ mod tests {
         let broker: AskpassBroker = broker(Some("a\nb"));
         let answer = ask(&broker.address.to_string(), &broker.token, "Password: ");
         assert_eq!(answer.expect("asks"), Some("ab".to_owned()));
+    }
+
+    #[test]
+    fn pending_prompts_deliver_one_answer() {
+        let pending: PendingPrompts = PendingPrompts::default();
+        let (id, receiver) = pending.register();
+        assert!(pending.answer(&id, Some("typed".to_owned())));
+        assert_eq!(receiver.recv().expect("answer"), Some("typed".to_owned()));
+        assert!(!pending.answer(&id, None));
+        assert!(!pending.answer("credential-unknown", None));
     }
 
     #[test]

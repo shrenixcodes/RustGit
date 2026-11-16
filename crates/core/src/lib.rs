@@ -7,6 +7,7 @@ pub mod locks;
 pub mod operations;
 pub mod watcher;
 
+pub use askpass::{AskpassBroker, CredentialRequest, PendingPrompts};
 pub use database::{
     Database, DatabaseError, RepositoryEntry, Settings, ThemePreference, owning_repository,
 };

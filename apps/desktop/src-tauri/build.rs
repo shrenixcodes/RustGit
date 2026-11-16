@@ -63,6 +63,7 @@ const COMMANDS: &[&str] = &[
     "prune_worktrees",
     "watch_repository",
     "unwatch_repository",
+    "respond_credential",
 ];
 
 fn main() {

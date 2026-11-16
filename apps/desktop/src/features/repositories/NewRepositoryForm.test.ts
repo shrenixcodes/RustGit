@@ -7,12 +7,12 @@ describe("new repository helpers", () => {
     expect(folderNameProblem("")).toBeNull();
     expect(folderNameProblem("..")).not.toBeNull();
     expect(folderNameProblem("a/b")).not.toBeNull();
-    expect(folderNameProblem("a\b")).not.toBeNull();
+    expect(folderNameProblem("a\\b")).not.toBeNull();
     expect(folderNameProblem("name.")).not.toBeNull();
   });
 
   it("joins the parent folder and name with the parent's separator", () => {
-    expect(newRepositoryPath("C:\code\\", " app ")).toBe("C:\code\app");
+    expect(newRepositoryPath("C:\\code\\", " app ")).toBe("C:\\code\\app");
     expect(newRepositoryPath("/home/me", "app")).toBe("/home/me/app");
   });
 });

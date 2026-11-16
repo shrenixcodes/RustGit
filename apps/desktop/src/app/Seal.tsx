@@ -1,10 +1,12 @@
 import { useEffect, useRef } from "react";
-import { ChevronDown, Command, RefreshCw, Search, Settings } from "lucide-react";
+import { ChevronDown, Command, Ellipsis, RefreshCw, Search, Settings } from "lucide-react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { IconButton } from "../components/Button";
 import { Mark } from "../components/Mark";
+import { Menu, type MenuItem } from "../components/Menu";
 import { SegmentedControl, type SegmentOption } from "../components/SegmentedControl";
 import { SwitcherPopover } from "./RepositorySwitcher";
+import { SyncControls } from "./SyncControls";
 import { formatShortcut } from "./shortcuts";
 import { queryKeys, useRepositories, useRepositoryStatus } from "../services/queries";
 import type { BranchStatus, InProgress, RepositoryEntry } from "../services/types";
@@ -82,6 +84,7 @@ export function Seal() {
       {repository !== undefined && status.data !== undefined && (
         <div className="flex min-w-0 items-center gap-3">
           <BranchPath branch={status.data.branch} />
+          <SyncControls repositoryId={repository.id} branch={status.data.branch} />
           {status.data.inProgress !== "none" && (
             <span className="shrink-0 font-mono text-xs text-warning">{IN_PROGRESS_LABEL[status.data.inProgress]}</span>
           )}
@@ -119,6 +122,17 @@ export function Seal() {
           >
             <RefreshCw aria-hidden className="size-3.5" />
           </IconButton>
+          <Menu
+            label="Repository tools"
+            align="end"
+            className="flex size-6 items-center justify-center rounded-sm text-fg-muted hover:bg-hover hover:text-fg"
+            items={[
+              { id: "remotes", label: "Remotes…", run: () => setSheet("remotes") },
+              { id: "stashes", label: "Stash…", run: () => setSheet("stashes") },
+              { id: "worktrees", label: "Worktrees…", run: () => setSheet("worktrees") },
+            ] satisfies MenuItem[]}
+            trigger={<Ellipsis aria-hidden className="size-3.5" />}
+          />
         </>
       )}
       <IconButton label="Settings" shortcut="Mod+," onClick={() => setSheet("settings")}>

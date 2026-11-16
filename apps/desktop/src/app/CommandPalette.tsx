@@ -116,7 +116,15 @@ export function CommandPalette() {
     list.push(
       { id: "switch", group: "Repositories", title: "Switch repository…", shortcut: "Mod+P", run: () => setSwitcherOpen(true) },
       { id: "repos", group: "Repositories", title: "Manage repositories…", shortcut: "Mod+Shift+O", run: () => setSheet("repositories") },
+      ...(activeRepositoryId === null
+        ? []
+        : [
+            { id: "remotes", group: "Repository", title: "Remotes…", run: () => setSheet("remotes") },
+            { id: "stashes", group: "Repository", title: "Stash…", run: () => setSheet("stashes") },
+            { id: "worktrees", group: "Repository", title: "Worktrees…", run: () => setSheet("worktrees") },
+          ]),
       { id: "settings", group: "Settings", title: "Settings", shortcut: "Mod+,", run: () => setSheet("settings") },
+      { id: "shortcuts", group: "Settings", title: "Keyboard shortcuts", shortcut: "?", run: () => setSheet("shortcuts") },
       { id: "theme-dark", group: "Settings", title: "Theme: dark", run: () => setTheme.mutate("dark") },
       { id: "theme-light", group: "Settings", title: "Theme: light", run: () => setTheme.mutate("light") },
       { id: "theme-system", group: "Settings", title: "Theme: follow the system", run: () => setTheme.mutate("system") },

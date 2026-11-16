@@ -20,9 +20,13 @@ export function invalidateForChange(client: QueryClient, event: RepositoryChange
   if (scopes.has("refs") || scopes.has("head")) {
     void client.invalidateQueries({ queryKey: queryKeys.refs(id) });
     void client.invalidateQueries({ queryKey: queryKeys.logAll(id) });
+    // refs/stash is a ref; worktrees show their branch and HEAD.
+    void client.invalidateQueries({ queryKey: queryKeys.stashes(id) });
+    void client.invalidateQueries({ queryKey: queryKeys.worktrees(id) });
   }
   if (scopes.has("config")) {
     void client.invalidateQueries({ queryKey: queryKeys.refs(id) });
+    void client.invalidateQueries({ queryKey: queryKeys.remotes(id) });
   }
 }
 

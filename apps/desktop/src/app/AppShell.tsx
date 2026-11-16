@@ -8,8 +8,9 @@ import { Sheet } from "./Sheet";
 import { useShortcuts } from "./shortcuts";
 import { RepositoriesView } from "../features/repositories/RepositoriesView";
 import { toIpcError } from "../services/ipc";
+import { networkActions, useOperationEvents } from "../services/network";
 import { useRepositoryWatcher } from "../services/repositoryEvents";
-import { queryKeys, useOpenRepository, useRepositories } from "../services/queries";
+import { queryKeys, useOpenRepository, useRepositories, useRepositoryStatus } from "../services/queries";
 import type { RepositoryEntry } from "../services/types";
 import { usePreferences } from "../stores/preferences";
 import { useUi } from "../stores/ui";
@@ -29,6 +30,7 @@ export function AppShell() {
   useGlobalShortcuts();
   useRestoreLastRepository();
   useRepositoryWatcher(activeRepositoryId);
+  useOperationEvents();
 
   return (
     <div className="flex h-full flex-col bg-bg text-fg">
@@ -58,6 +60,13 @@ function useGlobalShortcuts(): void {
   const setSheet = useUi((state) => state.setSheet);
   const requestSearchFocus = useUi((state) => state.requestSearchFocus);
   const hasRepository: boolean = activeRepositoryId !== null;
+  const status = useRepositoryStatus(activeRepositoryId);
+  const pullMode = usePreferences((state) => state.pullMode);
+  const branch = status.data?.branch;
+  const onTrackedBranch: boolean = branch !== undefined && branch.head !== null && branch.upstream !== null;
+  // Failures to start are recorded in the activity log by startOperation.
+  const network = activeRepositoryId === null ? null : networkActions(activeRepositoryId);
+  const ignore = (): void => {};
 
   const refresh = (): void => {
     void client.invalidateQueries({ queryKey: queryKeys.repositories });
@@ -75,6 +84,15 @@ function useGlobalShortcuts(): void {
     { shortcut: "Mod+-", run: () => setZoom("map"), enabled: hasRepository },
     { shortcut: "Mod+0", run: () => setZoom("thread"), enabled: hasRepository },
     { shortcut: "/", run: requestSearchFocus, enabled: hasRepository },
+    { shortcut: "?", run: () => setSheet("shortcuts") },
+    { shortcut: "Mod+Shift+F", run: () => network?.fetch(null).catch(ignore), enabled: hasRepository, allowInInput: true },
+    { shortcut: "Mod+Shift+L", run: () => network?.pull(pullMode).catch(ignore), enabled: onTrackedBranch, allowInInput: true },
+    {
+      shortcut: "Mod+Shift+P",
+      run: () => network?.push({ setUpstream: false, forceWithLease: false }).catch(ignore),
+      enabled: onTrackedBranch,
+      allowInInput: true,
+    },
   ]);
 }
 

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import { FolderOpen, FolderPlus, Search } from "lucide-react";
+import { Download, FolderOpen, FolderPlus, Search } from "lucide-react";
 import { Button } from "../../components/Button";
 import { ErrorNotice } from "../../components/ErrorNotice";
 import { Mark } from "../../components/Mark";
@@ -17,6 +17,7 @@ import {
 import type { RepositoryEntry } from "../../services/types";
 import { useUi } from "../../stores/ui";
 import { useWorkspace } from "../../stores/workspace";
+import { CloneForm } from "./CloneForm";
 import { RepositoryRow } from "./RepositoryRow";
 import { filterRepositories } from "./filterRepositories";
 
@@ -38,6 +39,7 @@ export function RepositoriesView() {
   const closeRepository = useWorkspace((state) => state.closeRepository);
 
   const [query, setQuery] = useState<string>("");
+  const [cloning, setCloning] = useState<boolean>(false);
   const [actionFailure, setActionFailure] = useState<FailedAction | null>(null);
   const restoreFailure = useUi((state) => state.restoreFailure);
   const setRestoreFailure = useUi((state) => state.setRestoreFailure);
@@ -122,6 +124,9 @@ export function RepositoriesView() {
           <p className="flex-1 text-sm text-fg-muted">
             Repositories RustGit knows about. Removing one here never deletes files.
           </p>
+          <Button onClick={() => setCloning(true)} disabled={cloning}>
+            <Download aria-hidden className="size-3.5" /> Clone…
+          </Button>
           <Button onClick={handleCreate}>
             <FolderPlus aria-hidden className="size-3.5" /> Create…
           </Button>
@@ -129,6 +134,7 @@ export function RepositoriesView() {
             <FolderOpen aria-hidden className="size-3.5" /> Add existing…
           </Button>
         </div>
+        {cloning && <CloneForm onDone={() => setCloning(false)} />}
         {failure !== null && (
           <ErrorNotice
             title={failure.title}
@@ -162,7 +168,7 @@ export function RepositoriesView() {
             <Mark size={40} />
             <p className="mt-2 font-medium">No repositories yet</p>
             <p className="max-w-sm text-fg-muted">
-              Add a folder that already contains a Git repository, or create a new one.
+              Clone a repository, add a folder that already contains one, or create a new one.
             </p>
           </div>
         )}

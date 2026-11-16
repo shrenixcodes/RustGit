@@ -10,7 +10,7 @@ export interface CommitDraft {
 export const EMPTY_DRAFT: CommitDraft = { summary: "", description: "", amend: false };
 
 /** Overlays reached from the seal or the command palette. */
-export type Sheet = "settings" | "repositories" | null;
+export type Sheet = "settings" | "repositories" | "remotes" | "stashes" | "worktrees" | "shortcuts" | null;
 
 /** Transient UI state that is not persisted. */
 interface UiState {

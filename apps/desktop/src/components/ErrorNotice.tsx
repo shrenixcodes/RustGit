@@ -8,7 +8,15 @@ const HINTS: Partial<Record<ErrorKind, string>> = {
   not_a_repository: "The folder no longer contains a Git repository. It may have been moved or deleted.",
   invalid_path: "The folder does not exist or is not accessible.",
   repository_not_found: "This repository is no longer in RustGit's list.",
+  authentication_failed:
+    "Git's credential helper had no accepted credentials for this remote. RustGit never stores secrets: sign in through your Git credential helper (for example Git Credential Manager) or configure an SSH key, then try again.",
+  operation_in_progress: "Another operation holds this repository. Try again when it finishes.",
+  operation_cancelled: "Cancelled. Git left no partial changes.",
 };
+
+export function errorHint(kind: ErrorKind): string | undefined {
+  return HINTS[kind];
+}
 
 interface ErrorNoticeProps {
   title: string;

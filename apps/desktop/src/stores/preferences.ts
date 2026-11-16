@@ -12,6 +12,8 @@ export type Personality = "quiet" | "deep";
 export type MotionPreference = "system" | "reduce";
 /** How far the thread is seen from: every commit, or only branch heads, forks and merges. */
 export type Zoom = "thread" | "map";
+/** How Pull integrates the upstream (the backend's PullMode). */
+export type PullPreference = "ff_only" | "merge" | "rebase";
 
 export interface PanelLimits {
   min: number;
@@ -34,12 +36,14 @@ export interface PreferencesState {
   personality: Personality;
   motion: MotionPreference;
   zoom: Zoom;
+  pullMode: PullPreference;
   activityOpen: boolean;
   sizes: Record<PanelId, number>;
   setPersonality: (personality: Personality) => void;
   togglePersonality: () => void;
   setMotion: (motion: MotionPreference) => void;
   setZoom: (zoom: Zoom) => void;
+  setPullMode: (mode: PullPreference) => void;
   setActivityOpen: (open: boolean) => void;
   setSize: (panel: PanelId, size: number) => void;
   resetSize: (panel: PanelId) => void;
@@ -56,12 +60,14 @@ export const usePreferences = create<PreferencesState>()(
       personality: "quiet",
       motion: "system",
       zoom: "thread",
+      pullMode: "ff_only",
       activityOpen: false,
       sizes: { activity: PANEL_LIMITS.activity.initial },
       setPersonality: (personality: Personality) => set({ personality }),
       togglePersonality: () => set((state) => ({ personality: state.personality === "quiet" ? "deep" : "quiet" })),
       setMotion: (motion: MotionPreference) => set({ motion }),
       setZoom: (zoom: Zoom) => set({ zoom }),
+      setPullMode: (pullMode: PullPreference) => set({ pullMode }),
       setActivityOpen: (activityOpen: boolean) => set({ activityOpen }),
       setSize: (panel: PanelId, size: number) =>
         set((state) => ({ sizes: { ...state.sizes, [panel]: clampSize(panel, size) } })),
@@ -82,6 +88,7 @@ export const usePreferences = create<PreferencesState>()(
         personality: state.personality,
         motion: state.motion,
         zoom: state.zoom,
+        pullMode: state.pullMode,
         activityOpen: state.activityOpen,
         sizes: state.sizes,
       }),
@@ -96,6 +103,7 @@ export const usePreferences = create<PreferencesState>()(
           personality: stored.personality === "deep" ? "deep" : "quiet",
           motion: stored.motion === "reduce" ? "reduce" : "system",
           zoom: stored.zoom === "map" ? "map" : "thread",
+          pullMode: stored.pullMode === "merge" || stored.pullMode === "rebase" ? stored.pullMode : "ff_only",
           activityOpen: stored.activityOpen === true,
           sizes: {
             activity:

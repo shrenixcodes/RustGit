@@ -2,10 +2,40 @@ import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { IconButton } from "../components/Button";
 import { RepositoriesView } from "../features/repositories/RepositoriesView";
+import { RemotesView } from "../features/remotes/RemotesView";
 import { SettingsView } from "../features/settings/SettingsView";
+import { ShortcutsView } from "../features/settings/ShortcutsView";
+import { StashesView } from "../features/stash/StashesView";
+import { WorktreesView } from "../features/worktrees/WorktreesView";
 import { useUi, type Sheet as SheetKind } from "../stores/ui";
 
-/** Settings and the repository list, laid over the thread (native modal dialog: focus trap and Escape). */
+const SHEET_LABEL: Record<Exclude<SheetKind, null>, string> = {
+  settings: "Settings",
+  repositories: "Repositories",
+  remotes: "Remotes",
+  stashes: "Stash",
+  worktrees: "Worktrees",
+  shortcuts: "Keyboard shortcuts",
+};
+
+function SheetContent({ sheet }: { sheet: Exclude<SheetKind, null> }) {
+  switch (sheet) {
+    case "settings":
+      return <SettingsView />;
+    case "repositories":
+      return <RepositoriesView />;
+    case "remotes":
+      return <RemotesView />;
+    case "stashes":
+      return <StashesView />;
+    case "worktrees":
+      return <WorktreesView />;
+    case "shortcuts":
+      return <ShortcutsView />;
+  }
+}
+
+/** Settings, repositories, remotes, stash, worktrees and the shortcut reference, laid over the thread (native modal dialog: focus trap and Escape). */
 export function Sheet() {
   const sheet: SheetKind = useUi((state) => state.sheet);
   const setSheet = useUi((state) => state.setSheet);
@@ -25,7 +55,7 @@ export function Sheet() {
   return (
     <dialog
       ref={dialog}
-      aria-label={sheet === "settings" ? "Settings" : "Repositories"}
+      aria-label={SHEET_LABEL[sheet]}
       onCancel={(event) => {
         event.preventDefault();
         setSheet(null);
@@ -37,7 +67,7 @@ export function Sheet() {
           <X aria-hidden className="size-4" />
         </IconButton>
       </div>
-      {sheet === "settings" ? <SettingsView /> : <RepositoriesView />}
+      <SheetContent sheet={sheet} />
     </dialog>
   );
 }

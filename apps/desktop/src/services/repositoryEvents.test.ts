@@ -22,6 +22,8 @@ describe("invalidateForChange", () => {
     expect(invalidatedKeys(["refs"])).toEqual([
       ["repositories", 4, "refs"],
       ["repositories", 4, "log"],
+      ["repositories", 4, "stashes"],
+      ["repositories", 4, "worktrees"],
     ]);
   });
 
@@ -33,6 +35,15 @@ describe("invalidateForChange", () => {
       ["repositories", 4, "commit-context"],
       ["repositories", 4, "refs"],
       ["repositories", 4, "log"],
+      ["repositories", 4, "stashes"],
+      ["repositories", 4, "worktrees"],
+    ]);
+  });
+
+  it("refreshes refs and remotes for config changes", () => {
+    expect(invalidatedKeys(["config"])).toEqual([
+      ["repositories", 4, "refs"],
+      ["repositories", 4, "remotes"],
     ]);
   });
 });

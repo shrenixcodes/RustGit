@@ -76,6 +76,9 @@ export const queryKeys = {
     ["repositories", repositoryId, "diff", path, side, ignoreWhitespace] as const,
   totals: (repositoryId: number) => ["repositories", repositoryId, "totals"] as const,
   commitContext: (repositoryId: number) => ["repositories", repositoryId, "commit-context"] as const,
+  remotes: (repositoryId: number) => ["repositories", repositoryId, "remotes"] as const,
+  stashes: (repositoryId: number) => ["repositories", repositoryId, "stashes"] as const,
+  worktrees: (repositoryId: number) => ["repositories", repositoryId, "worktrees"] as const,
 };
 
 /** Context lines for staging diffs; `apply_hunk` must receive the same value. */
@@ -439,6 +442,7 @@ export type BranchRequest =
   | { kind: "create"; name: string; startPoint: string | null; checkout: boolean }
   | { kind: "rename"; from: string; to: string }
   | { kind: "delete"; name: string; force: boolean }
+  | { kind: "set_upstream"; name: string; upstream: string | null }
   | { kind: "merge"; source: string }
   | { kind: "rebase"; onto: string }
   | { kind: "cherry_pick"; oid: string }
@@ -456,6 +460,8 @@ export function describeBranchRequest(request: BranchRequest): string {
       return `Rename ${request.from} to ${request.to}`;
     case "delete":
       return `${request.force ? "Force delete" : "Delete"} branch ${request.name}`;
+    case "set_upstream":
+      return request.upstream === null ? `Stop tracking for ${request.name}` : `Track ${request.upstream} from ${request.name}`;
     case "merge":
       return `Merge ${request.source}`;
     case "rebase":
@@ -495,6 +501,8 @@ export function useBranchOperation(repositoryId: number): UseMutationResult<Bran
           return { kind: "refs", refs: await ipc.renameBranch(repositoryId, request.from, request.to) };
         case "delete":
           return { kind: "refs", refs: await ipc.deleteBranch(repositoryId, request.name, request.force) };
+        case "set_upstream":
+          return { kind: "refs", refs: await ipc.setUpstream(repositoryId, request.name, request.upstream) };
         case "merge":
           return { kind: "integration", result: await ipc.mergeBranch(repositoryId, request.source, "default") };
         case "rebase":

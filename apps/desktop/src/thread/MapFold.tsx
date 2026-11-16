@@ -3,8 +3,10 @@ import { Button } from "../components/Button";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { ErrorNotice } from "../components/ErrorNotice";
 import type { IpcError } from "../services/ipc";
-import { useBranchOperation, type BranchOutcome, type BranchRequest } from "../services/queries";
-import type { RefEntry } from "../services/types";
+import { networkActions } from "../services/network";
+import { useBranchOperation, useRefs, type BranchOutcome, type BranchRequest } from "../services/queries";
+import { useRemotes } from "../services/repositoryQueries";
+import type { RefEntry, Remote } from "../services/types";
 import { describeRef, upstreamState } from "../features/history/RefBadges";
 import { formatRelative } from "../features/history/time";
 import { OutcomeNotice } from "./OutcomeNotice";
@@ -19,8 +21,18 @@ interface MapFoldProps {
   height: number;
 }
 
+/** "origin/feature/x" → remote "origin", branch "feature/x" (remote names may contain "/"; the longest match wins). */
+export function splitRemoteRef(shortName: string, remotes: readonly Remote[]): { remote: string; branch: string } | null {
+  const match: Remote | undefined = [...remotes]
+    .sort((a, b) => b.name.length - a.name.length)
+    .find((remote) => shortName.startsWith(`${remote.name}/`));
+  if (match === undefined) return null;
+  const branch: string = shortName.slice(match.name.length + 1);
+  return branch === "" || branch === "HEAD" ? null : { remote: match.name, branch };
+}
+
 interface Pending {
-  request: BranchRequest;
+  request: BranchRequest | { kind: "delete_remote"; remote: string; branch: string };
   title: string;
   body: string;
   label: string;
@@ -40,6 +52,22 @@ export function MapFold({ repositoryId, oid, refs, currentBranch, dirty, height 
   const [newName, setNewName] = useState<string>("");
   const [creating, setCreating] = useState<boolean>(false);
   const [lastRequest, setLastRequest] = useState<BranchRequest | null>(null);
+  const [tracking, setTracking] = useState<string | null>(null);
+  const [trackTarget, setTrackTarget] = useState<string>("");
+  const remotesQuery = useRemotes(repositoryId);
+  const remoteList: Remote[] = remotesQuery.data ?? [];
+  const allRefs = useRefs(repositoryId);
+  const remoteRefNames: string[] = (allRefs.data?.refs ?? [])
+    .filter((entry) => entry.kind === "remote" && !entry.shortName.endsWith("/HEAD"))
+    .map((entry) => entry.shortName);
+  const network = networkActions(repositoryId);
+  const ignore = (): void => {};
+  const confirmPending = (request: Pending["request"]): void => {
+    if (request.kind === "delete_remote") {
+      setPending(null);
+      network.deleteRemoteBranch(request.remote, request.branch).catch(ignore);
+    } else run(request);
+  };
 
   const run = (request: BranchRequest): void => {
     setOutcome(null);
@@ -127,6 +155,34 @@ export function MapFold({ repositoryId, oid, refs, currentBranch, dirty, height 
                   </Button>
                 </>
               )}
+              {ref.upstream !== null && !ref.upstreamGone && (
+                <Button
+                  variant="ghost"
+                  onClick={() => network.push({ branch: ref.shortName, setUpstream: false, forceWithLease: false }).catch(ignore)}
+                >
+                  Push to {ref.upstream}
+                </Button>
+              )}
+              {ref.upstream === null &&
+                remoteList.slice(0, 3).map((remote: Remote) => (
+                  <Button
+                    key={remote.name}
+                    variant="ghost"
+                    onClick={() => network.push({ remote: remote.name, branch: ref.shortName, setUpstream: true, forceWithLease: false }).catch(ignore)}
+                  >
+                    Publish to {remote.name}
+                  </Button>
+                ))}
+              <Button
+                variant="ghost"
+                disabled={operation.isPending}
+                onClick={() => {
+                  setTracking(ref.shortName);
+                  setTrackTarget(ref.upstream ?? remoteRefNames.find((name) => name.endsWith(`/${ref.shortName}`)) ?? remoteRefNames[0] ?? "");
+                }}
+              >
+                {ref.upstream === null ? "Track…" : "Change tracking…"}
+              </Button>
               <Button variant="ghost" disabled={operation.isPending} onClick={() => { setRenaming(ref.shortName); setCreating(false); setNewName(ref.shortName); }}>
                 Rename…
               </Button>
@@ -173,12 +229,65 @@ export function MapFold({ repositoryId, oid, refs, currentBranch, dirty, height 
                 Merge into {currentBranch}
               </Button>
             )}
+            {splitRemoteRef(ref.shortName, remoteList) !== null && (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  const target = splitRemoteRef(ref.shortName, remoteList);
+                  if (target === null) return;
+                  setPending({
+                    request: { kind: "delete_remote", ...target },
+                    title: `Delete ${target.branch} on ${target.remote}?`,
+                    body: `Deletes the branch on the remote for everyone who uses ${target.remote}. Its commits stay wherever else they are; anyone who has not fetched them yet loses access through this branch.`,
+                    label: "Delete on remote",
+                    destructive: true,
+                  });
+                }}
+              >
+                Delete on remote…
+              </Button>
+            )}
           </BranchLine>
         ))}
 
         {tags.map((ref) => (
           <BranchLine key={ref.fullName} entry={ref} current={false} />
         ))}
+
+        {tracking !== null && (
+          <form
+            aria-label={`Tracking for ${tracking}`}
+            onSubmit={(event) => {
+              event.preventDefault();
+              run({ kind: "set_upstream", name: tracking, upstream: trackTarget === "" ? null : trackTarget });
+              setTracking(null);
+            }}
+            className="flex flex-wrap items-center gap-2"
+          >
+            <label className="flex items-center gap-2 font-mono text-xs">
+              <span className="text-fg-muted">{tracking} tracks</span>
+              <select
+                autoFocus
+                value={trackTarget}
+                onChange={(event) => setTrackTarget(event.target.value)}
+                className="h-7 rounded-sm border border-border bg-elevated px-1 font-mono text-xs text-fg"
+              >
+                <option value="">nothing (stop tracking)</option>
+                {remoteRefNames.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Button type="submit" variant="primary" disabled={operation.isPending}>
+              Set tracking
+            </Button>
+            <Button variant="ghost" onClick={() => setTracking(null)}>
+              Cancel
+            </Button>
+          </form>
+        )}
 
         <div className="flex flex-wrap items-center gap-2">
           {!creating && renaming === null && (
@@ -240,7 +349,7 @@ export function MapFold({ repositoryId, oid, refs, currentBranch, dirty, height 
           destructive={pending.destructive}
           busy={operation.isPending}
           onCancel={() => setPending(null)}
-          onConfirm={() => run(pending.request)}
+          onConfirm={() => confirmPending(pending.request)}
         >
           <p>{pending.body}</p>
         </ConfirmDialog>

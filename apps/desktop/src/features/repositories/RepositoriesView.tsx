@@ -8,6 +8,7 @@ import { PageHeader } from "../../components/PageHeader";
 import { toIpcError, type IpcError } from "../../services/ipc";
 import {
   useAddRepository,
+  useGitInfo,
   useOpenRepository,
   useRemoveRepository,
   useRepositories,
@@ -29,6 +30,7 @@ interface FailedAction {
 
 export function RepositoriesView() {
   const repositories = useRepositories();
+  const gitInfo = useGitInfo();
   const addRepository = useAddRepository();
   const openRepository = useOpenRepository();
   const removeRepository = useRemoveRepository();
@@ -125,6 +127,18 @@ export function RepositoriesView() {
             <FolderOpen aria-hidden className="size-3.5" /> Add existing…
           </Button>
         </div>
+        {gitInfo.isError && gitInfo.error.kind === "git_not_found" && (
+          <ErrorNotice
+            title="Git is not installed"
+            error={gitInfo.error}
+            actions={
+              <p className="text-sm text-fg-muted">
+                RustGit uses the Git already on your computer and does not bundle its own. Install Git for Windows (git-scm.com),
+                then restart RustGit.
+              </p>
+            }
+          />
+        )}
         {cloning && <CloneForm onDone={() => setCloning(false)} />}
         {creating && <NewRepositoryForm onDone={() => setCreating(false)} />}
         {failure !== null && (

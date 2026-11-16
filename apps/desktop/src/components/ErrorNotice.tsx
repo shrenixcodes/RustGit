@@ -9,7 +9,7 @@ const HINTS: Partial<Record<ErrorKind, string>> = {
   invalid_path: "The folder does not exist or is not accessible.",
   repository_not_found: "This repository is no longer in RustGit's list.",
   authentication_failed:
-    "Git's credential helper had no accepted credentials for this remote. RustGit never stores secrets: sign in through your Git credential helper (for example Git Credential Manager) or configure an SSH key, then try again.",
+    "Git's credential helper had no accepted credentials for this remote. RustGit has no GitHub sign-in and never stores secrets. For HTTPS, Git Credential Manager opens its own sign-in window on the first push or fetch; complete it, then try again. For SSH, load your key into ssh-agent first; RustGit cannot ask for a key passphrase.",
   operation_in_progress: "Another operation holds this repository. Try again when it finishes.",
   operation_cancelled: "Cancelled. Git left no partial changes.",
 };

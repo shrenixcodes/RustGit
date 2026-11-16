@@ -3,6 +3,7 @@
 pub mod askpass;
 pub mod database;
 pub mod error;
+pub mod github;
 pub mod locks;
 pub mod operations;
 pub mod watcher;

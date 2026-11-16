@@ -17,9 +17,11 @@ serde.workspace = true
 thiserror.workspace = true
 tokio = { version = "1.54.1", features = ["sync"] }
 tracing.workspace = true
+serde_json.workspace = true
+ureq = "3"
+keyring = { version = "3", features = ["windows-native", "apple-native"] }
 
 [dev-dependencies]
-serde_json.workspace = true
 tempfile.workspace = true
 tokio = { version = "1.54.1", features = ["sync", "macros", "rt", "time"] }
 

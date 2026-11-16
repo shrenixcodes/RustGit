@@ -319,6 +319,19 @@ try {
   writeFileSync(join(repoDir, "tracked.txt"), `main side${LF}`);
   await ok("stage_paths", { id, paths: ["tracked.txt"] });
   await ok("create_commit", { id, message: "main change", amend: false });
+  const comparison = await ok("compare_revisions", { id, base: "main", head: "smoke-topic", mergeBase: true });
+  if (comparison.ahead !== 1 || comparison.behind !== 1 || comparison.mergeBase === null
+    || comparison.files.length !== 1 || comparison.files[0].path !== "tracked.txt") {
+    throw new Error(`unexpected comparison ${JSON.stringify(comparison)}`);
+  }
+  const compareDiff = await ok("compare_file_diff", {
+    id, base: "main", head: "smoke-topic", mergeBase: true, path: "tracked.txt", originalPath: null, contextLines: null,
+  });
+  if (compareDiff.side !== "commit" || compareDiff.added !== 1) {
+    throw new Error(`unexpected compare diff ${JSON.stringify(compareDiff)}`);
+  }
+  await failsWith("invalid_request", "compare_revisions", { id, base: "main", head: "no-such-branch", mergeBase: true });
+  step("compare_revisions and compare_file_diff");
   const merge = await ok("merge_branch", { id, source: "smoke-topic", strategy: "default" });
   if (merge.outcome !== "conflicts" || merge.status.inProgress !== "merging") {
     throw new Error(`expected conflicts: ${JSON.stringify(merge)}`);

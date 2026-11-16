@@ -15,14 +15,14 @@ a real repository (or by component tests where noted); **Partial**;
 | 7  | Commit staged changes            | Pass              | Native QA: from the loose end row, git log checked          |
 | 8  | Amend a commit                   | Pass              | Native QA: message prefilled, parent unchanged              |
 | 9  | Create and switch branches       | Pass              | Native QA on the map; refused switch names blocking file    |
-| 10 | Compare branches                 | Blocked (R-16)    | Needs a range comparison from the backend                   |
+| 10 | Compare branches                 | Pass              | `compare_revisions` (R-16); native smoke test, `CompareView.test.tsx` |
 | 11 | Browse commit graph              | Pass              | Native QA 2026-11-16, incl. 4 636-commit repository (U-9)   |
 | 12 | Search commits                   | Pass              | Native QA: message search; author and id search in tests    |
-| 13 | Fetch                            | Blocked (R-13)    |                                                             |
-| 14 | Pull                             | Blocked (R-13)    |                                                             |
-| 15 | Push                             | Blocked (R-13)    |                                                             |
-| 16 | Stash                            | Blocked           | Defined in contract C-2, not implemented yet                |
-| 17 | Restore stash                    | Blocked           | Defined in contract C-2, not implemented yet                |
+| 13 | Fetch                            | Pass              | Seal sync controls, `Mod+Shift+F`; native smoke test (fetch) |
+| 14 | Pull                             | Pass (tests)      | Seal sync controls with mode menu, `Mod+Shift+L`             |
+| 15 | Push                             | Pass              | Seal and map, publish with upstream; native smoke test (push) |
+| 16 | Stash                            | Pass              | Stash sheet; native smoke test (create/list/pop)            |
+| 17 | Restore stash                    | Pass              | Apply / pop / drop in the stash sheet; conflicts reported   |
 | 18 | Resolve merge conflict           | Pass              | Native QA: real merge and rebase conflicts, CLI checked     |
 | 19 | Inspect operation history        | Pass              | Activity panel: operations and Git commands (command_history) |
 | 20 | Use command palette              | Pass              | Native QA: palette → map → switch                           |

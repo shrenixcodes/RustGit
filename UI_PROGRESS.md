@@ -214,3 +214,24 @@ to a two-parent merge commit, abort of a merge and of a rebase); thread QA
 16/16 and the native smoke test still pass. One defect found and fixed: the
 resolver was keyed on query update time, so refetches and watcher events
 discarded the user's choices.
+
+### U-13 Network, remotes, stash, worktrees and compare (2026-11-16)
+
+- Seal sync controls: fetch, pull (mode menu: fast-forward only, merge,
+  rebase), push and publish, with Git's own progress and cancel; global
+  `Mod+Shift+F` / `Mod+Shift+L` / `Mod+Shift+P`. Clone from the
+  repositories sheet.
+- Sheets (seal "Repository tools" menu and command palette): Remotes
+  (add, change URLs, remove, fetch one), Stash (create with or without
+  untracked files, inspect files, apply, pop, drop with confirmation),
+  Worktrees (add on a new/existing branch or commit, open as repository,
+  remove with optional force, prune), Compare, and the `?` shortcut
+  reference (kept in sync with AppShell by `shortcutReference.test.ts`).
+- Compare (R-16, backend added here): commits on each side, changed files
+  since the merge base or tree to tree, per-file diffs. Reached from the
+  map ("Compare with <current>"), a commit fold ("Compare with HEAD"), the
+  palette and the seal.
+- Watcher events now also refresh stashes, worktrees and remotes.
+
+Verification: 206 Vitest tests; Rust workspace tests, clippy `-D warnings`
+and rustfmt clean; native smoke test passes with the new compare checks.

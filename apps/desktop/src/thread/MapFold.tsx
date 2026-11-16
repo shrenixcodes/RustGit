@@ -10,6 +10,7 @@ import type { RefEntry, Remote } from "../services/types";
 import { describeRef, upstreamState } from "../features/history/RefBadges";
 import { formatRelative } from "../features/history/time";
 import { OutcomeNotice } from "./OutcomeNotice";
+import { useUi } from "../stores/ui";
 
 interface MapFoldProps {
   repositoryId: number;
@@ -61,6 +62,7 @@ export function MapFold({ repositoryId, oid, refs, currentBranch, dirty, height 
     .filter((entry) => entry.kind === "remote" && !entry.shortName.endsWith("/HEAD"))
     .map((entry) => entry.shortName);
   const network = networkActions(repositoryId);
+  const openCompare = useUi((state) => state.openCompare);
   const ignore = (): void => {};
   const confirmPending = (request: Pending["request"]): void => {
     if (request.kind === "delete_remote") {
@@ -153,6 +155,9 @@ export function MapFold({ repositoryId, oid, refs, currentBranch, dirty, height 
                   >
                     Rebase {currentBranch} onto it
                   </Button>
+                  <Button variant="ghost" onClick={() => openCompare(currentBranch, ref.shortName)}>
+                    Compare with {currentBranch}
+                  </Button>
                 </>
               )}
               {ref.upstream !== null && !ref.upstreamGone && (
@@ -229,6 +234,9 @@ export function MapFold({ repositoryId, oid, refs, currentBranch, dirty, height 
                 Merge into {currentBranch}
               </Button>
             )}
+            <Button variant="ghost" onClick={() => openCompare(currentBranch ?? "HEAD", ref.shortName)}>
+              Compare with {currentBranch ?? "HEAD"}
+            </Button>
             {splitRemoteRef(ref.shortName, remoteList) !== null && (
               <Button
                 variant="ghost"

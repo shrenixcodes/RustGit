@@ -338,7 +338,7 @@ fn tree_diff(
     Ok(output.stdout)
 }
 
-fn parse_name_status(raw: &[u8]) -> GitResult<Vec<CommitFile>> {
+pub(crate) fn parse_name_status(raw: &[u8]) -> GitResult<Vec<CommitFile>> {
     let mut fields = raw
         .split(|byte: &u8| *byte == 0)
         .map(|field: &[u8]| String::from_utf8_lossy(field).into_owned());

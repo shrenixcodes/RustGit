@@ -4,6 +4,7 @@
 //! and parse machine-readable (`--porcelain`, `-z`) output.
 
 pub mod commit;
+pub mod compare;
 pub mod diff;
 pub mod error;
 pub mod executor;
@@ -23,6 +24,7 @@ pub mod worktree;
 pub use commit::{
     CommitContext, CreatedCommit, HeadCommit, SigningMode, commit_context, create_commit,
 };
+pub use compare::{Comparison, compare_file_diff, compare_revisions};
 pub use diff::{
     ChangeTotals, DEFAULT_CONTEXT_LINES, DiffFileStatus, DiffHunk, DiffLine, DiffLineKind,
     DiffRequest, DiffSide, FileDiff, FileTotals, change_totals, file_diff,

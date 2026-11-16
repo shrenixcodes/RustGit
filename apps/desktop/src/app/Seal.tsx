@@ -127,6 +127,7 @@ export function Seal() {
             align="end"
             className="flex size-6 items-center justify-center rounded-sm text-fg-muted hover:bg-hover hover:text-fg"
             items={[
+              { id: "compare", label: "Compare branches…", run: () => setSheet("compare") },
               { id: "remotes", label: "Remotes…", run: () => setSheet("remotes") },
               { id: "stashes", label: "Stash…", run: () => setSheet("stashes") },
               { id: "worktrees", label: "Worktrees…", run: () => setSheet("worktrees") },

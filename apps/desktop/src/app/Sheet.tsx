@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { IconButton } from "../components/Button";
 import { RepositoriesView } from "../features/repositories/RepositoriesView";
+import { CompareView } from "../features/compare/CompareView";
 import { RemotesView } from "../features/remotes/RemotesView";
 import { SettingsView } from "../features/settings/SettingsView";
 import { ShortcutsView } from "../features/settings/ShortcutsView";
@@ -16,6 +17,7 @@ const SHEET_LABEL: Record<Exclude<SheetKind, null>, string> = {
   stashes: "Stash",
   worktrees: "Worktrees",
   shortcuts: "Keyboard shortcuts",
+  compare: "Compare",
 };
 
 function SheetContent({ sheet }: { sheet: Exclude<SheetKind, null> }) {
@@ -32,6 +34,8 @@ function SheetContent({ sheet }: { sheet: Exclude<SheetKind, null> }) {
       return <WorktreesView />;
     case "shortcuts":
       return <ShortcutsView />;
+    case "compare":
+      return <CompareView />;
   }
 }
 

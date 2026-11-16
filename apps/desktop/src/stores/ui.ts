@@ -10,7 +10,7 @@ export interface CommitDraft {
 export const EMPTY_DRAFT: CommitDraft = { summary: "", description: "", amend: false };
 
 /** Overlays reached from the seal or the command palette. */
-export type Sheet = "settings" | "repositories" | "remotes" | "stashes" | "worktrees" | "shortcuts" | null;
+export type Sheet = "settings" | "repositories" | "remotes" | "stashes" | "worktrees" | "shortcuts" | "compare" | null;
 
 /** Transient UI state that is not persisted. */
 interface UiState {
@@ -25,6 +25,11 @@ interface UiState {
   restoreFailure: { repositoryId: number; error: IpcError } | null;
   /** Unsent commit messages per repository, kept while the app runs. */
   commitDrafts: Record<number, CommitDraft>;
+  /** Revisions shown in the compare sheet. */
+  compare: { base: string; head: string } | null;
+  setCompare: (compare: { base: string; head: string } | null) => void;
+  /** Opens the compare sheet on two revisions. */
+  openCompare: (base: string, head: string) => void;
   setSwitcherOpen: (open: boolean) => void;
   setPaletteOpen: (open: boolean) => void;
   setSheet: (sheet: Sheet) => void;
@@ -44,6 +49,9 @@ export const useUi = create<UiState>()((set) => ({
   searchFocusRequest: 0,
   restoreFailure: null,
   commitDrafts: {},
+  compare: null,
+  setCompare: (compare) => set({ compare }),
+  openCompare: (base: string, head: string) => set({ compare: { base, head }, sheet: "compare" }),
   setSwitcherOpen: (switcherOpen: boolean) => set({ switcherOpen }),
   setPaletteOpen: (paletteOpen: boolean) => set({ paletteOpen }),
   setSheet: (sheet: Sheet) => set({ sheet }),

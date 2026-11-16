@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
+  Comparison,
   ChangeTotals,
   CheckoutMode,
   CommitDetails,
@@ -148,6 +149,17 @@ export const ipc = {
     originalPath?: string | null;
     contextLines?: number | null;
   }): Promise<FileDiff> => call("commit_file_diff", { originalPath: null, contextLines: null, ...args }),
+  compareRevisions: (id: number, base: string, head: string, mergeBase: boolean): Promise<Comparison> =>
+    call("compare_revisions", { id, base, head, mergeBase }),
+  compareFileDiff: (args: {
+    id: number;
+    base: string;
+    head: string;
+    mergeBase: boolean;
+    path: string;
+    originalPath?: string | null;
+    contextLines?: number | null;
+  }): Promise<FileDiff> => call("compare_file_diff", { originalPath: null, contextLines: null, ...args }),
 
   // References and branches (contract C-2).
   listRefs: (id: number): Promise<RefList> => call("list_refs", { id }),

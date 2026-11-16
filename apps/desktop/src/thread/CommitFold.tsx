@@ -1,8 +1,10 @@
 import { useState, type ReactNode } from "react";
 import { Check, ChevronDown, ChevronRight, Copy } from "lucide-react";
+import type { UseQueryResult } from "@tanstack/react-query";
 import { Button } from "../components/Button";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { ErrorNotice } from "../components/ErrorNotice";
+import type { IpcError } from "../services/ipc";
 import { useBranchOperation, useCommitDetails, useCommitFileDiff, type BranchOutcome, type BranchRequest } from "../services/queries";
 import type { CommitFile, FileDiff, HeadState, RefEntry } from "../services/types";
 import { CHANGE_LABELS, splitPath } from "../features/changes/changeLabels";
@@ -11,6 +13,7 @@ import { RefBadges } from "../features/history/RefBadges";
 import { formatAbsolute, formatRelative } from "../features/history/time";
 import { DIFF_ROW, HunkHeader, UnifiedLine } from "./diffParts";
 import { OutcomeNotice } from "./OutcomeNotice";
+import { useUi } from "../stores/ui";
 
 /** Lines shown inline for one file before the diff is cut (the full diff stays one click away in Git). */
 const INLINE_LINE_LIMIT = 1500;
@@ -113,6 +116,9 @@ export function CommitFold({ repositoryId, oid, refs, head, currentBranch, heigh
                 >
                   Revert…
                 </Button>
+                <Button variant="ghost" onClick={() => useUi.getState().openCompare(oid, "HEAD")}>
+                  Compare with HEAD
+                </Button>
               </div>
             )}
             {operation.error !== null && <ErrorNotice title="Git did not complete the operation" error={operation.error} />}
@@ -128,11 +134,10 @@ export function CommitFold({ repositoryId, oid, refs, head, currentBranch, heigh
               {details.data.files.map((file) => (
                 <FileEntry
                   key={file.path}
-                  repositoryId={repositoryId}
-                  oid={oid}
                   file={file}
                   open={openFile?.path === file.path}
                   onToggle={() => setOpenFile(openFile?.path === file.path ? null : file)}
+                  diff={() => <InlineDiff repositoryId={repositoryId} oid={oid} file={file} />}
                 />
               ))}
             </ul>
@@ -154,18 +159,17 @@ export function CommitFold({ repositoryId, oid, refs, head, currentBranch, heigh
   );
 }
 
-function FileEntry({
-  repositoryId,
-  oid,
+/** A changed file of a commit or comparison; unfolds its diff (rendered by `diff`). */
+export function FileEntry({
   file,
   open,
   onToggle,
+  diff,
 }: {
-  repositoryId: number;
-  oid: string;
   file: CommitFile;
   open: boolean;
   onToggle: () => void;
+  diff: () => ReactNode;
 }) {
   const meta = CHANGE_LABELS[file.kind];
   const { name, directory } = splitPath(file.path);
@@ -199,13 +203,17 @@ function FileEntry({
           )}
         </span>
       </button>
-      {open && <InlineDiff repositoryId={repositoryId} oid={oid} file={file} />}
+      {open && diff()}
     </li>
   );
 }
 
 function InlineDiff({ repositoryId, oid, file }: { repositoryId: number; oid: string; file: CommitFile }) {
-  const diff = useCommitFileDiff(repositoryId, oid, file.path, file.originalPath);
+  return <ReadOnlyDiff diff={useCommitFileDiff(repositoryId, oid, file.path, file.originalPath)} />;
+}
+
+/** A read-only unified diff, capped at INLINE_LINE_LIMIT lines. */
+export function ReadOnlyDiff({ diff }: { diff: UseQueryResult<FileDiff, IpcError> }) {
   if (diff.isPending) return <p className="py-1 pl-5 text-xs text-fg-muted">Reading the diff…</p>;
   if (diff.isError) return <ErrorNotice title="Could not read the diff" error={diff.error} />;
   const data: FileDiff = diff.data;

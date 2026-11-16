@@ -129,6 +129,13 @@ Same revision validation as `log_page` (no leading `-`).
 UI depending on it: History "Compare with selected", Branches "Compare".
 Priority: P1 (spec acceptance workflow 10).
 
+**Implemented (2026-11-16):** `compare_revisions` and `compare_file_diff`
+with the requested shapes (`files` entries are `CommitFile`). Unknown
+revisions return `invalid_request` naming the side (`head revision 'x'
+does not name a commit`). Unrelated histories with `mergeBase: true`
+return `mergeBase: null` and compare from the empty tree. Engine tests in
+`crates/git-engine/tests/compare.rs`; checked in the native smoke test.
+
 ## UI session update (2026-11-16): the thread
 
 - The UI no longer has pages: the repository is one canvas (see

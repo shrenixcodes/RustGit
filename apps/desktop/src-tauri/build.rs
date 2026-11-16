@@ -25,6 +25,8 @@ const COMMANDS: &[&str] = &[
     "log_page",
     "commit_details",
     "commit_file_diff",
+    "compare_revisions",
+    "compare_file_diff",
     "list_refs",
     "create_branch",
     "checkout_branch",

@@ -33,6 +33,8 @@
     "allow-log-page",
     "allow-commit-details",
     "allow-commit-file-diff",
+    "allow-compare-revisions",
+    "allow-compare-file-diff",
     "allow-list-refs",
     "allow-create-branch",
     "allow-checkout-branch",

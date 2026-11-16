@@ -119,6 +119,7 @@ export function CommandPalette() {
       ...(activeRepositoryId === null
         ? []
         : [
+            { id: "compare", group: "Repository", title: "Compare branches…", run: () => setSheet("compare") },
             { id: "remotes", group: "Repository", title: "Remotes…", run: () => setSheet("remotes") },
             { id: "stashes", group: "Repository", title: "Stash…", run: () => setSheet("stashes") },
             { id: "worktrees", group: "Repository", title: "Worktrees…", run: () => setSheet("worktrees") },

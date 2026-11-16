@@ -234,6 +234,18 @@ export interface CommitDetails {
   files: CommitFile[];
 }
 
+/** Result of `compare_revisions` (request R-16). */
+export interface Comparison {
+  base: string;
+  head: string;
+  /** Set for a three-dot comparison: the files are compared from here. */
+  mergeBase: string | null;
+  /** Commits in head and not in base, and the reverse. */
+  ahead: number;
+  behind: number;
+  files: CommitFile[];
+}
+
 // --- References and branches (contract C-2) ---------------------------------
 
 export type HeadState =

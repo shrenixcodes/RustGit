@@ -1,5 +1,6 @@
 //! RustGit application services that do not depend on the desktop shell.
 
+pub mod askpass;
 pub mod database;
 pub mod error;
 pub mod locks;

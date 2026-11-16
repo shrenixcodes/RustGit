@@ -88,15 +88,25 @@ pub struct GitExecutor {
     git_path: PathBuf,
     history: Arc<Mutex<VecDeque<CommandRecord>>>,
     sequence: Arc<AtomicU64>,
+    /// Extra environment for every Git process (the credential prompt helper).
+    extra_env: Arc<Vec<(OsString, OsString)>>,
 }
 
 impl GitExecutor {
+    /// Returns a copy that also sets `variables` on every Git process it starts.
+    #[must_use]
+    pub fn with_env(mut self, variables: Vec<(OsString, OsString)>) -> Self {
+        self.extra_env = Arc::new(variables);
+        self
+    }
+
     /// Creates an executor for the given Git binary (`git` resolves through `PATH`).
     pub fn new(git_path: impl Into<PathBuf>) -> Self {
         Self {
             git_path: git_path.into(),
             history: Arc::new(Mutex::new(VecDeque::with_capacity(HISTORY_CAPACITY))),
             sequence: Arc::new(AtomicU64::new(0)),
+            extra_env: Arc::new(Vec::new()),
         }
     }
 
@@ -248,6 +258,7 @@ impl GitExecutor {
             })
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
+        command.envs(self.extra_env.iter().map(|(k, v)| (k, v)));
         hide_console_window(&mut command);
         if own_group {
             new_process_group(&mut command);

@@ -10,6 +10,7 @@ publish = false
 
 [dependencies]
 rustgit-git-engine = { path = "../git-engine" }
+getrandom = "0.3.4"
 notify = "8.2.2"
 rusqlite = { version = "0.43.0", features = ["bundled"] }
 serde.workspace = true

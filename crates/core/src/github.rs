@@ -43,6 +43,8 @@ pub enum GithubError {
 /// What the person must do to finish signing in.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct DeviceCode {
+    /// Secret handed to GitHub when polling; never sent to the webview.
+    #[serde(skip_serializing)]
     pub device_code: String,
     pub user_code: String,
     pub verification_uri: String,

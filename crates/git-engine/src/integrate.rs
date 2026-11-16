@@ -152,8 +152,27 @@ pub fn cherry_pick(
         validate_revision(oid)?;
     }
     ensure_idle(git, root)?;
+    let mut merge_commits: usize = 0;
+    for oid in oids {
+        let parents: String = git.run_text(
+            root,
+            ["log", "-1", "--format=%P", "--end-of-options", oid, "--"],
+        )?;
+        if parents.split_whitespace().count() > 1 {
+            merge_commits += 1;
+        }
+    }
+    if merge_commits > 0 && oids.len() > 1 {
+        return Err(GitError::InvalidRequest(
+            "merge commits can only be cherry-picked on their own".to_owned(),
+        ));
+    }
     let mut args: Vec<String> = owned(&NO_EDITOR);
     args.push("cherry-pick".to_owned());
+    if merge_commits > 0 {
+        // Replay the changes the merge brought in relative to its first parent.
+        args.extend(owned(&["-m", "1"]));
+    }
     args.extend(oids.iter().cloned());
     run_integration(git, root, args)
 }
@@ -173,6 +192,25 @@ pub fn revert_commit(git: &GitExecutor, root: &Path, oid: &str) -> GitResult<Int
     }
     args.push(oid.to_owned());
     run_integration(git, root, args)
+}
+
+/// Refuses to write through a symlink at the target or any parent below `root`.
+fn ensure_no_symlink(root: &Path, target: &Path) -> GitResult<()> {
+    let mut current = target;
+    while current != root {
+        if let Ok(meta) = std::fs::symlink_metadata(current)
+            && meta.file_type().is_symlink()
+        {
+            return Err(GitError::InvalidRequest(
+                "refusing to write through a symbolic link".to_owned(),
+            ));
+        }
+        match current.parent() {
+            Some(parent) => current = parent,
+            None => break,
+        }
+    }
+    Ok(())
 }
 
 /// Continues the in-progress merge, rebase, cherry-pick or revert.
@@ -339,8 +377,21 @@ pub fn resolve_conflict(
     take: Option<ConflictSide>,
 ) -> GitResult<StatusSnapshot> {
     validate_relative_path(path)?;
+    let unmerged: String = git.run_text(
+        root,
+        ["--literal-pathspecs", "ls-files", "--unmerged", "--", path],
+    )?;
+    if unmerged.trim().is_empty() {
+        return Err(GitError::InvalidRequest(format!(
+            "'{path}' has no conflict to resolve"
+        )));
+    }
     match (content, take) {
-        (Some(content), None) => std::fs::write(root.join(path), content)?,
+        (Some(content), None) => {
+            let target = root.join(path);
+            ensure_no_symlink(root, &target)?;
+            std::fs::write(target, content)?
+        }
         (None, Some(side)) => {
             let flag: &str = match side {
                 ConflictSide::Ours => "--ours",

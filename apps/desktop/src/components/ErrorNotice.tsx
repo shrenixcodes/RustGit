@@ -8,7 +8,15 @@ const HINTS: Partial<Record<ErrorKind, string>> = {
   not_a_repository: "The folder no longer contains a Git repository. It may have been moved or deleted.",
   invalid_path: "The folder does not exist or is not accessible.",
   repository_not_found: "This repository is no longer in RustGit's list.",
+  authentication_failed:
+    "Git's credential helper had no accepted credentials for this remote. RustGit never stores secrets: sign in through your Git credential helper (for example Git Credential Manager) or configure an SSH key, then try again.",
+  operation_in_progress: "Another operation holds this repository. Try again when it finishes.",
+  operation_cancelled: "Cancelled. Git left no partial changes.",
 };
+
+export function errorHint(kind: ErrorKind): string | undefined {
+  return HINTS[kind];
+}
 
 interface ErrorNoticeProps {
   title: string;
@@ -19,11 +27,11 @@ interface ErrorNoticeProps {
 export function ErrorNotice({ title, error, actions }: ErrorNoticeProps) {
   const hint: string | undefined = HINTS[error.kind];
   return (
-    <div role="alert" className="flex gap-2.5 rounded-md border border-border bg-surface p-3">
+    <div role="alert" className="flex gap-2.5 border-l-2 border-danger py-1 pl-3">
       <CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-danger" />
       <div className="min-w-0 flex-1 space-y-1">
         <p className="font-medium text-fg">{title}</p>
-        <p data-selectable className="break-words text-sm text-fg-secondary">
+        <p data-selectable className="max-h-48 overflow-y-auto break-words whitespace-pre-wrap font-mono text-xs text-fg-secondary">
           {error.message}
         </p>
         {hint !== undefined && <p className="text-sm text-fg-muted">{hint}</p>}

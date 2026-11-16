@@ -1,55 +1,189 @@
 /*
- * RustGit design tokens.
+ * RustGit design tokens: ShrenixCodes design system.
+ * See docs/SHRENIXCODES_DESIGN_SYSTEM.md for roles and rationale.
  *
- * Text and status colors meet WCAG 2.1 AA (>= 4.5:1) on every surface of their
- * theme; control borders and focus rings meet 3:1 (WCAG 1.4.11). Values that
- * differ from the original brief were adjusted in lightness only, to pass:
- *   dark  text-muted      #747E89 -> #868F98
- *   light text-secondary  #626B75 -> #4E565F (keeps hierarchy above muted)
- *   light text-muted      #89919A -> #646C75
- *   light accent          #426FAF -> #406BA9
- *   light success         #32835A -> #2E7852
- *   light warning         #A86D21 -> #935F1D
- *   light danger          #BD4848 -> #BA4343
+ * Contrast is enforced by src/styles/tokens.test.ts, which parses this file:
+ * text tokens >= 4.5:1 and graphical/control tokens >= 3:1 on every surface
+ * of every theme block below.
+ *
+ * Deviations from the brief (lightness only, for contrast):
+ *   dark text-muted  #858A7C -> #969B8D (3.95:1 -> 4.92:1)
+ *   dark danger      #C77B76 -> #D18A85 (4.35:1 -> 5.13:1)
+ *   clay, indigo, moss are kept as graphics-only tokens; text uses the
+ *   lighter clay-text #CF8A6F and indigo-text #9894B8.
+ *   control borders (not in the brief): dark #79806F, light #7A7D71.
+ *
+ * Variable names keep the established mapping (accent = sage, lavender =
+ * indigo, amber = clay-text) so existing components follow the new palette.
  */
 
 :root,
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --rg-bg: #111315;
-  --rg-sidebar: #15181b;
-  --rg-surface: #191d21;
-  --rg-elevated: #20252a;
-  --rg-border: #2a3036;
-  --rg-border-control: #63717f;
-  --rg-text: #e8eaed;
-  --rg-text-secondary: #a0a8b2;
-  --rg-text-muted: #868f98;
-  --rg-accent: #7299d8;
-  --rg-accent-contrast: #111315;
-  --rg-success: #63b58a;
-  --rg-warning: #d7aa64;
-  --rg-danger: #d97878;
-  --rg-selection: rgb(114 153 216 / 0.18);
-  --rg-hover: rgb(232 234 237 / 0.05);
+
+  --rg-bg: #151715;
+  --rg-canvas: #1b1e1a;
+  --rg-sidebar: #151715;
+  --rg-surface: #20231f;
+  --rg-elevated: #292d27;
+
+  --rg-border: #383c34;
+  --rg-divider: #2c302a;
+  --rg-border-control: #79806f;
+
+  --rg-text: #e5e2d8;
+  --rg-text-secondary: #b3b5a8;
+  --rg-text-muted: #969b8d;
+
+  /* Accents. */
+  --rg-accent: #a4aa91; /* sage */
+  --rg-accent-strong: #b8bea5;
+  --rg-accent-contrast: #151715;
+  --rg-moss: #727c65;
+  --rg-clay: #b66c50;
+  --rg-clay-text: #cf8a6f;
+  --rg-indigo: #8581a5;
+  --rg-indigo-text: #9894b8;
+  /* Legacy names mapped onto the palette. */
+  --rg-lavender: #9894b8;
+  --rg-violet: #8581a5;
+  --rg-amber: #cf8a6f;
+  --rg-yellow: #d3ad72;
+
+  --rg-success: #76a786;
+  --rg-warning: #d3ad72;
+  --rg-danger: #d18a85;
+  --rg-info: #9894b8;
+
+  --rg-selection: rgb(164 170 145 / 0.1);
+  --rg-selection-strong: rgb(164 170 145 / 0.17);
+  --rg-hover: rgb(229 226 216 / 0.04);
+  --rg-glow: 0 0 0 1px rgb(164 170 145 / 0.4);
+  --rg-canvas-line: rgb(229 226 216 / 0.03);
+  --rg-overlay: rgb(8 9 8 / 0.6);
+  --rg-shadow-popover: 0 10px 30px rgb(0 0 0 / 0.45);
+
+
+  --rg-diff-add-bg: rgb(118 167 134 / 0.1);
+  --rg-diff-add-marker: rgb(118 167 134 / 0.26);
+  --rg-diff-del-bg: rgb(209 138 133 / 0.09);
+  --rg-diff-del-marker: rgb(209 138 133 / 0.24);
+
+  /* Lineage lanes: lane 0 is the current branch's first-parent line. */
+  --rg-lane-0: #a4aa91;
+  --rg-lane-1: #8581a5;
+  --rg-lane-2: #b66c50;
+  --rg-lane-3: #727c65;
+  --rg-lane-4: #d3ad72;
+  --rg-lane-5: #76a786;
+}
+
+/* Deep workspace: same hues, darker surfaces for history and investigation. */
+:root[data-theme="dark"][data-workspace="deep"] {
+  --rg-bg: #0f110f;
+  --rg-canvas: #141613;
+  --rg-sidebar: #0f110f;
+  --rg-surface: #191b18;
+  --rg-elevated: #22251f;
+  --rg-border: #2e322b;
+  --rg-divider: #232621;
+  --rg-border-control: #79806f;
+  --rg-text: #e5e2d8;
+  --rg-text-secondary: #b3b5a8;
+  --rg-text-muted: #969b8d;
+  --rg-accent: #a4aa91;
+  --rg-accent-strong: #b8bea5;
+  --rg-moss: #727c65;
+  --rg-clay: #b66c50;
+  --rg-clay-text: #cf8a6f;
+  --rg-indigo: #8581a5;
+  --rg-indigo-text: #9894b8;
+  --rg-lavender: #9894b8;
+  --rg-violet: #8581a5;
+  --rg-amber: #cf8a6f;
+  --rg-yellow: #d3ad72;
+  --rg-success: #76a786;
+  --rg-warning: #d3ad72;
+  --rg-danger: #d18a85;
+  --rg-info: #9894b8;
+  --rg-lane-0: #a4aa91;
+  --rg-lane-1: #8581a5;
+  --rg-lane-2: #b66c50;
+  --rg-lane-3: #727c65;
+  --rg-lane-4: #d3ad72;
+  --rg-lane-5: #76a786;
+
 }
 
 :root[data-theme="light"] {
   color-scheme: light;
-  --rg-bg: #f5f6f7;
-  --rg-sidebar: #eef0f2;
-  --rg-surface: #ffffff;
+
+  --rg-bg: #f3f0e8;
+  --rg-canvas: #ece8de;
+  --rg-sidebar: #ece8de;
+  --rg-surface: #faf8f3;
   --rg-elevated: #ffffff;
-  --rg-border: #e3e6e9;
-  --rg-border-control: #7c8a98;
-  --rg-text: #24282d;
-  --rg-text-secondary: #4e565f;
-  --rg-text-muted: #646c75;
-  --rg-accent: #406ba9;
-  --rg-accent-contrast: #ffffff;
-  --rg-success: #2e7852;
-  --rg-warning: #935f1d;
-  --rg-danger: #ba4343;
-  --rg-selection: rgb(64 107 169 / 0.14);
-  --rg-hover: rgb(36 40 45 / 0.05);
+
+  --rg-border: #d9d4c7;
+  --rg-divider: #e4e0d5;
+  --rg-border-control: #7a7d71;
+
+  --rg-text: #24261f;
+  --rg-text-secondary: #4f5347;
+  --rg-text-muted: #63675b;
+
+  --rg-accent: #5a6248;
+  --rg-accent-strong: #4a5139;
+  --rg-accent-contrast: #faf8f3;
+  --rg-moss: #4e5843;
+  --rg-clay: #9a4e32;
+  --rg-clay-text: #9a4e32;
+  --rg-indigo: #565184;
+  --rg-indigo-text: #565184;
+  --rg-lavender: #565184;
+  --rg-violet: #565184;
+  --rg-amber: #9a4e32;
+  --rg-yellow: #7f5a1c;
+
+  --rg-success: #3a6b4a;
+  --rg-warning: #7f5a1c;
+  --rg-danger: #9e423b;
+  --rg-info: #565184;
+
+  --rg-selection: rgb(90 98 72 / 0.08);
+  --rg-selection-strong: rgb(90 98 72 / 0.14);
+  --rg-hover: rgb(36 38 31 / 0.04);
+  --rg-glow: 0 0 0 1px rgb(90 98 72 / 0.45);
+  --rg-canvas-line: rgb(36 38 31 / 0.045);
+  --rg-overlay: rgb(36 38 31 / 0.28);
+  --rg-shadow-popover: 0 8px 24px rgb(36 38 31 / 0.14);
+
+
+  --rg-diff-add-bg: rgb(58 107 74 / 0.08);
+  --rg-diff-add-marker: rgb(58 107 74 / 0.2);
+  --rg-diff-del-bg: rgb(158 66 59 / 0.07);
+  --rg-diff-del-marker: rgb(158 66 59 / 0.18);
+
+  --rg-lane-0: #5a6248;
+  --rg-lane-1: #565184;
+  --rg-lane-2: #9a4e32;
+  --rg-lane-3: #4e5843;
+  --rg-lane-4: #7f5a1c;
+  --rg-lane-5: #3a6b4a;
+}
+
+/* Workspace personalities (spacing). Quiet is the default. */
+:root {
+  --rg-row: 30px;
+  --rg-control: 30px;
+  --rg-header: 52px;
+  --rg-shelf: 26px;
+  --rg-gutter: 16px;
+}
+
+:root[data-workspace="deep"] {
+  --rg-row: 24px;
+  --rg-control: 26px;
+  --rg-header: 44px;
+  --rg-gutter: 12px;
 }

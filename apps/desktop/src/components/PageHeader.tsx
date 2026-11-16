@@ -1,19 +1,14 @@
-import type { ReactNode } from "react";
-
-interface PageHeaderProps {
-  title: string;
-  subtitle?: ReactNode;
-  actions?: ReactNode;
-}
-
-export function PageHeader({ title, subtitle, actions }: PageHeaderProps) {
-  return (
-    <header className="flex min-h-12 items-center gap-3 border-b border-border px-4 py-2">
-      <div className="min-w-0 flex-1">
-        <h1 className="truncate text-lg font-semibold">{title}</h1>
-        {subtitle !== undefined && <div className="truncate text-sm text-fg-muted">{subtitle}</div>}
-      </div>
-      {actions !== undefined && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
-    </header>
+/**
+ * Title of a screen that has no repository context (Settings,
+ * Repositories). Repository work happens on the thread, which needs no
+ * title: the seal names the repository.
+ */
+export function PageHeader({ title, visible = false }: { title: string; visible?: boolean }) {
+  return visible ? (
+    <div className="shrink-0 px-8 pt-8 pb-2">
+      <h1 className="text-xl font-medium text-fg">{title}</h1>
+    </div>
+  ) : (
+    <h1 className="sr-only">{title}</h1>
   );
 }

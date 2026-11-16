@@ -5,8 +5,8 @@ use rustgit_git_engine::history::LogSearch;
 use rustgit_git_engine::integrate::{ConflictSide, MergeStrategy};
 use rustgit_git_engine::refs::CheckoutMode;
 use rustgit_git_engine::{
-    CommitDetails, ConflictVersions, DEFAULT_CONTEXT_LINES, FileDiff, IntegrationResult, LogPage,
-    LogQuery, RefList, StatusSnapshot,
+    CommitDetails, Comparison, ConflictVersions, DEFAULT_CONTEXT_LINES, FileDiff,
+    IntegrationResult, LogPage, LogQuery, RefList, StatusSnapshot,
 };
 use tauri::State;
 
@@ -68,6 +68,50 @@ pub async fn commit_file_diff(
             git,
             root,
             &oid,
+            &path,
+            original_path.as_deref(),
+            context_lines.unwrap_or(DEFAULT_CONTEXT_LINES),
+        )
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn compare_revisions(
+    state: State<'_, AppState>,
+    id: i64,
+    base: String,
+    head: String,
+    merge_base: bool,
+) -> CommandResult<Comparison> {
+    read(&state, id, move |git, root| {
+        rustgit_git_engine::compare_revisions(git, root, &base, &head, merge_base)
+    })
+    .await
+}
+
+#[tauri::command]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "each parameter is a top-level IPC field; a struct would nest the wire format"
+)]
+pub async fn compare_file_diff(
+    state: State<'_, AppState>,
+    id: i64,
+    base: String,
+    head: String,
+    merge_base: bool,
+    path: String,
+    original_path: Option<String>,
+    context_lines: Option<u32>,
+) -> CommandResult<FileDiff> {
+    read(&state, id, move |git, root| {
+        rustgit_git_engine::compare_file_diff(
+            git,
+            root,
+            &base,
+            &head,
+            merge_base,
             &path,
             original_path.as_deref(),
             context_lines.unwrap_or(DEFAULT_CONTEXT_LINES),

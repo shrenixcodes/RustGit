@@ -4,11 +4,9 @@ import { App } from "./app/App";
 import { resolveTheme } from "./styles/theme";
 import "./styles/index.css";
 
-// Initial paint follows the OS; App applies the saved preference once loaded.
-document.documentElement.dataset.theme = resolveTheme(
-  "system",
-  window.matchMedia("(prefers-color-scheme: dark)").matches,
-);
+// Dark is RustGit's default look; the first paint is dark and App applies
+// the saved preference once settings load.
+document.documentElement.dataset.theme = resolveTheme("dark", true);
 
 const container: HTMLElement | null = document.getElementById("root");
 if (!container) {

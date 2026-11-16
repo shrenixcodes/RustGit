@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
+  Comparison,
   ChangeTotals,
   CheckoutMode,
   CommitDetails,
@@ -17,6 +18,7 @@ import type {
   StashEntry,
   Worktree,
   CommandError,
+  ErrorDetails,
   CommandRecord,
   CommitContext,
   CommitResult,
@@ -34,11 +36,14 @@ import type {
 /** Error thrown by every IPC call; always carries a typed kind. */
 export class IpcError extends Error {
   readonly kind: ErrorKind;
+  /** `CommandError.details` (exit code, affected paths) when the backend sent them. */
+  readonly details: ErrorDetails | undefined;
 
-  constructor(kind: ErrorKind, message: string) {
+  constructor(kind: ErrorKind, message: string, details?: ErrorDetails) {
     super(message);
     this.name = "IpcError";
     this.kind = kind;
+    this.details = details;
   }
 }
 
@@ -56,7 +61,7 @@ export function toIpcError(error: unknown): IpcError {
     return error;
   }
   if (isCommandError(error)) {
-    return new IpcError(error.kind, error.message);
+    return new IpcError(error.kind, error.message, error.details);
   }
   const message: string = error instanceof Error ? error.message : String(error);
   return new IpcError("internal", message);
@@ -144,6 +149,17 @@ export const ipc = {
     originalPath?: string | null;
     contextLines?: number | null;
   }): Promise<FileDiff> => call("commit_file_diff", { originalPath: null, contextLines: null, ...args }),
+  compareRevisions: (id: number, base: string, head: string, mergeBase: boolean): Promise<Comparison> =>
+    call("compare_revisions", { id, base, head, mergeBase }),
+  compareFileDiff: (args: {
+    id: number;
+    base: string;
+    head: string;
+    mergeBase: boolean;
+    path: string;
+    originalPath?: string | null;
+    contextLines?: number | null;
+  }): Promise<FileDiff> => call("compare_file_diff", { originalPath: null, contextLines: null, ...args }),
 
   // References and branches (contract C-2).
   listRefs: (id: number): Promise<RefList> => call("list_refs", { id }),

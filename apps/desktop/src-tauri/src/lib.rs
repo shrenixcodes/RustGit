@@ -60,6 +60,8 @@ pub fn run() {
             commands::history::log_page,
             commands::history::commit_details,
             commands::history::commit_file_diff,
+            commands::history::compare_revisions,
+            commands::history::compare_file_diff,
             commands::history::list_refs,
             commands::history::create_branch,
             commands::history::checkout_branch,

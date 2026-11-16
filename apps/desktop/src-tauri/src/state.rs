@@ -2,6 +2,8 @@ use std::sync::Arc;
 
 use rustgit_git_engine::GitExecutor;
 
+use crate::commands::github::GithubState;
+
 use rustgit_core::{
     CommandError, CommandResult, Database, OperationRegistry, PendingPrompts, RepositoryLocks,
     RepositoryWatchers,
@@ -15,10 +17,16 @@ pub struct AppState {
     pub operations: OperationRegistry,
     pub watchers: RepositoryWatchers,
     pub prompts: Arc<PendingPrompts>,
+    pub github: Arc<GithubState>,
 }
 
 impl AppState {
-    pub fn new(git: GitExecutor, database: Database, prompts: Arc<PendingPrompts>) -> Self {
+    pub fn new(
+        git: GitExecutor,
+        database: Database,
+        prompts: Arc<PendingPrompts>,
+        github: Arc<GithubState>,
+    ) -> Self {
         Self {
             git,
             database: Arc::new(database),
@@ -26,6 +34,7 @@ impl AppState {
             operations: OperationRegistry::default(),
             watchers: RepositoryWatchers::default(),
             prompts,
+            github,
         }
     }
 }

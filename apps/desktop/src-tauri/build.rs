@@ -64,6 +64,12 @@ const COMMANDS: &[&str] = &[
     "watch_repository",
     "unwatch_repository",
     "respond_credential",
+    "github_status",
+    "github_start_sign_in",
+    "github_cancel_sign_in",
+    "github_sign_out",
+    "github_list_repositories",
+    "github_create_repository",
 ];
 
 fn main() {

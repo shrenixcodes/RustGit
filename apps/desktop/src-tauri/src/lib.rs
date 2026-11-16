@@ -6,12 +6,14 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use rustgit_core::askpass::{self, PromptHandler, is_secret_prompt};
+use rustgit_core::github::{KeychainStore, TokenStore, answer_for_prompt};
 use rustgit_core::{AskpassBroker, CredentialRequest, Database, PendingPrompts};
 use rustgit_git_engine::GitExecutor;
 use rustgit_git_engine::redact::redact_credentials;
 use tauri::{Emitter, Manager};
 use tracing_subscriber::EnvFilter;
 
+use crate::commands::github::GithubState;
 use crate::state::AppState;
 
 const DATABASE_FILE: &str = "rustgit.sqlite3";
@@ -46,19 +48,31 @@ pub fn run() {
             let database: Database = Database::open(&database_path)?;
             let prompts: Arc<PendingPrompts> = Arc::new(PendingPrompts::default());
             let git: GitExecutor = GitExecutor::new(resolve_git());
-            let git: GitExecutor = match start_credential_broker(app.handle(), &prompts) {
+            let store: Arc<dyn TokenStore> = Arc::new(KeychainStore);
+            let git: GitExecutor = match start_credential_broker(app.handle(), &prompts, &store) {
                 Ok(environment) => git.with_env(environment),
                 Err(error) => {
                     tracing::warn!(%error, "credential prompts are unavailable");
                     git
                 }
             };
-            app.manage(AppState::new(git, database, prompts));
+            app.manage(AppState::new(
+                git,
+                database,
+                prompts,
+                Arc::new(GithubState::new(store)),
+            ));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             commands::system::git_info,
             commands::credentials::respond_credential,
+            commands::github::github_status,
+            commands::github::github_start_sign_in,
+            commands::github::github_cancel_sign_in,
+            commands::github::github_sign_out,
+            commands::github::github_list_repositories,
+            commands::github::github_create_repository,
             commands::system::get_settings,
             commands::system::set_theme,
             commands::repositories::list_repositories,
@@ -152,11 +166,19 @@ fn resolve_git() -> PathBuf {
 fn start_credential_broker(
     app: &tauri::AppHandle,
     prompts: &Arc<PendingPrompts>,
+    store: &Arc<dyn TokenStore>,
 ) -> std::io::Result<Vec<(std::ffi::OsString, std::ffi::OsString)>> {
     let helper: PathBuf = std::env::current_exe()?;
     let handle: tauri::AppHandle = app.clone();
     let pending: Arc<PendingPrompts> = Arc::clone(prompts);
+    let store: Arc<dyn TokenStore> = Arc::clone(store);
     let handler: PromptHandler = Arc::new(move |prompt: &str| {
+        // A signed-in GitHub account answers github.com prompts without asking.
+        if let Ok(Some(token)) = store.load() {
+            if let Some(answer) = answer_for_prompt(prompt, &token) {
+                return Some(answer);
+            }
+        }
         let (request_id, receiver) = pending.register();
         let request: CredentialRequest = CredentialRequest {
             request_id: request_id.clone(),

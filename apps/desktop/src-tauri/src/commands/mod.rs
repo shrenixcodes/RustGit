@@ -2,6 +2,7 @@
 
 pub mod changes;
 pub mod credentials;
+pub mod github;
 pub mod history;
 pub mod network;
 pub mod repositories;

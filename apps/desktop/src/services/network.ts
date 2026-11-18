@@ -172,3 +172,43 @@ export function networkActions(repositoryId: number) {
       }),
   };
 }
+
+/** Auto-fetch interval: 5 minutes. */
+export const AUTO_FETCH_INTERVAL_MS = 5 * 60 * 1000;
+
+/**
+ * Periodically fetches remotes in the background for the active repository,
+ * matching GitHub Desktop parity. Only runs when:
+ * 1. An active repository is selected.
+ * 2. Window is visible (document.visibilityState === "visible").
+ * 3. Browser is online (navigator.onLine).
+ * 4. No other sync operation is currently active.
+ */
+export function useAutoFetch(repositoryId: number | null): void {
+  useEffect(() => {
+    if (repositoryId === null) return;
+
+    const maybeFetch = () => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      if (typeof navigator !== "undefined" && !navigator.onLine) return;
+
+      const operations = useOperations.getState().operations;
+      const isBusy = Object.values(operations).some(
+        (op) =>
+          op.repositoryId === repositoryId &&
+          op.outcome === "running" &&
+          (op.kind === "fetch" || op.kind === "pull" || op.kind === "push"),
+      );
+      if (isBusy) return;
+
+      networkActions(repositoryId)
+        .fetch(null)
+        .catch(() => {
+          // Silently ignore background auto-fetch errors (e.g. offline, auth required)
+        });
+    };
+
+    const interval = window.setInterval(maybeFetch, AUTO_FETCH_INTERVAL_MS);
+    return () => window.clearInterval(interval);
+  }, [repositoryId]);
+}

@@ -10,7 +10,7 @@ import { RepositoriesView } from "../features/repositories/RepositoriesView";
 import { UpdateBanner } from "../components/UpdateBanner";
 import { toIpcError } from "../services/ipc";
 import { CredentialPrompt } from "./CredentialPrompt";
-import { networkActions, useOperationEvents } from "../services/network";
+import { networkActions, useAutoFetch, useOperationEvents } from "../services/network";
 import { useRepositoryWatcher } from "../services/repositoryEvents";
 import { queryKeys, useOpenRepository, useRepositories, useRepositoryStatus } from "../services/queries";
 import type { RepositoryEntry } from "../services/types";
@@ -32,6 +32,7 @@ export function AppShell() {
   useGlobalShortcuts();
   useRestoreLastRepository();
   useRepositoryWatcher(activeRepositoryId);
+  useAutoFetch(activeRepositoryId);
   useOperationEvents();
 
   return (

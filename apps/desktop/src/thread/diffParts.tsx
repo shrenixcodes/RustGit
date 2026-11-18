@@ -43,10 +43,13 @@ interface HunkHeaderProps {
 export function HunkHeader({ style, indent, header, side, active, selectedCount, disabled, onAction }: HunkHeaderProps) {
   const what: string = selectedCount > 0 ? `${selectedCount} line${selectedCount === 1 ? "" : "s"}` : "hunk";
   return (
-    <div style={{ ...style, paddingLeft: indent }} className={`flex items-center gap-2 ${active ? "bg-selection" : ""}`}>
-      <span className="min-w-0 flex-1 truncate text-fg-muted">{header}</span>
+    <div
+      style={{ ...style, paddingLeft: indent }}
+      className={`flex items-center gap-2 border-y border-border/40 bg-canvas/60 font-mono text-xs ${active ? "bg-selection" : ""}`}
+    >
+      <span className="min-w-0 flex-1 truncate text-fg-muted font-medium">{header}</span>
       {onAction !== undefined && side !== "commit" && (
-        <span className="sticky right-0 flex shrink-0 items-center gap-1 bg-inherit pr-3 font-sans">
+        <span className="sticky right-0 flex shrink-0 items-center gap-1.5 bg-inherit pr-3 font-sans">
           {side === "unstaged" ? (
             <>
               <HunkButton label={`Stage ${what}`} disabled={disabled} onClick={() => onAction("stage")} />
@@ -67,8 +70,10 @@ function HunkButton({ label, disabled, onClick, danger = false }: { label: strin
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`h-[18px] rounded-xs px-1.5 text-xs transition-colors duration-100 disabled:opacity-40 ${
-        danger ? "text-fg-muted hover:text-danger" : "text-accent hover:bg-selection"
+      className={`h-5 rounded px-2 font-mono text-2xs font-medium transition-all duration-100 disabled:opacity-40 active:scale-95 ${
+        danger
+          ? "border border-danger/30 text-danger hover:bg-danger/10 hover:border-danger"
+          : "border border-accent/40 bg-accent/10 text-accent hover:bg-accent/20 hover:border-accent"
       }`}
     >
       {label}

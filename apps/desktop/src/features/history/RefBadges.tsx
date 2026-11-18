@@ -47,7 +47,10 @@ export const RefBadges = memo(function RefBadges({ refs, head, detachedHead, max
   return (
     <span className="flex shrink-0 items-center gap-2.5 font-mono text-xs">
       {detachedHead && (
-        <span title="HEAD is detached at this commit" className="text-clay-text">
+        <span
+          title="HEAD is detached at this commit"
+          className="rounded border border-clay/30 bg-clay/15 px-1.5 py-0.5 text-2xs font-semibold text-clay-text"
+        >
           HEAD
         </span>
       )}
@@ -55,7 +58,10 @@ export const RefBadges = memo(function RefBadges({ refs, head, detachedHead, max
         <Label key={ref.fullName} entry={ref} current={isCurrent(ref, head)} />
       ))}
       {hidden.length > 0 && (
-        <span title={hidden.map((ref) => describeRef(ref, false)).join("\n")} className="text-fg-muted">
+        <span
+          title={hidden.map((ref) => describeRef(ref, false)).join("\n")}
+          className="rounded border border-border/70 bg-elevated/80 px-1 py-0.5 font-mono text-2xs text-fg-muted"
+        >
           +{hidden.length}
         </span>
       )}
@@ -66,18 +72,21 @@ export const RefBadges = memo(function RefBadges({ refs, head, detachedHead, max
 function Label({ entry, current }: { entry: RefEntry; current: boolean }) {
   const label: string = describeRef(entry, current);
   const tone: string = current
-    ? "font-medium text-accent"
+    ? "font-medium text-accent bg-accent/15 border-accent/30"
     : entry.kind === "local"
-      ? "text-fg-secondary"
+      ? "text-fg-secondary bg-elevated/70 border-border/70 hover:border-border-control"
       : entry.kind === "remote"
-        ? "text-indigo-text"
-        : "text-clay-text";
+        ? "text-indigo-text bg-indigo/10 border-indigo/25"
+        : "text-clay-text bg-clay/10 border-clay/25";
   const Icon = entry.kind === "remote" ? Cloud : entry.kind === "tag" ? Tag : GitBranch;
   return (
-    <span title={current ? `HEAD → ${entry.shortName}` : label} className={`flex max-w-48 items-center gap-1 ${tone}`}>
+    <span
+      title={current ? `HEAD → ${entry.shortName}` : label}
+      className={`inline-flex max-w-48 items-center gap-1 rounded border px-1.5 py-0.5 font-mono text-2xs transition-colors ${tone}`}
+    >
       <Icon aria-hidden className="size-3 shrink-0" strokeWidth={1.75} />
       <span className="sr-only">{label}</span>
-      <span aria-hidden className={`truncate ${current ? "underline decoration-1 underline-offset-[3px]" : ""}`}>
+      <span aria-hidden className="truncate">
         {entry.shortName}
       </span>
     </span>

@@ -27,29 +27,34 @@ export function OperationShelf() {
     <footer
       aria-label="Operations"
       style={{ height: "var(--rg-shelf)" }}
-      className="flex shrink-0 items-center gap-4 border-t border-divider bg-bg px-5 font-mono text-xs text-fg-muted"
+      className="flex shrink-0 items-center gap-4 border-t border-divider bg-bg/95 px-5 font-mono text-xs text-fg-muted backdrop-blur-md"
     >
       {network[0] !== undefined ? (
         <RunningNetworkOperation operation={network[0]} more={running - 1} />
       ) : current !== undefined ? (
         <RunningOperation record={current} more={running - 1} />
       ) : last !== undefined ? (
-        <span className="truncate" title={new Date(last.startedAt).toLocaleString()}>
-          {last.label.toLowerCase()} ·{" "}
+        <span className="truncate flex items-center gap-1.5" title={new Date(last.startedAt).toLocaleString()}>
+          <span className={`size-1.5 rounded-full ${last.outcome === "failed" ? "bg-danger" : "bg-success"}`} />
+          <span>{last.label.toLowerCase()}</span>
+          <span className="text-fg-muted/60">·</span>
           {last.outcome === "failed" ? (
-            <span className="text-danger">failed{last.error !== null ? `: ${firstLine(last.error.message)}` : ""}</span>
+            <span className="text-danger font-medium">failed{last.error !== null ? `: ${firstLine(last.error.message)}` : ""}</span>
           ) : (
-            <span>done {formatDuration((last.finishedAt ?? last.startedAt) - last.startedAt)}</span>
+            <span className="text-fg-muted">done {formatDuration((last.finishedAt ?? last.startedAt) - last.startedAt)}</span>
           )}
         </span>
       ) : (
-        <span>idle</span>
+        <span className="flex items-center gap-1.5 text-fg-muted/70">
+          <span className="size-1.5 rounded-full bg-fg-muted/40" />
+          <span>idle</span>
+        </span>
       )}
 
       <span className="flex-1" />
 
       {unseenFailures > 0 && (
-        <span className="flex items-center gap-1 text-danger">
+        <span className="flex items-center gap-1.5 rounded-full border border-danger/30 bg-danger/10 px-2 py-0.5 text-xs text-danger font-semibold">
           <CircleAlert aria-hidden className="size-3" />
           {unseenFailures} failed
         </span>
@@ -62,10 +67,14 @@ export function OperationShelf() {
         }
         title={`Activity (${formatShortcut("Mod+J")})`}
         onClick={() => setActivityOpen(!activityOpen)}
-        className={`flex h-5 items-center gap-1 rounded-sm px-1.5 hover:text-fg ${activityOpen ? "text-accent" : ""}`}
+        className={`flex h-6 items-center gap-1.5 rounded-md border px-2 text-xs transition-all active:scale-95 ${
+          activityOpen
+            ? "border-accent/40 bg-accent/15 text-accent font-medium"
+            : "border-border/60 bg-canvas/50 text-fg-muted hover:border-border-control hover:text-fg"
+        }`}
       >
-        activity
-        <ChevronUp aria-hidden className={`size-3 transition-transform duration-100 ${activityOpen ? "rotate-180" : ""}`} />
+        <span>activity</span>
+        <ChevronUp aria-hidden className={`size-3 transition-transform duration-150 ${activityOpen ? "rotate-180" : ""}`} />
       </button>
     </footer>
   );

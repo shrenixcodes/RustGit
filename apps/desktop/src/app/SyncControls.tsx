@@ -12,7 +12,7 @@ import { useUi } from "../stores/ui";
 const PULL_MODES: readonly PullMode[] = ["ff_only", "merge", "rebase"];
 
 const CONTROL =
-  "flex h-8 min-w-8 items-center gap-1.5 rounded-sm px-2.5 font-mono text-sm text-fg-secondary hover:bg-hover hover:text-fg disabled:cursor-not-allowed disabled:opacity-45";
+  "flex h-7 min-w-7 items-center gap-1.5 rounded-md px-2 font-mono text-xs text-fg-secondary transition-all hover:bg-hover hover:text-fg active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100";
 
 /** "5 min ago" style age of the last successful fetch in this session. */
 function useLastFetched(repositoryId: number): string {
@@ -111,7 +111,7 @@ export function SyncControls({ repositoryId, branch }: { repositoryId: number; b
   ];
 
   return (
-    <div role="group" aria-label="Sync" className="flex shrink-0 items-center rounded-md border border-border/60 bg-elevated/40 p-0.5">
+    <div role="group" aria-label="Sync" className="flex shrink-0 items-center rounded-lg border border-border/70 bg-elevated/50 p-0.5 shadow-2xs backdrop-blur-xs">
       <button
         type="button"
         className={CONTROL}
@@ -122,7 +122,7 @@ export function SyncControls({ repositoryId, branch }: { repositoryId: number; b
         {busy("fetch") ? <LoaderCircle aria-hidden className="size-3 motion-safe:animate-spin" /> : <RefreshCcw aria-hidden className="size-3" />}
         fetch
       </button>
-      <span className="px-1.5 font-sans text-xs text-fg-muted" title="The ahead and behind counts only change after a fetch">
+      <span className="px-2 font-sans text-xs text-fg-muted/80 border-r border-divider/60" title="The ahead and behind counts only change after a fetch">
         {lastFetched}
       </span>
 
@@ -146,7 +146,7 @@ export function SyncControls({ repositoryId, branch }: { repositoryId: number; b
           label="Pull options"
           items={pullItems}
           disabled={!onBranch || !hasUpstream}
-          className={`${CONTROL} px-0.5`}
+          className={`${CONTROL} px-1`}
           trigger={<ChevronDown aria-hidden className="size-3" />}
         />
       </div>

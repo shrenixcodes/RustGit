@@ -79,9 +79,9 @@ export function SwitcherPopover({ onClose, root }: { onClose: () => void; root: 
       aria-label="Switch repository"
       onKeyDown={onKeyDown}
       // Explicit pixels: the root font size is 13 px, so rem-based widths would be too narrow.
-      className="absolute left-0 top-full z-40 mt-1 w-[360px] max-w-[calc(100vw-16px)] overflow-hidden rounded-md border border-border bg-elevated shadow-popover"
+      className="absolute left-0 top-full z-40 mt-1.5 w-[380px] max-w-[calc(100vw-16px)] overflow-hidden rounded-xl border border-border/80 bg-elevated/95 shadow-popover backdrop-blur-md"
     >
-      <label className="flex h-9 items-center gap-2 border-b border-border px-2.5">
+      <label className="flex h-10 items-center gap-2.5 border-b border-border/70 px-3">
         <Search aria-hidden className="size-3.5 text-fg-muted" />
         <span className="sr-only">Filter repositories</span>
         <input
@@ -95,21 +95,31 @@ export function SwitcherPopover({ onClose, root }: { onClose: () => void; root: 
             setQuery(event.target.value);
             setHighlight(0);
           }}
-          placeholder="Filter repositories"
-          className="h-full flex-1 bg-transparent outline-none placeholder:text-fg-muted"
+          placeholder="Filter repositories…"
+          className="h-full flex-1 bg-transparent text-sm outline-none placeholder:text-fg-muted/70"
         />
+        {query !== "" && (
+          <button
+            type="button"
+            onClick={() => setQuery("")}
+            className="text-fg-muted hover:text-fg text-xs px-1"
+            title="Clear filter"
+          >
+            ×
+          </button>
+        )}
       </label>
 
       {failure !== null && (
-        <div className="border-b border-border p-2">
+        <div className="border-b border-border p-2.5">
           <ErrorNotice title={`Could not open ${failure.name}`} error={failure.error} />
         </div>
       )}
 
-      <ul id={listId} role="listbox" aria-label="Repositories" className="max-h-72 overflow-y-auto py-1">
-        {repositories.isPending && <li className="px-3 py-2 text-fg-muted">Loading…</li>}
+      <ul id={listId} role="listbox" aria-label="Repositories" className="max-h-72 overflow-y-auto py-1.5">
+        {repositories.isPending && <li className="px-3 py-2 text-xs text-fg-muted">Loading repositories…</li>}
         {repositories.isSuccess && visible.length === 0 && (
-          <li className="px-3 py-2 text-fg-muted">
+          <li className="px-3 py-3 text-center text-xs text-fg-muted">
             {repositories.data.length === 0 ? "No repositories yet." : `No repositories match “${query}”.`}
           </li>
         )}
@@ -123,14 +133,20 @@ export function SwitcherPopover({ onClose, root }: { onClose: () => void; root: 
               aria-selected={isHighlighted}
               onPointerMove={() => setHighlight(visible.indexOf(entry))}
               onClick={() => void choose(entry)}
-              className={`group flex cursor-default items-center justify-between gap-2 px-2.5 py-1.5 ${isHighlighted ? "bg-selection" : ""}`}
+              className={`group mx-1.5 flex cursor-default items-center justify-between gap-2 rounded-md px-2.5 py-1.5 transition-colors ${
+                isHighlighted ? "bg-selection text-fg" : "text-fg-secondary hover:bg-hover hover:text-fg"
+              }`}
             >
               <span className="min-w-0 flex-1">
-                <span className="flex items-center gap-1.5">
-                  <span className="truncate font-medium">{entry.name}</span>
-                  {entry.id === activeRepositoryId && <span className="rg-label text-accent">current</span>}
+                <span className="flex items-center gap-2">
+                  <span className="truncate font-medium text-xs text-fg">{entry.name}</span>
+                  {entry.id === activeRepositoryId && (
+                    <span className="rounded-full bg-accent/15 border border-accent/25 px-1.5 py-0.2 font-mono text-2xs font-semibold text-accent">
+                      current
+                    </span>
+                  )}
                 </span>
-                <span className="block truncate font-mono text-xs text-fg-muted">{entry.path}</span>
+                <span className="block truncate font-mono text-2xs text-fg-muted/80">{entry.path}</span>
               </span>
               <button
                 type="button"
@@ -140,7 +156,7 @@ export function SwitcherPopover({ onClose, root }: { onClose: () => void; root: 
                 }}
                 title={entry.pinned ? "Unpin repository" : "Pin repository to top"}
                 aria-label={entry.pinned ? `Unpin ${entry.name}` : `Pin ${entry.name}`}
-                className={`rounded p-1 transition-opacity hover:bg-hover ${
+                className={`rounded p-1 transition-all hover:bg-hover active:scale-90 ${
                   entry.pinned ? "text-accent" : "text-fg-muted opacity-0 group-hover:opacity-100 hover:text-fg"
                 }`}
               >
@@ -151,15 +167,15 @@ export function SwitcherPopover({ onClose, root }: { onClose: () => void; root: 
         })}
       </ul>
 
-      <div className="flex items-center justify-between border-t border-border px-1.5 py-1">
+      <div className="flex items-center justify-between border-t border-divider/60 bg-surface/30 px-2 py-1.5">
         <button
           type="button"
           onClick={manage}
-          className="flex h-7 items-center gap-1.5 whitespace-nowrap rounded-sm px-2 text-sm text-fg-secondary hover:bg-hover hover:text-fg"
+          className="flex h-7 items-center gap-1.5 whitespace-nowrap rounded-md px-2 text-xs text-fg-secondary hover:bg-hover hover:text-fg transition-colors"
         >
           <Settings2 aria-hidden className="size-3.5" /> Manage repositories…
         </button>
-        <span className="flex shrink-0 items-center gap-1 whitespace-nowrap pr-1.5 text-2xs text-fg-muted">
+        <span className="flex shrink-0 items-center gap-1 whitespace-nowrap pr-1 text-2xs text-fg-muted">
           <Kbd shortcut="Mod+P" />
         </span>
       </div>

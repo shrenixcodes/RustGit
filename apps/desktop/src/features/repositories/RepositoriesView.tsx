@@ -5,6 +5,7 @@ import { Button } from "../../components/Button";
 import { ErrorNotice } from "../../components/ErrorNotice";
 import { Mark } from "../../components/Mark";
 import { PageHeader } from "../../components/PageHeader";
+import { useGithubStatus } from "../../services/github";
 import { toIpcError, type IpcError } from "../../services/ipc";
 import {
   useAddRepository,
@@ -31,6 +32,7 @@ interface FailedAction {
 export function RepositoriesView() {
   const repositories = useRepositories();
   const gitInfo = useGitInfo();
+  const githubStatus = useGithubStatus();
   const addRepository = useAddRepository();
   const openRepository = useOpenRepository();
   const removeRepository = useRemoveRepository();
@@ -170,12 +172,75 @@ export function RepositoriesView() {
         {repositories.isError && <ErrorNotice title="Could not load repositories" error={repositories.error} />}
 
         {repositories.isSuccess && repositories.data.length === 0 && (
-          <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
-            <Mark size={40} />
-            <p className="mt-2 font-medium">No repositories yet</p>
-            <p className="max-w-sm text-fg-muted">
-              Clone a repository, add a folder that already contains one, or create a new one.
+          <div className="flex flex-1 flex-col items-center justify-center py-6 text-center">
+            <div className="relative mb-3 flex size-12 items-center justify-center rounded-2xl bg-accent/10 border border-accent/20">
+              <Mark size={28} />
+            </div>
+            <h2 className="text-lg font-semibold tracking-tight text-fg">Welcome to RustGit</h2>
+            <p className="mt-0.5 text-xs font-medium text-fg-secondary">No repositories yet</p>
+            <p className="mt-1 max-w-sm text-xs text-fg-muted">
+              Fast, lightweight Git without the overhead. Get started with any repository:
             </p>
+
+            {githubStatus.data?.account && (
+              <div className="mt-3.5 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs text-fg">
+                <span className="size-2 rounded-full bg-accent animate-pulse" />
+                <span>Connected to GitHub as <strong>@{githubStatus.data.account.login}</strong></span>
+              </div>
+            )}
+
+            <div className="mt-6 grid w-full max-w-lg grid-cols-1 gap-3 sm:grid-cols-3 text-left">
+              <button
+                type="button"
+                onClick={() => { setCreating(false); setCloning(true); }}
+                className="group flex flex-col justify-between rounded-lg border border-border bg-elevated/40 p-3.5 transition-all duration-150 hover:border-accent hover:bg-hover hover:shadow-sm"
+              >
+                <div>
+                  <div className="mb-2.5 flex size-7 items-center justify-center rounded-md bg-accent/10 text-accent group-hover:bg-accent/20">
+                    <Download className="size-3.5" />
+                  </div>
+                  <div className="font-medium text-xs text-fg">Clone repository</div>
+                  <div className="mt-0.5 text-2xs text-fg-muted">From GitHub or a URL</div>
+                </div>
+                <div className="mt-3 text-2xs font-semibold text-accent opacity-0 group-hover:opacity-100 transition-opacity">
+                  Clone →
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleAdd}
+                className="group flex flex-col justify-between rounded-lg border border-border bg-elevated/40 p-3.5 transition-all duration-150 hover:border-accent hover:bg-hover hover:shadow-sm"
+              >
+                <div>
+                  <div className="mb-2.5 flex size-7 items-center justify-center rounded-md bg-clay/10 text-clay-text group-hover:bg-clay/20">
+                    <FolderOpen className="size-3.5" />
+                  </div>
+                  <div className="font-medium text-xs text-fg">Open local folder</div>
+                  <div className="mt-0.5 text-2xs text-fg-muted">Choose repository from disk</div>
+                </div>
+                <div className="mt-3 text-2xs font-semibold text-clay-text opacity-0 group-hover:opacity-100 transition-opacity">
+                  Browse →
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setCloning(false); setCreating(true); }}
+                className="group flex flex-col justify-between rounded-lg border border-border bg-elevated/40 p-3.5 transition-all duration-150 hover:border-accent hover:bg-hover hover:shadow-sm"
+              >
+                <div>
+                  <div className="mb-2.5 flex size-7 items-center justify-center rounded-md bg-moss/20 text-accent-strong group-hover:bg-moss/30">
+                    <FolderPlus className="size-3.5" />
+                  </div>
+                  <div className="font-medium text-xs text-fg">Create new</div>
+                  <div className="mt-0.5 text-2xs text-fg-muted">Initialize Git project</div>
+                </div>
+                <div className="mt-3 text-2xs font-semibold text-accent-strong opacity-0 group-hover:opacity-100 transition-opacity">
+                  Create →
+                </div>
+              </button>
+            </div>
           </div>
         )}
 

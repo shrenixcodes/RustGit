@@ -111,7 +111,7 @@ export function SyncControls({ repositoryId, branch }: { repositoryId: number; b
   ];
 
   return (
-    <div role="group" aria-label="Sync" className="flex shrink-0 items-center">
+    <div role="group" aria-label="Sync" className="flex shrink-0 items-center rounded-md border border-border/60 bg-elevated/40 p-0.5">
       <button
         type="button"
         className={CONTROL}
@@ -122,7 +122,7 @@ export function SyncControls({ repositoryId, branch }: { repositoryId: number; b
         {busy("fetch") ? <LoaderCircle aria-hidden className="size-3 motion-safe:animate-spin" /> : <RefreshCcw aria-hidden className="size-3" />}
         fetch
       </button>
-      <span className="px-1 font-sans text-xs text-fg-muted" title="The ahead and behind counts only change after a fetch">
+      <span className="px-1.5 font-sans text-xs text-fg-muted" title="The ahead and behind counts only change after a fetch">
         {lastFetched}
       </span>
 
@@ -136,7 +136,11 @@ export function SyncControls({ repositoryId, branch }: { repositoryId: number; b
         >
           {busy("pull") ? <LoaderCircle aria-hidden className="size-3 motion-safe:animate-spin" /> : <ArrowDown aria-hidden className="size-3" />}
           pull
-          {branch.behind > 0 && <span className="rounded-sm bg-hover px-1 font-semibold text-clay-text">{branch.behind}</span>}
+          {branch.behind > 0 && (
+            <span className="rounded-full bg-clay/20 border border-clay/30 px-1.5 text-2xs font-bold text-clay-text">
+              {branch.behind}
+            </span>
+          )}
         </button>
         <Menu
           label="Pull options"
@@ -158,7 +162,11 @@ export function SyncControls({ repositoryId, branch }: { repositoryId: number; b
           >
             {busy("push") ? <LoaderCircle aria-hidden className="size-3 motion-safe:animate-spin" /> : <ArrowUp aria-hidden className="size-3" />}
             push
-            {branch.ahead > 0 && <span className="rounded-sm bg-hover px-1 font-semibold text-accent">{branch.ahead}</span>}
+            {branch.ahead > 0 && (
+              <span className="rounded-full bg-accent/20 border border-accent/30 px-1.5 text-2xs font-bold text-accent">
+                {branch.ahead}
+              </span>
+            )}
           </button>
         ) : list.length === 1 && list[0] !== undefined ? (
           <button

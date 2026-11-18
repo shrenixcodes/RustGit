@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { ChevronDown, Command, Ellipsis, RefreshCw, Search, Settings } from "lucide-react";
+import { ChevronDown, Command, Ellipsis, GitBranch, RefreshCw, Search, Settings } from "lucide-react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { IconButton } from "../components/Button";
 import { Mark } from "../components/Mark";
@@ -8,6 +8,7 @@ import { SegmentedControl, type SegmentOption } from "../components/SegmentedCon
 import { SwitcherPopover } from "./RepositorySwitcher";
 import { SyncControls } from "./SyncControls";
 import { formatShortcut } from "./shortcuts";
+import { useGithubStatus } from "../services/github";
 import { queryKeys, useRepositories, useRepositoryStatus } from "../services/queries";
 import type { BranchStatus, InProgress, RepositoryEntry } from "../services/types";
 import { usePreferences, type Zoom } from "../stores/preferences";
@@ -36,6 +37,7 @@ export function Seal() {
   const activeRepositoryId: number | null = useWorkspace((state) => state.activeRepositoryId);
   const repositories = useRepositories();
   const status = useRepositoryStatus(activeRepositoryId);
+  const githubStatus = useGithubStatus();
   const switcherOpen: boolean = useUi((state) => state.switcherOpen);
   const setSwitcherOpen = useUi((state) => state.setSwitcherOpen);
   const setPaletteOpen = useUi((state) => state.setPaletteOpen);
@@ -136,6 +138,26 @@ export function Seal() {
           />
         </>
       )}
+      {githubStatus.data?.account ? (
+        <button
+          type="button"
+          onClick={() => setSheet("settings")}
+          title={`GitHub: @${githubStatus.data.account.login} (Manage account)`}
+          className="flex h-6 items-center gap-1.5 rounded-full border border-border bg-elevated/60 px-2 font-mono text-2xs text-fg-secondary hover:border-accent hover:text-fg transition-colors"
+        >
+          <span className="size-1.5 rounded-full bg-accent" />
+          <span>@{githubStatus.data.account.login}</span>
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setSheet("settings")}
+          title="Connect GitHub account"
+          className="flex h-6 items-center gap-1 rounded-full border border-border/80 px-2 font-mono text-2xs text-fg-muted hover:border-border-control hover:text-fg transition-colors"
+        >
+          <span>Connect GitHub</span>
+        </button>
+      )}
       <IconButton label="Settings" shortcut="Mod+," onClick={() => setSheet("settings")}>
         <Settings aria-hidden className="size-3.5" />
       </IconButton>
@@ -157,11 +179,11 @@ export function BranchPath({ branch }: { branch: BranchStatus }) {
   const detached: boolean = branch.head === null;
   return (
     <span className="flex min-w-0 items-center gap-2 font-mono text-xs">
-      <svg aria-hidden width="8" height="8" viewBox="0 0 8 8" className="shrink-0">
-        <circle cx="4" cy="4" r="3" fill={detached ? "var(--rg-clay)" : "var(--rg-accent)"} />
-      </svg>
-      <span className={`truncate ${detached ? "text-clay-text" : "text-fg"}`}>
-        {branch.head ?? `detached at ${branch.oid?.slice(0, 7) ?? "?"}`}
+      <span className="inline-flex items-center gap-1 rounded border border-border/60 bg-elevated/40 px-1.5 py-0.5">
+        <GitBranch aria-hidden className={`size-3 shrink-0 ${detached ? "text-clay-text" : "text-accent"}`} />
+        <span className={`truncate font-medium ${detached ? "text-clay-text" : "text-fg"}`}>
+          {branch.head ?? `detached at ${branch.oid?.slice(0, 7) ?? "?"}`}
+        </span>
       </span>
       {branch.upstream === null ? (
         <span className="shrink-0 text-fg-muted">no upstream</span>
@@ -169,10 +191,10 @@ export function BranchPath({ branch }: { branch: BranchStatus }) {
         <span className="flex shrink-0 items-center gap-1.5 text-fg-muted" title={`Compared with ${branch.upstream} as of the last fetch`}>
           <span aria-hidden className="h-px w-3 bg-border-control" />
           <span className="sr-only">upstream {branch.upstream},</span>
-          <span className={branch.ahead > 0 ? "text-accent" : ""}>
+          <span className={branch.ahead > 0 ? "rounded bg-accent/15 px-1 py-0.2 font-semibold text-accent" : ""}>
             {branch.ahead}↑<span className="sr-only"> ahead,</span>
           </span>
-          <span className={branch.behind > 0 ? "text-clay-text" : ""}>
+          <span className={branch.behind > 0 ? "rounded bg-clay/15 px-1 py-0.2 font-semibold text-clay-text" : ""}>
             {branch.behind}↓<span className="sr-only"> behind</span>
           </span>
         </span>

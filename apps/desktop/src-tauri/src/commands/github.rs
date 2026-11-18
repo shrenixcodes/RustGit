@@ -129,10 +129,10 @@ pub async fn github_start_sign_in(
         )
     })?;
     let cancelled: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
-    if let Ok(mut slot) = github.sign_in.lock() {
-        if let Some(previous) = slot.replace(Arc::clone(&cancelled)) {
-            previous.store(true, Ordering::SeqCst);
-        }
+    if let Ok(mut slot) = github.sign_in.lock()
+        && let Some(previous) = slot.replace(Arc::clone(&cancelled))
+    {
+        previous.store(true, Ordering::SeqCst);
     }
     let flow: Arc<GithubState> = Arc::clone(&github);
     let code: DeviceCode = blocking(move || {
@@ -174,10 +174,10 @@ pub async fn github_start_sign_in(
 
 #[tauri::command]
 pub fn github_cancel_sign_in(state: State<'_, AppState>) {
-    if let Ok(mut slot) = state.github.sign_in.lock() {
-        if let Some(flag) = slot.take() {
-            flag.store(true, Ordering::SeqCst);
-        }
+    if let Ok(mut slot) = state.github.sign_in.lock()
+        && let Some(flag) = slot.take()
+    {
+        flag.store(true, Ordering::SeqCst);
     }
 }
 

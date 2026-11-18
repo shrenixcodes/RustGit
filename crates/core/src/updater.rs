@@ -1,8 +1,8 @@
 //! Application auto-updater checking GitHub Releases.
 
-use std::path::Path;
-use serde::{Deserialize, Serialize};
 use crate::github::Http;
+use serde::{Deserialize, Serialize};
+use std::path::Path;
 
 pub const DEFAULT_REPOSITORY: &str = "shrenixcodes/RustGit";
 
@@ -100,7 +100,9 @@ pub fn check_for_update(
         release_notes: release.body,
         published_at: release.published_at,
         asset_name: chosen_asset.as_ref().map(|a| a.name.clone()),
-        download_url: chosen_asset.as_ref().map(|a| a.browser_download_url.clone()),
+        download_url: chosen_asset
+            .as_ref()
+            .map(|a| a.browser_download_url.clone()),
     })
 }
 
@@ -128,10 +130,9 @@ pub fn apply_update(download_url: &str, file_name: &str) -> Result<(), UpdaterEr
         .map_err(|e| UpdaterError::Download(e.to_string()))?;
 
     let mut reader = response.into_body().into_reader();
-    let mut file = std::fs::File::create(&temp_file)
-        .map_err(|e| UpdaterError::Download(e.to_string()))?;
-    std::io::copy(&mut reader, &mut file)
-        .map_err(|e| UpdaterError::Download(e.to_string()))?;
+    let mut file =
+        std::fs::File::create(&temp_file).map_err(|e| UpdaterError::Download(e.to_string()))?;
+    std::io::copy(&mut reader, &mut file).map_err(|e| UpdaterError::Download(e.to_string()))?;
 
     drop(file);
 
@@ -190,10 +191,20 @@ mod tests {
     }
 
     impl Http for MockHttp {
-        fn post_form(&self, _url: &str, _form: &[(&str, &str)]) -> Result<String, crate::github::GithubError> {
+        fn post_form(
+            &self,
+            _url: &str,
+            _form: &[(&str, &str)],
+        ) -> Result<String, crate::github::GithubError> {
             Ok(String::new())
         }
-        fn api(&self, _method: &str, _url: &str, _token: &str, _body: Option<&str>) -> Result<(u16, String), crate::github::GithubError> {
+        fn api(
+            &self,
+            _method: &str,
+            _url: &str,
+            _token: &str,
+            _body: Option<&str>,
+        ) -> Result<(u16, String), crate::github::GithubError> {
             Ok((self.status, self.body.clone()))
         }
     }
@@ -218,6 +229,9 @@ mod tests {
         let result = check_for_update(&http, "test/repo", "0.1.0").expect("check update");
         assert!(result.has_update);
         assert_eq!(result.latest_version, "v0.2.0");
-        assert_eq!(result.release_notes.as_deref(), Some("New high-performance features"));
+        assert_eq!(
+            result.release_notes.as_deref(),
+            Some("New high-performance features")
+        );
     }
 }

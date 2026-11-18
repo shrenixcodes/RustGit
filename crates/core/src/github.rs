@@ -324,45 +324,42 @@ pub fn probe_local_github_token() -> Option<String> {
     if let Ok(output) = std::process::Command::new("gh")
         .args(["auth", "token", "--hostname", "github.com"])
         .output()
+        && output.status.success()
     {
-        if output.status.success() {
-            let token = String::from_utf8_lossy(&output.stdout).trim().to_owned();
-            if is_valid_token_shape(&token) {
-                return Some(token);
-            }
+        let token = String::from_utf8_lossy(&output.stdout).trim().to_owned();
+        if is_valid_token_shape(&token) {
+            return Some(token);
         }
     }
 
     // 3. GitHub CLI configuration file
-    if let Some(token) = read_gh_hosts_file() {
-        if is_valid_token_shape(&token) {
-            return Some(token);
-        }
+    if let Some(token) = read_gh_hosts_file()
+        && is_valid_token_shape(&token)
+    {
+        return Some(token);
     }
 
     // 4. GitHub Desktop credential store entry
-    if let Ok(entry) = keyring::Entry::new("GitHub - https://api.github.com", "") {
-        if let Ok(token) = entry.get_password() {
-            if is_valid_token_shape(&token) {
-                return Some(token);
-            }
-        }
+    if let Ok(entry) = keyring::Entry::new("GitHub - https://api.github.com", "")
+        && let Ok(token) = entry.get_password()
+        && is_valid_token_shape(&token)
+    {
+        return Some(token);
     }
 
     // 5. Git Credential Manager entry
-    if let Ok(entry) = keyring::Entry::new("git:https://github.com", "") {
-        if let Ok(token) = entry.get_password() {
-            if is_valid_token_shape(&token) {
-                return Some(token);
-            }
-        }
+    if let Ok(entry) = keyring::Entry::new("git:https://github.com", "")
+        && let Ok(token) = entry.get_password()
+        && is_valid_token_shape(&token)
+    {
+        return Some(token);
     }
 
     // 6. Git credential helper query
-    if let Some(token) = query_git_credential_helper() {
-        if is_valid_token_shape(&token) {
-            return Some(token);
-        }
+    if let Some(token) = query_git_credential_helper()
+        && is_valid_token_shape(&token)
+    {
+        return Some(token);
     }
 
     None
@@ -392,10 +389,10 @@ fn read_gh_hosts_file() -> Option<String> {
         candidates.push(p.join(".config").join("gh").join("hosts.yml"));
     }
     for path in candidates {
-        if let Ok(content) = std::fs::read_to_string(&path) {
-            if let Some(token) = parse_oauth_token_from_hosts(&content) {
-                return Some(token);
-            }
+        if let Ok(content) = std::fs::read_to_string(&path)
+            && let Some(token) = parse_oauth_token_from_hosts(&content)
+        {
+            return Some(token);
         }
     }
     None
@@ -412,12 +409,10 @@ fn parse_oauth_token_from_hosts(content: &str) -> Option<String> {
         if in_github && !line.starts_with(' ') && !line.starts_with('\t') && line.ends_with(':') {
             in_github = false;
         }
-        if in_github {
-            if let Some(rest) = trimmed.strip_prefix("oauth_token:") {
-                let tok: &str = rest.trim();
-                if !tok.is_empty() {
-                    return Some(tok.to_owned());
-                }
+        if in_github && let Some(rest) = trimmed.strip_prefix("oauth_token:") {
+            let tok: &str = rest.trim();
+            if !tok.is_empty() {
+                return Some(tok.to_owned());
             }
         }
     }
@@ -672,7 +667,9 @@ mod tests {
         assert!(is_valid_token_shape("ghp_1234567890abcdef"));
         assert!(is_valid_token_shape("gho_1234567890abcdef"));
         assert!(is_valid_token_shape("github_pat_1234567890abcdef"));
-        assert!(is_valid_token_shape("0123456789abcdef0123456789abcdef01234567"));
+        assert!(is_valid_token_shape(
+            "0123456789abcdef0123456789abcdef01234567"
+        ));
         assert!(!is_valid_token_shape("short"));
         assert!(!is_valid_token_shape("not_a_valid_token_hex_1234567890"));
     }

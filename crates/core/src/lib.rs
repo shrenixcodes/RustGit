@@ -10,7 +10,6 @@ pub mod updater;
 pub mod watcher;
 
 pub use askpass::{AskpassBroker, CredentialRequest, PendingPrompts};
-pub use updater::{UpdateCheckResult, UpdaterError, check_for_update, apply_update, DEFAULT_REPOSITORY};
 pub use database::{
     Database, DatabaseError, RepositoryEntry, Settings, ThemePreference, owning_repository,
 };
@@ -19,5 +18,8 @@ pub use locks::RepositoryLocks;
 pub use operations::{
     OperationFinished, OperationKind, OperationOutcome, OperationProgress, OperationRegistry,
     OperationStarted, ProgressCounts, ProgressThrottle,
+};
+pub use updater::{
+    DEFAULT_REPOSITORY, UpdateCheckResult, UpdaterError, apply_update, check_for_update,
 };
 pub use watcher::{ChangeScope, RepositoryChanged, RepositoryWatchers, WatchError};

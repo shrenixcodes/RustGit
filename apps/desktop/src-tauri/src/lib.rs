@@ -180,24 +180,24 @@ fn resolve_git() -> PathBuf {
             candidates.push(p.join("Programs").join("Git").join("bin").join("git.exe"));
             // GitHub Desktop's bundled Git
             let gh_desktop = p.join("GitHubDesktop");
-            if gh_desktop.is_dir() {
-                if let Ok(entries) = std::fs::read_dir(&gh_desktop) {
-                    for entry in entries.flatten() {
-                        let path = entry.path();
-                        if path.is_dir()
-                            && path
-                                .file_name()
-                                .and_then(|n| n.to_str())
-                                .is_some_and(|s| s.starts_with("app-"))
-                        {
-                            candidates.push(
-                                path.join("resources")
-                                    .join("app")
-                                    .join("git")
-                                    .join("cmd")
-                                    .join("git.exe"),
-                            );
-                        }
+            if gh_desktop.is_dir()
+                && let Ok(entries) = std::fs::read_dir(&gh_desktop)
+            {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.is_dir()
+                        && path
+                            .file_name()
+                            .and_then(|n| n.to_str())
+                            .is_some_and(|s| s.starts_with("app-"))
+                    {
+                        candidates.push(
+                            path.join("resources")
+                                .join("app")
+                                .join("git")
+                                .join("cmd")
+                                .join("git.exe"),
+                        );
                     }
                 }
             }
@@ -208,7 +208,11 @@ fn resolve_git() -> PathBuf {
             }
         }
     } else if cfg!(target_os = "macos") {
-        for candidate in ["/usr/local/bin/git", "/opt/homebrew/bin/git", "/usr/bin/git"] {
+        for candidate in [
+            "/usr/local/bin/git",
+            "/opt/homebrew/bin/git",
+            "/usr/bin/git",
+        ] {
             let p = PathBuf::from(candidate);
             if p.is_file() {
                 return p;
@@ -239,10 +243,10 @@ fn start_credential_broker(
     let store: Arc<dyn TokenStore> = Arc::clone(store);
     let handler: PromptHandler = Arc::new(move |prompt: &str| {
         // A signed-in GitHub account answers github.com prompts without asking.
-        if let Ok(Some(token)) = store.load() {
-            if let Some(answer) = answer_for_prompt(prompt, &token) {
-                return Some(answer);
-            }
+        if let Ok(Some(token)) = store.load()
+            && let Some(answer) = answer_for_prompt(prompt, &token)
+        {
+            return Some(answer);
         }
         let (request_id, receiver) = pending.register();
         let request: CredentialRequest = CredentialRequest {

@@ -6,8 +6,8 @@ use tauri::State;
 
 use crate::state::{AppState, blocking};
 use rustgit_core::{
-    CommandError, CommandResult, Database, ErrorKind, Settings, ThemePreference,
-    UpdateCheckResult, check_for_update as core_check_for_update, apply_update, DEFAULT_REPOSITORY,
+    CommandError, CommandResult, DEFAULT_REPOSITORY, Database, ErrorKind, Settings,
+    ThemePreference, UpdateCheckResult, apply_update, check_for_update as core_check_for_update,
 };
 
 #[derive(Debug, Serialize)]

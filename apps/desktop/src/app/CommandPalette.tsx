@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { Search } from "lucide-react";
+import { FileDiff, Folder, GitBranch, RefreshCw, Search, Settings, Sliders, SunMoon } from "lucide-react";
 import { formatShortcut } from "./shortcuts";
 import { queryKeys, useOpenRepository, useRefs, useRepositories, useSetTheme } from "../services/queries";
 import type { RefEntry, RepositoryEntry } from "../services/types";
@@ -158,6 +158,19 @@ export function CommandPalette() {
     event.preventDefault();
   };
 
+function iconForCommand(command: PaletteCommand) {
+  if (command.group === "Branches") return <GitBranch aria-hidden className="size-3.5 shrink-0 text-accent" />;
+  if (command.group === "Repositories") return <Folder aria-hidden className="size-3.5 shrink-0 text-clay-text" />;
+  if (command.group === "Settings") {
+    if (command.id.startsWith("theme:")) return <SunMoon aria-hidden className="size-3.5 shrink-0 text-warning" />;
+    return <Settings aria-hidden className="size-3.5 shrink-0 text-fg-muted" />;
+  }
+  if (command.id === "refresh") return <RefreshCw aria-hidden className="size-3.5 shrink-0 text-fg-muted" />;
+  if (command.id === "search") return <Search aria-hidden className="size-3.5 shrink-0 text-fg-muted" />;
+  if (command.id === "now") return <FileDiff aria-hidden className="size-3.5 shrink-0 text-accent" />;
+  return <Sliders aria-hidden className="size-3.5 shrink-0 text-fg-muted" />;
+}
+
   return (
     <dialog
       ref={dialog}
@@ -169,10 +182,10 @@ export function CommandPalette() {
       onClick={(event) => {
         if (event.target === dialog.current) close();
       }}
-      className="mx-auto mt-[12vh] w-[min(560px,calc(100vw-48px))] overflow-hidden rounded-md border border-border bg-elevated p-0 text-fg shadow-popover backdrop:bg-overlay"
+      className="mx-auto mt-[12vh] w-[min(580px,calc(100vw-48px))] overflow-hidden rounded-xl border border-border/80 bg-elevated/95 p-0 text-fg shadow-popover backdrop:bg-overlay backdrop:backdrop-blur-sm"
     >
       <div onKeyDown={onKeyDown}>
-        <label className="flex h-11 items-center gap-2 border-b border-border px-4">
+        <label className="flex h-12 items-center gap-3 border-b border-border/70 px-4">
           <Search aria-hidden className="size-4 text-fg-muted" />
           <span className="sr-only">Command</span>
           <input
@@ -186,35 +199,69 @@ export function CommandPalette() {
               setQuery(event.target.value);
               setHighlight(0);
             }}
-            placeholder="Go to, open or change anything"
-            className="h-full flex-1 bg-transparent text-base outline-none placeholder:text-fg-muted"
+            placeholder="Go to, open or change anything…"
+            className="h-full flex-1 bg-transparent text-sm outline-none placeholder:text-fg-muted/70"
           />
+          {query !== "" && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                setHighlight(0);
+              }}
+              className="text-fg-muted hover:text-fg text-xs px-1"
+              title="Clear search"
+            >
+              ×
+            </button>
+          )}
         </label>
-        <ul id={listId} role="listbox" aria-label="Commands" className="max-h-[50vh] overflow-y-auto py-1">
-          {visible.length === 0 && <li className="px-4 py-3 text-sm text-fg-muted">No command matches “{query}”.</li>}
+        <ul id={listId} role="listbox" aria-label="Commands" className="max-h-[50vh] overflow-y-auto py-1.5">
+          {visible.length === 0 && <li className="px-4 py-4 text-center text-xs text-fg-muted">No command matches “{query}”.</li>}
           {visible.map((command, index) => {
             const isCurrent: boolean = command.id === current?.id;
             const showGroup: boolean = query.trim() === "" && (index === 0 || visible[index - 1]?.group !== command.group);
             return (
               <li key={command.id} role="presentation">
-                {showGroup && <p className="rg-tag px-4 pt-2 pb-1">{command.group.toLowerCase()}</p>}
+                {showGroup && <p className="px-4 pt-2.5 pb-1 text-2xs font-semibold tracking-wider text-fg-muted uppercase">{command.group}</p>}
                 <div
                   id={`${listId}-${command.id}`}
                   role="option"
                   aria-selected={isCurrent}
                   onPointerMove={() => setHighlight(index)}
                   onClick={() => runCommand(command)}
-                  className={`flex h-8 cursor-default items-center gap-3 px-4 text-sm ${isCurrent ? "bg-selection" : ""}`}
+                  className={`mx-2 my-0.5 flex h-9 cursor-default items-center gap-3 rounded-lg px-3 text-xs transition-colors ${
+                    isCurrent ? "bg-selection text-fg font-medium" : "text-fg-secondary hover:bg-hover hover:text-fg"
+                  }`}
                 >
+                  {iconForCommand(command)}
                   <span className="min-w-0 flex-1 truncate">{command.title}</span>
                   {command.shortcut !== undefined && (
-                    <span className="shrink-0 font-mono text-2xs text-fg-muted">{formatShortcut(command.shortcut)}</span>
+                    <span className="shrink-0 font-mono text-2xs text-fg-muted">
+                      {formatShortcut(command.shortcut)}
+                    </span>
                   )}
                 </div>
               </li>
             );
           })}
         </ul>
+        <div className="flex items-center justify-between border-t border-divider/60 bg-surface/30 px-4 py-2 text-2xs text-fg-muted">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1">
+              <kbd className="rounded border border-border/70 bg-elevated px-1 font-mono">↵</kbd>
+              <span>select</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <kbd className="rounded border border-border/70 bg-elevated px-1 font-mono">↑↓</kbd>
+              <span>navigate</span>
+            </span>
+          </div>
+          <span className="flex items-center gap-1">
+            <kbd className="rounded border border-border/70 bg-elevated px-1 font-mono">esc</kbd>
+            <span>dismiss</span>
+          </span>
+        </div>
       </div>
     </dialog>
   );

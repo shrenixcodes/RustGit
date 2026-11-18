@@ -64,9 +64,12 @@ export function Sheet() {
         event.preventDefault();
         setSheet(null);
       }}
-      className="m-auto flex h-[min(720px,calc(100vh-64px))] w-[min(860px,calc(100vw-64px))] flex-col rounded-md border border-border bg-bg p-0 text-fg shadow-popover backdrop:bg-overlay"
+      className="m-auto flex h-[min(720px,calc(100vh-64px))] w-[min(880px,calc(100vw-64px))] flex-col rounded-xl border border-border/80 bg-bg p-0 text-fg shadow-popover backdrop:bg-overlay backdrop:backdrop-blur-sm"
     >
-      <div className="absolute top-3 right-3 z-10">
+      <div className="absolute top-3.5 right-3.5 z-10 flex items-center gap-2">
+        <span className="hidden sm:inline-flex items-center gap-1 font-mono text-2xs text-fg-muted/70">
+          <kbd className="rounded border border-border/70 bg-elevated px-1 text-2xs">Esc</kbd>
+        </span>
         <IconButton label="Close" onClick={() => setSheet(null)}>
           <X aria-hidden className="size-4" />
         </IconButton>

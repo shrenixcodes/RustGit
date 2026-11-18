@@ -35,6 +35,7 @@ import type {
   Settings,
   StatusSnapshot,
   ThemePreference,
+  UpdateCheckResult,
 } from "./types";
 
 /** Error thrown by every IPC call; always carries a typed kind. */
@@ -256,4 +257,9 @@ export const ipc = {
   removeWorktree: (id: number, path: string, force: boolean): Promise<Worktree[]> =>
     call("remove_worktree", { id, path, force }),
   pruneWorktrees: (id: number): Promise<Worktree[]> => call("prune_worktrees", { id }),
+
+  // System & Updater
+  checkForUpdate: (): Promise<UpdateCheckResult> => call("check_for_update"),
+  installUpdate: (downloadUrl: string, assetName: string): Promise<void> =>
+    call("install_update", { downloadUrl, assetName }),
 } as const;

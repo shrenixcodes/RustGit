@@ -20,6 +20,8 @@
     "allow-github-create-repository",
     "allow-get-settings",
     "allow-set-theme",
+    "allow-check-for-update",
+    "allow-install-update",
     "allow-list-repositories",
     "allow-add-repository",
     "allow-init-repository",

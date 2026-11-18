@@ -7,6 +7,7 @@ import { Seal } from "./Seal";
 import { Sheet } from "./Sheet";
 import { useShortcuts } from "./shortcuts";
 import { RepositoriesView } from "../features/repositories/RepositoriesView";
+import { UpdateBanner } from "../components/UpdateBanner";
 import { toIpcError } from "../services/ipc";
 import { CredentialPrompt } from "./CredentialPrompt";
 import { networkActions, useOperationEvents } from "../services/network";
@@ -36,6 +37,7 @@ export function AppShell() {
   return (
     <div className="flex h-full flex-col bg-bg text-fg">
       <Seal />
+      <UpdateBanner />
       <main className="flex min-h-0 flex-1 flex-col">
         {activeRepositoryId === null ? <RepositoriesView /> : <ThreadView key={activeRepositoryId} repositoryId={activeRepositoryId} />}
       </main>

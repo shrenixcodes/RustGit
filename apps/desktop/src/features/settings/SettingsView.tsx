@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
+import { Button } from "../../components/Button";
 import { ErrorNotice } from "../../components/ErrorNotice";
 import { PageHeader } from "../../components/PageHeader";
 import { SegmentedControl, type SegmentOption } from "../../components/SegmentedControl";
-import { useGitInfo, useSetTheme, useSettings } from "../../services/queries";
+import { useGitInfo, useInstallUpdate, useSetTheme, useSettings, useUpdateCheck } from "../../services/queries";
 import type { ThemePreference } from "../../services/types";
 import { usePreferences, type MotionPreference, type Personality } from "../../stores/preferences";
 import { GithubAccount } from "./GithubAccount";
@@ -27,6 +28,8 @@ export function SettingsView() {
   const settings = useSettings();
   const setTheme = useSetTheme();
   const gitInfo = useGitInfo();
+  const updateCheck = useUpdateCheck();
+  const installUpdate = useInstallUpdate();
   const personality: Personality = usePreferences((state) => state.personality);
   const setPersonality = usePreferences((state) => state.setPersonality);
   const motion: MotionPreference = usePreferences((state) => state.motion);
@@ -85,6 +88,63 @@ export function SettingsView() {
                 </dd>
               </dl>
             )}
+          </Setting>
+
+          <Setting
+            label="Updates"
+            description="RustGit checks for official releases and can automatically update itself without leaving the app."
+          >
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center gap-4">
+                <span className="text-fg-muted">Current version:</span>
+                <span className="font-mono">{updateCheck.data?.currentVersion ?? "0.1.0"}</span>
+                <Button
+                  variant="secondary"
+                  disabled={updateCheck.isFetching}
+                  onClick={() => void updateCheck.refetch()}
+                >
+                  {updateCheck.isFetching ? "Checking…" : "Check for updates"}
+                </Button>
+              </div>
+
+              {updateCheck.isError && (
+                <ErrorNotice title="Failed to check for updates" error={updateCheck.error} />
+              )}
+
+              {updateCheck.data?.hasUpdate ? (
+                <div className="rounded border border-accent/40 bg-accent/10 p-3 space-y-2">
+                  <div className="font-medium text-fg">
+                    A new version is available: {updateCheck.data.latestVersion}
+                  </div>
+                  {updateCheck.data.releaseNotes && (
+                    <p className="text-xs text-fg-muted whitespace-pre-wrap max-h-32 overflow-y-auto">
+                      {updateCheck.data.releaseNotes}
+                    </p>
+                  )}
+                  {installUpdate.isError && (
+                    <p className="text-danger text-xs">{installUpdate.error.message}</p>
+                  )}
+                  <Button
+                    variant="primary"
+                    disabled={installUpdate.isPending || !updateCheck.data.downloadUrl}
+                    onClick={() => {
+                      if (updateCheck.data?.downloadUrl && updateCheck.data?.assetName) {
+                        installUpdate.mutate({
+                          downloadUrl: updateCheck.data.downloadUrl,
+                          assetName: updateCheck.data.assetName,
+                        });
+                      }
+                    }}
+                  >
+                    {installUpdate.isPending ? "Downloading & Installing…" : "Install update"}
+                  </Button>
+                </div>
+              ) : (
+                updateCheck.data !== undefined && !updateCheck.isFetching && (
+                  <p className="text-xs text-fg-muted">RustGit is up to date.</p>
+                )
+              )}
+            </div>
           </Setting>
         </div>
       </div>

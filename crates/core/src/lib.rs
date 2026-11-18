@@ -6,9 +6,11 @@ pub mod error;
 pub mod github;
 pub mod locks;
 pub mod operations;
+pub mod updater;
 pub mod watcher;
 
 pub use askpass::{AskpassBroker, CredentialRequest, PendingPrompts};
+pub use updater::{UpdateCheckResult, UpdaterError, check_for_update, apply_update, DEFAULT_REPOSITORY};
 pub use database::{
     Database, DatabaseError, RepositoryEntry, Settings, ThemePreference, owning_repository,
 };

@@ -31,6 +31,7 @@ import type {
   Settings,
   StatusSnapshot,
   ThemePreference,
+  UpdateCheckResult,
   WorkingDiffSide,
 } from "./types";
 import { useActivity } from "../stores/activity";
@@ -63,6 +64,7 @@ export const LOG_PAGE_SIZE = 300;
 export const queryKeys = {
   gitInfo: ["git-info"] as const,
   settings: ["settings"] as const,
+  updateCheck: ["update-check"] as const,
   repositories: ["repositories"] as const,
   commandHistory: ["command-history"] as const,
   repository: (repositoryId: number) => ["repositories", repositoryId] as const,
@@ -565,6 +567,31 @@ export function useResolveConflict(repositoryId: number): UseMutationResult<Stat
       void client.invalidateQueries({ queryKey: queryKeys.diffs(repositoryId) });
       void client.invalidateQueries({ queryKey: queryKeys.totals(repositoryId) });
       void client.invalidateQueries({ queryKey: queryKeys.commitContext(repositoryId) });
+    },
+  });
+}
+
+/** Queries for updates from GitHub Releases (stale time: 1 hour). */
+export function useUpdateCheck(): UseQueryResult<UpdateCheckResult, IpcError> {
+  return useQuery({
+    queryKey: queryKeys.updateCheck,
+    queryFn: () => ipc.checkForUpdate(),
+    staleTime: 60 * 60 * 1000,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/** Installs a downloaded GitHub release update. */
+export function useInstallUpdate(): UseMutationResult<void, IpcError, { downloadUrl: string; assetName: string }> {
+  return useMutation({
+    mutationFn: ({ downloadUrl, assetName }) => ipc.installUpdate(downloadUrl, assetName),
+    meta: {
+      operation: "Install update",
+      describe: (variables: unknown) => {
+        const v = variables as { assetName: string };
+        return `Installing update (${v.assetName})`;
+      },
     },
   });
 }

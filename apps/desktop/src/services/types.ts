@@ -48,6 +48,16 @@ export interface GitInfo {
   executable: string;
 }
 
+export interface UpdateCheckResult {
+  hasUpdate: boolean;
+  currentVersion: string;
+  latestVersion: string;
+  releaseNotes: string | null;
+  publishedAt: string | null;
+  assetName: string | null;
+  downloadUrl: string | null;
+}
+
 export interface RepositoryEntry {
   id: number;
   path: string;

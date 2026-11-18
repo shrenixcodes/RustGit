@@ -5,7 +5,10 @@ use serde::Serialize;
 use tauri::State;
 
 use crate::state::{AppState, blocking};
-use rustgit_core::{CommandResult, Database, Settings, ThemePreference};
+use rustgit_core::{
+    CommandError, CommandResult, Database, ErrorKind, Settings, ThemePreference,
+    UpdateCheckResult, check_for_update as core_check_for_update, apply_update, DEFAULT_REPOSITORY,
+};
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -40,4 +43,24 @@ pub async fn set_theme(
 ) -> CommandResult<Settings> {
     let database: Arc<Database> = Arc::clone(&state.database);
     blocking(move || Ok(database.set_theme(theme)?)).await
+}
+
+#[tauri::command]
+pub async fn check_for_update(state: State<'_, AppState>) -> CommandResult<UpdateCheckResult> {
+    let http = Arc::clone(&state.github.http);
+    blocking(move || {
+        let current_version = env!("CARGO_PKG_VERSION");
+        core_check_for_update(http.as_ref(), DEFAULT_REPOSITORY, current_version)
+            .map_err(|e| CommandError::new(ErrorKind::Internal, e.to_string()))
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn install_update(download_url: String, asset_name: String) -> CommandResult<()> {
+    blocking(move || {
+        apply_update(&download_url, &asset_name)
+            .map_err(|e| CommandError::new(ErrorKind::Internal, e.to_string()))
+    })
+    .await
 }

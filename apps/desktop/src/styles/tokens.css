@@ -57,11 +57,12 @@
 
   --rg-selection: rgb(164 170 145 / 0.1);
   --rg-selection-strong: rgb(164 170 145 / 0.17);
-  --rg-hover: rgb(229 226 216 / 0.04);
+  --rg-hover: rgb(229 226 216 / 0.05);
   --rg-glow: 0 0 0 1px rgb(164 170 145 / 0.4);
   --rg-canvas-line: rgb(229 226 216 / 0.03);
-  --rg-overlay: rgb(8 9 8 / 0.6);
-  --rg-shadow-popover: 0 10px 30px rgb(0 0 0 / 0.45);
+  --rg-overlay: rgb(8 9 8 / 0.65);
+  --rg-shadow-popover: 0 12px 36px -4px rgb(0 0 0 / 0.5), 0 4px 12px -2px rgb(0 0 0 / 0.25);
+  --rg-shadow-subtle: 0 1px 2px rgb(0 0 0 / 0.15);
 
 
   --rg-diff-add-bg: rgb(118 167 134 / 0.1);

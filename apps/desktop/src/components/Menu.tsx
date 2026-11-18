@@ -107,7 +107,7 @@ export function Menu({ label, items, trigger, className = "", disabled = false, 
             event.preventDefault();
             event.stopPropagation();
           }}
-          className={`absolute top-full z-30 mt-1 min-w-56 rounded-sm border border-border bg-elevated py-1 shadow-popover outline-none ${
+          className={`absolute top-full z-30 mt-1.5 min-w-56 rounded-lg border border-border/80 bg-elevated/95 py-1.5 shadow-popover backdrop-blur-md outline-none ${
             align === "end" ? "right-0" : "left-0"
           }`}
         >
@@ -119,17 +119,17 @@ export function Menu({ label, items, trigger, className = "", disabled = false, 
               aria-disabled={item.disabled === true || undefined}
               onPointerEnter={() => item.disabled !== true && setActive(index)}
               onClick={() => runItem(item)}
-              className={`flex cursor-default items-baseline gap-3 px-3 py-1.5 text-sm ${
+              className={`flex cursor-default items-center gap-3 px-3 py-1.5 text-sm transition-colors duration-100 ${
                 item.disabled === true
-                  ? "text-fg-muted opacity-60"
+                  ? "text-fg-muted opacity-50"
                   : index === active
                     ? "bg-hover text-fg"
                     : item.destructive === true
-                      ? "text-danger"
-                      : "text-fg-secondary"
+                      ? "text-danger hover:bg-danger/10"
+                      : "text-fg-secondary hover:text-fg"
               }`}
             >
-              <span className={item.destructive === true && item.disabled !== true ? "text-danger" : ""}>{item.label}</span>
+              <span className={item.destructive === true && item.disabled !== true ? "text-danger font-medium" : ""}>{item.label}</span>
               {item.hint !== undefined && <span className="ml-auto font-mono text-2xs text-fg-muted">{item.hint}</span>}
             </li>
           ))}

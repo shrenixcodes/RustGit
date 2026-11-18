@@ -51,7 +51,7 @@ export function SegmentedControl<T extends string>({
       role="radiogroup"
       aria-label={label}
       onKeyDown={handleKeyDown}
-      className="inline-flex rounded-sm border border-border bg-canvas p-0.5"
+      className="inline-flex rounded-md border border-border/70 bg-canvas/80 p-0.5 shadow-2xs"
     >
       {options.map((option: SegmentOption<T>, index: number) => {
         const checked: boolean = option.value === value;
@@ -67,8 +67,10 @@ export function SegmentedControl<T extends string>({
             tabIndex={index === selectedIndex ? 0 : -1}
             disabled={disabled}
             onClick={() => onChange(option.value)}
-            className={`h-6 rounded-xs px-3 text-sm transition-colors duration-100 disabled:opacity-45 ${
-              checked ? "bg-elevated font-medium text-fg shadow-glow" : "text-fg-secondary hover:text-fg"
+            className={`h-6.5 rounded-sm px-3 text-xs font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-40 ${
+              checked
+                ? "bg-elevated font-medium text-fg shadow-xs ring-1 ring-border/40"
+                : "text-fg-secondary hover:text-fg hover:bg-hover/60"
             }`}
           >
             {option.label}

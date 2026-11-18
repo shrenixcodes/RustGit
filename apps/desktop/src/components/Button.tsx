@@ -4,10 +4,14 @@ import { formatShortcut } from "../app/shortcuts";
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 
 const VARIANT_CLASSES: Record<Variant, string> = {
-  primary: "border border-accent bg-accent text-accent-contrast hover:bg-accent-strong hover:border-accent-strong",
-  secondary: "border border-border bg-elevated text-fg hover:border-border-control",
-  ghost: "border border-transparent text-fg-secondary hover:bg-hover hover:text-fg",
-  danger: "border border-border bg-elevated text-danger hover:border-danger",
+  primary:
+    "border border-accent bg-accent text-accent-contrast shadow-xs hover:bg-accent-strong hover:border-accent-strong active:scale-[0.98] active:brightness-95",
+  secondary:
+    "border border-border/80 bg-elevated/70 text-fg shadow-2xs hover:border-border-control hover:bg-elevated active:scale-[0.98] active:bg-surface",
+  ghost:
+    "border border-transparent text-fg-secondary hover:bg-hover hover:text-fg active:scale-[0.98] active:bg-selection",
+  danger:
+    "border border-danger/30 bg-elevated text-danger shadow-2xs hover:border-danger hover:bg-danger/10 active:scale-[0.98]",
 };
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -22,7 +26,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     <button
       ref={ref}
       type={type}
-      className={`rg-control inline-flex shrink-0 items-center gap-1.5 rounded-sm px-2.5 text-sm font-medium transition-colors duration-100 disabled:cursor-not-allowed disabled:opacity-45 ${VARIANT_CLASSES[variant]} ${className}`}
+      className={`rg-control inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md px-3 text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-1 focus-visible:ring-offset-bg disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100 ${VARIANT_CLASSES[variant]} ${className}`}
       {...props}
     />
   );
@@ -48,7 +52,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
       aria-label={label}
       aria-pressed={pressed}
       title={shortcut === undefined ? label : `${label} (${formatShortcut(shortcut)})`}
-      className={`inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-fg-muted transition-colors duration-100 hover:bg-hover hover:text-fg disabled:cursor-not-allowed disabled:opacity-45 aria-pressed:text-accent ${className}`}
+      className={`inline-flex size-7 shrink-0 items-center justify-center rounded-md text-fg-muted transition-all duration-150 hover:bg-hover hover:text-fg active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-1 focus-visible:ring-offset-bg disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100 aria-pressed:bg-selection aria-pressed:text-accent ${className}`}
       {...props}
     />
   );

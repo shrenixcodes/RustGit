@@ -41,15 +41,15 @@ export function ConfirmDialog({ title, children, confirmLabel, destructive = fal
         event.preventDefault();
         if (!busy) onCancel();
       }}
-      className="m-auto w-[440px] max-w-[calc(100vw-32px)] rounded-md border border-border bg-elevated p-0 text-fg shadow-popover backdrop:bg-overlay"
+      className="m-auto w-[440px] max-w-[calc(100vw-32px)] rounded-xl border border-border/80 bg-elevated/95 p-0 text-fg shadow-popover backdrop:bg-overlay backdrop:backdrop-blur-sm"
     >
       <div className="space-y-3 px-6 pt-5 pb-4">
-        <h2 id={titleId} className="text-base font-medium">
+        <h2 id={titleId} className="text-base font-semibold text-fg">
           {title}
         </h2>
-        <div className="space-y-2 text-sm text-fg-secondary">{children}</div>
+        <div className="space-y-2 text-sm text-fg-secondary leading-relaxed">{children}</div>
       </div>
-      <div className="flex justify-end gap-2 px-6 pb-5">
+      <div className="flex justify-end gap-2.5 border-t border-divider/60 bg-surface/30 px-6 py-4">
         <Button ref={cancel} onClick={onCancel} disabled={busy}>
           Cancel
         </Button>

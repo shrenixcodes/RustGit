@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
-import { ChevronDown, Command, Ellipsis, GitBranch, RefreshCw, Search, Settings } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, ChevronDown, Command, Copy, Ellipsis, GitBranch, RefreshCw, Search, Settings } from "lucide-react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { IconButton } from "../components/Button";
 import { Mark } from "../components/Mark";
@@ -177,13 +177,33 @@ export function Seal() {
 /** The branch written as a short path in the graph's own language: a point, a line to its upstream, the distance. */
 export function BranchPath({ branch }: { branch: BranchStatus }) {
   const detached: boolean = branch.head === null;
+  const [copied, setCopied] = useState<boolean>(false);
+
+  const copyBranch = (name: string): void => {
+    void navigator.clipboard?.writeText(name).then(() => {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
   return (
     <span className="flex min-w-0 items-center gap-2 font-mono text-xs">
-      <span className="inline-flex items-center gap-1 rounded border border-border/60 bg-elevated/40 px-1.5 py-0.5">
+      <span className="group inline-flex items-center gap-1 rounded border border-border/60 bg-elevated/40 px-1.5 py-0.5">
         <GitBranch aria-hidden className={`size-3 shrink-0 ${detached ? "text-clay-text" : "text-accent"}`} />
         <span className={`truncate font-medium ${detached ? "text-clay-text" : "text-fg"}`}>
           {branch.head ?? `detached at ${branch.oid?.slice(0, 7) ?? "?"}`}
         </span>
+        {branch.head !== null && (
+          <button
+            type="button"
+            onClick={() => copyBranch(branch.head!)}
+            title={copied ? "Copied branch name" : "Copy branch name"}
+            aria-label={copied ? "Copied branch name" : "Copy branch name"}
+            className="ml-0.5 rounded p-0.5 text-fg-muted opacity-0 transition-opacity hover:bg-hover hover:text-fg group-hover:opacity-100"
+          >
+            {copied ? <Check aria-hidden className="size-2.5 text-success" /> : <Copy aria-hidden className="size-2.5" />}
+          </button>
+        )}
       </span>
       {branch.upstream === null ? (
         <span className="shrink-0 text-fg-muted">no upstream</span>

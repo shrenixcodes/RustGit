@@ -4,7 +4,7 @@ import { ErrorNotice } from "../components/ErrorNotice";
 import { Kbd } from "../components/Kbd";
 import { filterRepositories } from "../features/repositories/filterRepositories";
 import { toIpcError, type IpcError } from "../services/ipc";
-import { useOpenRepository, useRepositories } from "../services/queries";
+import { useOpenRepository, useRepositories, useSetRepositoryPinned } from "../services/queries";
 import type { RepositoryEntry } from "../services/types";
 import { useUi } from "../stores/ui";
 import { useWorkspace } from "../stores/workspace";
@@ -13,6 +13,7 @@ import { useWorkspace } from "../stores/workspace";
 export function SwitcherPopover({ onClose, root }: { onClose: () => void; root: RefObject<HTMLDivElement | null> }) {
   const repositories = useRepositories();
   const openRepository = useOpenRepository();
+  const setPinned = useSetRepositoryPinned();
   const activate = useWorkspace((state) => state.openRepository);
   const setSheet = useUi((state) => state.setSheet);
   const activeRepositoryId: number | null = useWorkspace((state) => state.activeRepositoryId);
@@ -122,16 +123,29 @@ export function SwitcherPopover({ onClose, root }: { onClose: () => void; root: 
               aria-selected={isHighlighted}
               onPointerMove={() => setHighlight(visible.indexOf(entry))}
               onClick={() => void choose(entry)}
-              className={`flex cursor-default items-center gap-2 px-2.5 py-1.5 ${isHighlighted ? "bg-selection" : ""}`}
+              className={`group flex cursor-default items-center justify-between gap-2 px-2.5 py-1.5 ${isHighlighted ? "bg-selection" : ""}`}
             >
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-1.5">
                   <span className="truncate font-medium">{entry.name}</span>
-                  {entry.pinned && <Pin aria-label="Pinned" className="size-3 shrink-0 text-accent" />}
                   {entry.id === activeRepositoryId && <span className="rg-label text-accent">current</span>}
                 </span>
                 <span className="block truncate font-mono text-xs text-fg-muted">{entry.path}</span>
               </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPinned.mutate({ id: entry.id, pinned: !entry.pinned });
+                }}
+                title={entry.pinned ? "Unpin repository" : "Pin repository to top"}
+                aria-label={entry.pinned ? `Unpin ${entry.name}` : `Pin ${entry.name}`}
+                className={`rounded p-1 transition-opacity hover:bg-hover ${
+                  entry.pinned ? "text-accent" : "text-fg-muted opacity-0 group-hover:opacity-100 hover:text-fg"
+                }`}
+              >
+                <Pin aria-hidden className="size-3" />
+              </button>
             </li>
           );
         })}

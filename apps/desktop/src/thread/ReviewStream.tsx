@@ -285,7 +285,8 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
     event.stopPropagation();
   };
 
-  const anyUnstaged: boolean = status.files.some((file) => !file.conflicted && file.unstaged !== null);
+  const unstagedCount: number = status.files.filter((file) => !file.conflicted && file.unstaged !== null).length;
+  const anyUnstaged: boolean = unstagedCount > 0;
   const anyStaged: boolean = composer.stagedFiles > 0;
   const allExpanded: boolean = files.length > 0 && files.every((file) => expanded.has(file.path));
   const ctx = composer.context.data;
@@ -370,10 +371,10 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
           />
         </label>
         <Button variant="ghost" disabled={!anyUnstaged || staging.isPending} onClick={() => staging.mutate({ kind: "stage_all" })}>
-          Stage all
+          Stage all{unstagedCount > 0 ? ` (${unstagedCount})` : ""}
         </Button>
         <Button variant="ghost" disabled={!anyStaged || staging.isPending} onClick={() => staging.mutate({ kind: "unstage_all" })}>
-          Unstage all
+          Unstage all{composer.stagedFiles > 0 ? ` (${composer.stagedFiles})` : ""}
         </Button>
         <Button
           variant="ghost"

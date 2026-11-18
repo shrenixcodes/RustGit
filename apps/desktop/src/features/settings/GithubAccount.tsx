@@ -17,6 +17,9 @@ export function GithubAccount() {
   const [code, setCode] = useState<GithubDeviceCode | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const [error, setError] = useState<IpcError | null>(null);
+  const [pat, setPat] = useState("");
+  const [patBusy, setPatBusy] = useState(false);
+  const [showPatInput, setShowPatInput] = useState(false);
 
   const finished = useCallback((result: GithubSignInFinished): void => {
     setCode(null);
@@ -49,6 +52,23 @@ export function GithubAccount() {
     }
   };
 
+  const savePat = async (): Promise<void> => {
+    if (!pat.trim()) return;
+    setError(null);
+    setFailure(null);
+    setPatBusy(true);
+    try {
+      await ipc.githubSavePat(pat.trim());
+      setPat("");
+      setShowPatInput(false);
+      await client.invalidateQueries({ queryKey: githubStatusKey });
+    } catch (cause: unknown) {
+      setError(toIpcError(cause));
+    } finally {
+      setPatBusy(false);
+    }
+  };
+
   if (status.isPending) return <p className="text-fg-muted">Checking GitHub…</p>;
   if (status.isError) {
     return (
@@ -58,21 +78,13 @@ export function GithubAccount() {
       </>
     );
   }
-  if (!status.data.configured) {
-    return (
-      <p className="text-sm text-fg-muted">
-        This build has no GitHub OAuth client id, so GitHub sign-in is unavailable. Git itself still works with the credential
-        helper and the prompts RustGit shows.
-      </p>
-    );
-  }
 
   return (
     <div className="space-y-3">
       {status.data.account !== null ? (
         <div className="flex items-center gap-3">
           <p className="text-sm">
-            Signed in as <span className="font-mono">{status.data.account.login}</span>
+            Signed in as <span className="font-mono font-medium">{status.data.account.login}</span>
           </p>
           <Button onClick={() => void signOut()}>Sign out</Button>
         </div>
@@ -88,9 +100,42 @@ export function GithubAccount() {
           <Button onClick={() => void cancel()}>Cancel</Button>
         </div>
       ) : (
-        <Button variant="primary" onClick={() => void start()}>
-          Sign in to GitHub
-        </Button>
+        <div className="space-y-3">
+          <p className="text-xs text-fg-muted">
+            RustGit automatically connects to logins detected on your machine from GitHub CLI, Git Credential Manager, or GitHub Desktop.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            {status.data.configured && (
+              <Button variant="primary" onClick={() => void start()}>
+                Sign in with browser
+              </Button>
+            )}
+            <Button variant={status.data.configured ? "ghost" : "primary"} onClick={() => setShowPatInput((prev) => !prev)}>
+              {showPatInput ? "Cancel token entry" : "Use Personal Access Token"}
+            </Button>
+          </div>
+          {showPatInput && (
+            <div className="space-y-2 rounded border border-border bg-subtle p-3 text-sm">
+              <label htmlFor="github-pat-input" className="block text-xs font-medium text-fg-secondary">
+                Personal Access Token (classic or fine-grained)
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  id="github-pat-input"
+                  type="password"
+                  value={pat}
+                  onChange={(e) => setPat(e.target.value)}
+                  placeholder="ghp_... or github_pat_..."
+                  className="flex-1 rounded border border-border bg-input px-2.5 py-1 font-mono text-xs text-fg focus:border-accent focus:outline-none"
+                  disabled={patBusy}
+                />
+                <Button variant="primary" disabled={patBusy || !pat.trim()} onClick={() => void savePat()}>
+                  {patBusy ? "Verifying…" : "Save token"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
       )}
       {failure !== null && <p className="text-sm text-danger">Sign-in did not finish: {failure}</p>}
       {error !== null && <ErrorNotice title="GitHub sign-in failed" error={error} />}

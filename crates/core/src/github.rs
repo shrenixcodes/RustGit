@@ -6,6 +6,7 @@
 //! to Git only through the credential prompt broker.
 
 use std::io::Read;
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
@@ -299,11 +300,174 @@ impl KeychainStore {
     }
 }
 
+const DISCONNECTED_SENTINEL: &str = "__DISCONNECTED__";
+
+/// Probes the local operating system and tool configuration for an existing GitHub token.
+///
+/// Sources checked in order:
+/// 1. GITHUB_TOKEN or GH_TOKEN environment variables
+/// 2. GitHub CLI (`gh auth token`)
+/// 3. GitHub CLI configuration file (`hosts.yml`)
+/// 4. GitHub Desktop credential store entry
+/// 5. Git Credential Manager entry
+/// 6. Git credential helper (`git credential fill`)
+pub fn probe_local_github_token() -> Option<String> {
+    // 1. Environment variables
+    if let Ok(token) = std::env::var("GITHUB_TOKEN").or_else(|_| std::env::var("GH_TOKEN")) {
+        let trimmed = token.trim();
+        if is_valid_token_shape(trimmed) {
+            return Some(trimmed.to_owned());
+        }
+    }
+
+    // 2. GitHub CLI (gh auth token)
+    if let Ok(output) = std::process::Command::new("gh")
+        .args(["auth", "token", "--hostname", "github.com"])
+        .output()
+    {
+        if output.status.success() {
+            let token = String::from_utf8_lossy(&output.stdout).trim().to_owned();
+            if is_valid_token_shape(&token) {
+                return Some(token);
+            }
+        }
+    }
+
+    // 3. GitHub CLI configuration file
+    if let Some(token) = read_gh_hosts_file() {
+        if is_valid_token_shape(&token) {
+            return Some(token);
+        }
+    }
+
+    // 4. GitHub Desktop credential store entry
+    if let Ok(entry) = keyring::Entry::new("GitHub - https://api.github.com", "") {
+        if let Ok(token) = entry.get_password() {
+            if is_valid_token_shape(&token) {
+                return Some(token);
+            }
+        }
+    }
+
+    // 5. Git Credential Manager entry
+    if let Ok(entry) = keyring::Entry::new("git:https://github.com", "") {
+        if let Ok(token) = entry.get_password() {
+            if is_valid_token_shape(&token) {
+                return Some(token);
+            }
+        }
+    }
+
+    // 6. Git credential helper query
+    if let Some(token) = query_git_credential_helper() {
+        if is_valid_token_shape(&token) {
+            return Some(token);
+        }
+    }
+
+    None
+}
+
+/// Checks whether a string resembles a valid GitHub personal or OAuth access token.
+pub fn is_valid_token_shape(token: &str) -> bool {
+    let t = token.trim();
+    if t.len() < 16 {
+        return false;
+    }
+    t.starts_with("ghp_")
+        || t.starts_with("gho_")
+        || t.starts_with("github_pat_")
+        || t.starts_with("ghu_")
+        || t.starts_with("ghs_")
+        || (t.len() == 40 && t.chars().all(|c| c.is_ascii_hexdigit()))
+}
+
+fn read_gh_hosts_file() -> Option<String> {
+    let mut candidates: Vec<PathBuf> = Vec::new();
+    if let Ok(appdata) = std::env::var("APPDATA") {
+        candidates.push(PathBuf::from(appdata).join("GitHub CLI").join("hosts.yml"));
+    }
+    if let Ok(userprofile) = std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")) {
+        let p = PathBuf::from(userprofile);
+        candidates.push(p.join(".config").join("gh").join("hosts.yml"));
+    }
+    for path in candidates {
+        if let Ok(content) = std::fs::read_to_string(&path) {
+            if let Some(token) = parse_oauth_token_from_hosts(&content) {
+                return Some(token);
+            }
+        }
+    }
+    None
+}
+
+fn parse_oauth_token_from_hosts(content: &str) -> Option<String> {
+    let mut in_github: bool = false;
+    for line in content.lines() {
+        let trimmed: &str = line.trim();
+        if line.starts_with("github.com:") {
+            in_github = true;
+            continue;
+        }
+        if in_github && !line.starts_with(' ') && !line.starts_with('\t') && line.ends_with(':') {
+            in_github = false;
+        }
+        if in_github {
+            if let Some(rest) = trimmed.strip_prefix("oauth_token:") {
+                let tok: &str = rest.trim();
+                if !tok.is_empty() {
+                    return Some(tok.to_owned());
+                }
+            }
+        }
+    }
+    None
+}
+
+fn query_git_credential_helper() -> Option<String> {
+    use std::io::Write;
+    let mut child = std::process::Command::new("git")
+        .args(["credential", "fill"])
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .ok()?;
+    if let Some(mut stdin) = child.stdin.take() {
+        let _ = stdin.write_all(b"protocol=https\nhost=github.com\n\n");
+    }
+    let output = child.wait_with_output().ok()?;
+    if output.status.success() {
+        let text = String::from_utf8_lossy(&output.stdout);
+        for line in text.lines() {
+            if let Some(rest) = line.strip_prefix("password=") {
+                let tok = rest.trim();
+                if !tok.is_empty() {
+                    return Some(tok.to_owned());
+                }
+            }
+        }
+    }
+    None
+}
+
 impl TokenStore for KeychainStore {
     fn load(&self) -> Result<Option<String>, GithubError> {
         match Self::entry()?.get_password() {
-            Ok(token) => Ok(Some(token)),
-            Err(keyring::Error::NoEntry) => Ok(None),
+            Ok(token) => {
+                if token == DISCONNECTED_SENTINEL {
+                    Ok(None)
+                } else {
+                    Ok(Some(token))
+                }
+            }
+            Err(keyring::Error::NoEntry) => {
+                if let Some(detected) = probe_local_github_token() {
+                    let _ = self.save(&detected);
+                    return Ok(Some(detected));
+                }
+                Ok(None)
+            }
             Err(error) => Err(GithubError::Store(error.to_string())),
         }
     }
@@ -315,10 +479,9 @@ impl TokenStore for KeychainStore {
     }
 
     fn clear(&self) -> Result<(), GithubError> {
-        match Self::entry()?.delete_credential() {
-            Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
-            Err(error) => Err(GithubError::Store(error.to_string())),
-        }
+        Self::entry()?
+            .set_password(DISCONNECTED_SENTINEL)
+            .map_err(|error| GithubError::Store(error.to_string()))
     }
 }
 
@@ -502,5 +665,26 @@ mod tests {
             answer_for_prompt("Enter passphrase for key 'k': ", "tok"),
             None
         );
+    }
+
+    #[test]
+    fn validates_token_shapes() {
+        assert!(is_valid_token_shape("ghp_1234567890abcdef"));
+        assert!(is_valid_token_shape("gho_1234567890abcdef"));
+        assert!(is_valid_token_shape("github_pat_1234567890abcdef"));
+        assert!(is_valid_token_shape("0123456789abcdef0123456789abcdef01234567"));
+        assert!(!is_valid_token_shape("short"));
+        assert!(!is_valid_token_shape("not_a_valid_token_hex_1234567890"));
+    }
+
+    #[test]
+    fn parses_token_from_hosts_yaml() {
+        let sample = "github.com:\n    user: testuser\n    oauth_token: gho_testtoken12345678\n";
+        assert_eq!(
+            parse_oauth_token_from_hosts(sample).as_deref(),
+            Some("gho_testtoken12345678")
+        );
+        let sample_empty = "github.com:\n    user: testuser\n";
+        assert_eq!(parse_oauth_token_from_hosts(sample_empty), None);
     }
 }

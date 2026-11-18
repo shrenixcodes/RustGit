@@ -182,6 +182,37 @@ pub fn github_cancel_sign_in(state: State<'_, AppState>) {
 }
 
 #[tauri::command]
+pub async fn github_save_pat(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    token: String,
+) -> CommandResult<GithubAccount> {
+    let github: Arc<GithubState> = Arc::clone(&state.github);
+    let trimmed = token.trim().to_owned();
+    if !github::is_valid_token_shape(&trimmed) {
+        return Err(CommandError::new(
+            ErrorKind::InvalidRequest,
+            "the provided token does not match standard GitHub token formats",
+        ));
+    }
+    let account = blocking(move || {
+        let account =
+            github::current_account(github.http.as_ref(), &trimmed).map_err(command_error)?;
+        github.store.save(&trimmed).map_err(command_error)?;
+        Ok(account)
+    })
+    .await?;
+    let _ = app.emit(
+        SIGN_IN_EVENT,
+        SignInFinished {
+            account: Some(account.clone()),
+            error: None,
+        },
+    );
+    Ok(account)
+}
+
+#[tauri::command]
 pub async fn github_sign_out(state: State<'_, AppState>) -> CommandResult<()> {
     let github: Arc<GithubState> = Arc::clone(&state.github);
     blocking(move || github.store.clear().map_err(command_error)).await

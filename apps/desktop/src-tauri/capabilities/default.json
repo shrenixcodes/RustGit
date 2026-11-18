@@ -14,6 +14,7 @@
     "allow-github-status",
     "allow-github-start-sign-in",
     "allow-github-cancel-sign-in",
+    "allow-github-save-pat",
     "allow-github-sign-out",
     "allow-github-list-repositories",
     "allow-github-create-repository",

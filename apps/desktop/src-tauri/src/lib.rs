@@ -70,6 +70,7 @@ pub fn run() {
             commands::github::github_status,
             commands::github::github_start_sign_in,
             commands::github::github_cancel_sign_in,
+            commands::github::github_save_pat,
             commands::github::github_sign_out,
             commands::github::github_list_repositories,
             commands::github::github_create_repository,

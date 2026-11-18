@@ -26,6 +26,7 @@ import type {
   ErrorKind,
   FileDiff,
   GitInfo,
+  GithubAccount,
   GithubDeviceCode,
   GithubRepository,
   GithubStatus,
@@ -222,6 +223,7 @@ export const ipc = {
   githubStatus: (): Promise<GithubStatus> => call("github_status"),
   githubStartSignIn: (): Promise<GithubDeviceCode> => call("github_start_sign_in"),
   githubCancelSignIn: (): Promise<void> => call("github_cancel_sign_in"),
+  githubSavePat: (token: string): Promise<GithubAccount> => call("github_save_pat", { token }),
   githubSignOut: (): Promise<void> => call("github_sign_out"),
   githubListRepositories: (page: number): Promise<GithubRepository[]> => call("github_list_repositories", { page }),
   githubCreateRepository: (name: string, isPrivate: boolean): Promise<GithubRepository> =>

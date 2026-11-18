@@ -142,9 +142,9 @@ pub fn run() {
         .expect("failed to run the RustGit application");
 }
 
-/// Resolves `git` against absolute `PATH` entries only, so a `git.exe` that
-/// happens to sit in the working directory is never picked up. Falls back to
-/// the bare name, which lets the "Git not found" notice appear as before.
+/// Resolves `git` against absolute `PATH` entries, with fallback checks for
+/// standard system installation directories (including Git for Windows and
+/// GitHub Desktop's bundled Git). Falls back to the bare name if none are found.
 fn resolve_git() -> PathBuf {
     let names: &[&str] = if cfg!(windows) {
         &["git.exe", "git.cmd"]
@@ -161,6 +161,68 @@ fn resolve_git() -> PathBuf {
             }
         }
     }
+
+    if cfg!(windows) {
+        let mut candidates = Vec::new();
+        if let Some(pf) = std::env::var_os("ProgramFiles") {
+            let p = PathBuf::from(pf);
+            candidates.push(p.join("Git").join("cmd").join("git.exe"));
+            candidates.push(p.join("Git").join("bin").join("git.exe"));
+        }
+        if let Some(pf86) = std::env::var_os("ProgramFiles(x86)") {
+            let p = PathBuf::from(pf86);
+            candidates.push(p.join("Git").join("cmd").join("git.exe"));
+            candidates.push(p.join("Git").join("bin").join("git.exe"));
+        }
+        if let Some(local) = std::env::var_os("LOCALAPPDATA") {
+            let p = PathBuf::from(local);
+            candidates.push(p.join("Programs").join("Git").join("cmd").join("git.exe"));
+            candidates.push(p.join("Programs").join("Git").join("bin").join("git.exe"));
+            // GitHub Desktop's bundled Git
+            let gh_desktop = p.join("GitHubDesktop");
+            if gh_desktop.is_dir() {
+                if let Ok(entries) = std::fs::read_dir(&gh_desktop) {
+                    for entry in entries.flatten() {
+                        let path = entry.path();
+                        if path.is_dir()
+                            && path
+                                .file_name()
+                                .and_then(|n| n.to_str())
+                                .is_some_and(|s| s.starts_with("app-"))
+                        {
+                            candidates.push(
+                                path.join("resources")
+                                    .join("app")
+                                    .join("git")
+                                    .join("cmd")
+                                    .join("git.exe"),
+                            );
+                        }
+                    }
+                }
+            }
+        }
+        for candidate in candidates {
+            if candidate.is_file() {
+                return candidate;
+            }
+        }
+    } else if cfg!(target_os = "macos") {
+        for candidate in ["/usr/local/bin/git", "/opt/homebrew/bin/git", "/usr/bin/git"] {
+            let p = PathBuf::from(candidate);
+            if p.is_file() {
+                return p;
+            }
+        }
+    } else if cfg!(target_os = "linux") {
+        for candidate in ["/usr/bin/git", "/usr/local/bin/git"] {
+            let p = PathBuf::from(candidate);
+            if p.is_file() {
+                return p;
+            }
+        }
+    }
+
     PathBuf::from("git")
 }
 

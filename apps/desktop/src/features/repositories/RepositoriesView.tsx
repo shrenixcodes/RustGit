@@ -156,16 +156,26 @@ export function RepositoriesView() {
           />
         )}
 
-        <label className="flex h-9 items-center gap-2 border-b border-border px-1 focus-within:border-accent">
+        <label className="flex h-10 items-center gap-2.5 rounded-lg border border-border/70 bg-canvas/60 px-3 transition-all focus-within:border-accent focus-within:bg-canvas focus-within:ring-1 focus-within:ring-accent/30">
           <Search aria-hidden className="size-3.5 text-fg-muted" />
           <span className="sr-only">Search repositories</span>
           <input
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search by name or path"
-            className="h-full flex-1 bg-transparent text-base outline-none placeholder:text-fg-muted"
+            placeholder="Search repositories by name or path…"
+            className="h-full flex-1 bg-transparent text-sm outline-none placeholder:text-fg-muted/70"
           />
+          {query !== "" && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              className="text-fg-muted hover:text-fg text-xs px-1"
+              title="Clear search"
+            >
+              ×
+            </button>
+          )}
         </label>
 
         {repositories.isPending && <p className="text-fg-muted">Loading repositories…</p>}
@@ -249,7 +259,7 @@ export function RepositoriesView() {
         )}
 
         {visible.length > 0 && (
-          <ul className="min-h-0 flex-1 divide-y divide-divider overflow-y-auto">
+          <ul className="min-h-0 flex-1 divide-y divide-divider/60 overflow-y-auto rounded-lg border border-border/70 bg-canvas/30">
             {visible.map((entry: RepositoryEntry) => (
               <RepositoryRow
                 key={entry.id}

@@ -56,7 +56,7 @@ export function NewRepositoryForm({ onDone }: { onDone: () => void }) {
   };
 
   return (
-    <form onSubmit={(event) => void submit(event)} aria-label="Create a repository" className="space-y-3 border-l-2 border-accent py-1 pl-4">
+    <form onSubmit={(event) => void submit(event)} aria-label="Create a repository" className="space-y-3.5 rounded-xl border border-border/80 bg-elevated/60 p-4 shadow-sm backdrop-blur-xs">
       <label className="block">
         <span className="rg-label">name</span>
         <input
@@ -67,7 +67,7 @@ export function NewRepositoryForm({ onDone }: { onDone: () => void }) {
           onChange={(event) => setName(event.target.value)}
           placeholder="my-project"
           aria-invalid={problem !== null}
-          className="mt-1 h-8 w-full border-b border-border bg-transparent font-mono text-sm outline-none focus:border-accent"
+          className="mt-1 flex h-9 w-full rounded-md border border-border/70 bg-canvas/60 px-3 font-mono text-xs outline-none transition-all placeholder:text-fg-muted/60 focus:border-accent focus:bg-canvas focus:ring-1 focus:ring-accent/30"
         />
         {problem !== null && <span className="mt-1 block text-xs text-danger">{problem}</span>}
       </label>
@@ -80,7 +80,7 @@ export function NewRepositoryForm({ onDone }: { onDone: () => void }) {
             disabled={initRepository.isPending}
             onChange={(event) => setParent(event.target.value)}
             placeholder="Choose a parent folder"
-            className="mt-1 h-8 w-full border-b border-border bg-transparent font-mono text-sm outline-none focus:border-accent"
+            className="mt-1 flex h-9 w-full rounded-md border border-border/70 bg-canvas/60 px-3 font-mono text-xs outline-none transition-all placeholder:text-fg-muted/60 focus:border-accent focus:bg-canvas focus:ring-1 focus:ring-accent/30"
           />
         </label>
         <Button disabled={initRepository.isPending} onClick={() => void pickParent()}>

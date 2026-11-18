@@ -244,9 +244,10 @@ impl GitExecutor {
             .args(["-c", "core.quotepath=false", "-c", "color.ui=false"])
             .args(args)
             .current_dir(cwd)
-            // Never block on an interactive credential prompt from a GUI process.
+            // Never block on an interactive credential prompt or terminal editor.
             .env("GIT_TERMINAL_PROMPT", "0")
             .env("GIT_OPTIONAL_LOCKS", "0")
+            .env("GIT_EDITOR", "true")
             // Stable English messages so failures can be classified. Paths and
             // commit text are unaffected (-z, core.quotepath=false).
             .env("LC_ALL", "C")

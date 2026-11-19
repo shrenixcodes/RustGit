@@ -1,15 +1,16 @@
-import { useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import { FolderGit2, GitCompare, Globe, Keyboard, Layers, Settings, X, Archive } from "lucide-react";
 import { IconButton } from "../components/Button";
 import { RepositoriesView } from "../features/repositories/RepositoriesView";
-import { CompareView } from "../features/compare/CompareView";
-import { RemotesView } from "../features/remotes/RemotesView";
-import { SettingsView } from "../features/settings/SettingsView";
-import { ShortcutsView } from "../features/settings/ShortcutsView";
-import { StashesView } from "../features/stash/StashesView";
-import { WorktreesView } from "../features/worktrees/WorktreesView";
 import { useUi, type Sheet as SheetKind } from "../stores/ui";
 import { useWorkspace } from "../stores/workspace";
+
+const CompareView = lazy(() => import("../features/compare/CompareView").then((m) => ({ default: m.CompareView })));
+const RemotesView = lazy(() => import("../features/remotes/RemotesView").then((m) => ({ default: m.RemotesView })));
+const SettingsView = lazy(() => import("../features/settings/SettingsView").then((m) => ({ default: m.SettingsView })));
+const ShortcutsView = lazy(() => import("../features/settings/ShortcutsView").then((m) => ({ default: m.ShortcutsView })));
+const StashesView = lazy(() => import("../features/stash/StashesView").then((m) => ({ default: m.StashesView })));
+const WorktreesView = lazy(() => import("../features/worktrees/WorktreesView").then((m) => ({ default: m.WorktreesView })));
 
 const SHEET_LABEL: Record<Exclude<SheetKind, null>, string> = {
   settings: "Settings",
@@ -39,22 +40,35 @@ const TABS: readonly SheetTab[] = [
 ];
 
 function SheetContent({ sheet }: { sheet: Exclude<SheetKind, null> }) {
+  let content = null;
   switch (sheet) {
     case "settings":
-      return <SettingsView />;
+      content = <SettingsView />;
+      break;
     case "repositories":
-      return <RepositoriesView />;
+      content = <RepositoriesView />;
+      break;
     case "remotes":
-      return <RemotesView />;
+      content = <RemotesView />;
+      break;
     case "stashes":
-      return <StashesView />;
+      content = <StashesView />;
+      break;
     case "worktrees":
-      return <WorktreesView />;
+      content = <WorktreesView />;
+      break;
     case "shortcuts":
-      return <ShortcutsView />;
+      content = <ShortcutsView />;
+      break;
     case "compare":
-      return <CompareView />;
+      content = <CompareView />;
+      break;
   }
+  return (
+    <Suspense fallback={<div className="flex flex-1 items-center justify-center p-8 font-mono text-xs text-fg-muted">Loading…</div>}>
+      {content}
+    </Suspense>
+  );
 }
 
 /** Settings, repositories, remotes, stash, worktrees and the shortcut reference, laid over the thread (native modal dialog: focus trap and Escape). */

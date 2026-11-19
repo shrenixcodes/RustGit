@@ -44,6 +44,9 @@ impl Database {
         }
         let connection: Connection = Connection::open(path)?;
         connection.pragma_update(None, "journal_mode", "WAL")?;
+        connection.pragma_update(None, "synchronous", "NORMAL")?;
+        connection.pragma_update(None, "temp_store", "MEMORY")?;
+        let _ = connection.pragma_update(None, "mmap_size", 33554432_i64);
         Self::from_connection(connection)
     }
 

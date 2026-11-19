@@ -252,7 +252,7 @@
 
 @layer components {
   /*
-   * ShrenixCodes signature label: lowercase mono with a short leading
+   * Signature label: lowercase mono with a short leading
    * hairline ("— staged"). Content stays as written in the source, so
    * accessible names and innerText are unaffected by styling.
    */

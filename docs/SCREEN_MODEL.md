@@ -1,16 +1,15 @@
 # RustGit screen model: the thread
 
 **Status: approved 2026-11-16 and implemented** on `worktree-ui-orbital`
-(see `INTERACTION_SPEC.md` for shipped behaviour and `SHRENIXCODES_VISUAL_QA.md`
-for verification). Deviations from the proposal: HEAD is a solid clay point
+(see `INTERACTION_SPEC.md` for shipped behaviour). Deviations: HEAD is a solid clay point
 (the open node is reserved for the loose end); conflicts are listed first in
 the loose end but the three-way resolution editor is not built yet; stashes,
 worktrees and remotes are not on the map yet; Settings and Repositories open
 as sheets over the canvas.
 
-Supersedes the panel layouts in `SHRENIXCODES_WIREFRAMES.md`, which only
-rearranged the conventional regions (sidebar, pages, file list, central
-diff, right inspector). Nothing below assumes those regions exist.
+Supersedes earlier panel layouts that rearranged conventional regions
+(sidebar, pages, file list, central diff, right inspector). Nothing below
+assumes those regions exist.
 
 ## Starting point: what Git actually is
 

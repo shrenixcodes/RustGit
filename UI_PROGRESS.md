@@ -175,11 +175,10 @@ Not done: commit file diffs (need the diff viewer), compare (request R-16),
 context menu, minimap. A new search briefly shows "Reading history…" in
 place of the previous list while the backend query runs.
 
-### U-10 ShrenixCodes design system (2026-11-16)
+### U-10 Design system foundations (2026-11-16)
 
 Palette, typography, signature labels, quiet/deep personalities, the mark
 and the open node; contrast enforced for dark, deep and light surfaces.
-Design documents: `SHRENIXCODES_DESIGN_SYSTEM.md`, `SHRENIXCODES_UX_DECISIONS.md`.
 
 ### U-11 The thread (2026-11-16)
 

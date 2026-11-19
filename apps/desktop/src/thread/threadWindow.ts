@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useState, type RefObject } from "react";
+import { useCallback, useLayoutEffect, useRef, useState, type RefObject } from "react";
 
 /** The one unfolded region: it sits directly below row `after`. */
 export interface Unfolding {
@@ -54,6 +54,11 @@ export function useThreadWindow(
   const [scrollTop, setScrollTop] = useState<number>(0);
   const [viewport, setViewport] = useState<number>(800);
 
+  const unfoldingRef = useRef(unfolding);
+  unfoldingRef.current = unfolding;
+  const rowHeightRef = useRef(rowHeight);
+  rowHeightRef.current = rowHeight;
+
   useLayoutEffect(() => {
     const element: HTMLElement | null = container.current;
     if (element === null) return;
@@ -73,13 +78,13 @@ export function useThreadWindow(
     (index: number, extra: number = 0): void => {
       const element: HTMLElement | null = container.current;
       if (element === null) return;
-      const top: number = rowTop(index, rowHeight, unfolding);
-      const bottom: number = top + rowHeight + extra;
+      const top: number = rowTop(index, rowHeightRef.current, unfoldingRef.current);
+      const bottom: number = top + rowHeightRef.current + extra;
       const height: number = element.clientHeight > 0 ? element.clientHeight : 800;
       if (top < element.scrollTop) element.scrollTop = top;
       else if (bottom > element.scrollTop + height) element.scrollTop = Math.min(top, bottom - height);
     },
-    [container, rowHeight, unfolding],
+    [container],
   );
 
   const { start, end } = computeThreadWindow(count, rowHeight, unfolding, scrollTop, viewport, 10);

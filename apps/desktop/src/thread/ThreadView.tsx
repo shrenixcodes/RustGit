@@ -140,7 +140,10 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
         : unfoldedRow.id.startsWith("m:")
           ? Math.min(Math.max(150, 80 + (refMap.get(unfoldedRow.commit.oid)?.length ?? 0) * 64), 420)
           : Math.min(Math.round(viewportHint * 0.7), 560, Math.max(200, 150 + (unfoldedDetails.data?.files.length ?? 3) * 24));
-  const unfolding: Unfolding | null = unfoldedIndex >= 0 ? { after: unfoldedIndex, height: unfoldHeight } : null;
+  const unfolding: Unfolding | null = useMemo(
+    () => (unfoldedIndex >= 0 ? { after: unfoldedIndex, height: unfoldHeight } : null),
+    [unfoldedIndex, unfoldHeight],
+  );
   const { start, end, totalHeight, viewport, ensureVisible } = useThreadWindow(container, rows.length, rowHeight, unfolding);
   useEffect(() => setViewportHint(viewport), [viewport]);
 
@@ -149,11 +152,20 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
     if (unfolded !== null && unfoldedIndex < 0 && rows.length > 1) unfold(null);
   }, [unfolded, unfoldedIndex, rows.length, unfold]);
 
-  // Keep the focused node in view; an unfolded node also shows its fold.
+  // Keep the focused node in view only when focus or unfold target changes (not on every scroll tick).
+  const lastFocus = useRef<NodeId | null>(null);
+  const lastUnfolded = useRef<NodeId | null>(null);
   const focusIndex: number = focus === null ? -1 : (indexById.get(focus) ?? -1);
   useEffect(() => {
-    if (focusIndex >= 0) ensureVisible(focusIndex, focusIndex === unfoldedIndex ? Math.min(unfoldHeight, viewport - rowHeight) : 0);
-  }, [focusIndex, unfoldedIndex, unfoldHeight, viewport, rowHeight, ensureVisible]);
+    if (focus === lastFocus.current && unfolded === lastUnfolded.current) {
+      return;
+    }
+    lastFocus.current = focus;
+    lastUnfolded.current = unfolded;
+    if (focusIndex >= 0) {
+      ensureVisible(focusIndex, focusIndex === unfoldedIndex ? Math.min(unfoldHeight, viewport - rowHeight) : 0);
+    }
+  }, [focus, unfolded, focusIndex, unfoldedIndex, unfoldHeight, viewport, rowHeight, ensureVisible]);
 
   // Page in history as the end approaches (further ahead on the map).
   const { hasNextPage, isFetchingNextPage, fetchNextPage } = log;
@@ -425,7 +437,9 @@ function NowRow({ id, top, height, lane, graphWidth, linked, focused, unfolded, 
       onClick={(event) => {
         if (!(event.target instanceof HTMLInputElement) && !(event.target instanceof HTMLButtonElement)) onToggle();
       }}
-      className={`flex cursor-default items-center gap-3 pr-5 ${focused ? "bg-selection" : "hover:bg-hover"}`}
+      className={`flex cursor-default items-center gap-2 sm:gap-3 pr-3 sm:pr-5 transition-colors duration-100 ${
+        focused ? "bg-selection relative before:absolute before:left-0 before:top-1 before:bottom-1 before:w-[2px] before:bg-accent before:rounded-r" : "hover:bg-hover"
+      }`}
     >
       <svg aria-hidden width={Math.max(graphWidth, CONTENT_LEFT - 12)} height={height} className="shrink-0" style={{ display: "block" }}>
         {(linked || dirty) && (
@@ -433,7 +447,7 @@ function NowRow({ id, top, height, lane, graphWidth, linked, focused, unfolded, 
         )}
         <OpenNode cx={cx} cy={height / 2} r={6} stroke="var(--rg-clay)" width={1.6} />
       </svg>
-      <div className="flex min-w-0 flex-1 items-center gap-4" style={{ marginLeft: Math.max(0, CONTENT_LEFT - 12 - Math.max(graphWidth, CONTENT_LEFT - 12)) }}>
+      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4" style={{ marginLeft: Math.max(0, CONTENT_LEFT - 12 - Math.max(graphWidth, CONTENT_LEFT - 12)) }}>
         <label className="min-w-0 flex-1">
           <span className="sr-only">Summary of the next commit</span>
           <input
@@ -450,12 +464,12 @@ function NowRow({ id, top, height, lane, graphWidth, linked, focused, unfolded, 
               }
             }}
             placeholder={dirty ? "Write the next commit…" : "Nothing to commit"}
-            className="h-7 w-full bg-transparent text-sm text-fg outline-none placeholder:text-fg-muted"
+            className="h-7 w-full bg-transparent font-sans text-xs sm:text-sm font-medium text-fg outline-none placeholder:text-fg-muted/70"
           />
         </label>
-        <span className="shrink-0 font-mono text-xs text-fg-muted">{summaryText}</span>
+        <span className="shrink-0 font-sans text-xs text-fg-muted/90">{summaryText}</span>
         {composer.done !== null && (
-          <span role="status" className="shrink-0 font-mono text-xs text-success">
+          <span role="status" className="shrink-0 font-mono text-xs text-success font-medium">
             committed {composer.done.oid.slice(0, 7)}
           </span>
         )}
@@ -464,7 +478,7 @@ function NowRow({ id, top, height, lane, graphWidth, linked, focused, unfolded, 
           disabled={!composer.canCommit}
           title={composer.reason ?? "Commit (Ctrl+Enter)"}
           onClick={composer.submit}
-          className="h-6 shrink-0 rounded-sm border border-accent px-2.5 text-xs text-accent transition-colors duration-100 hover:bg-selection disabled:border-border disabled:text-fg-muted"
+          className="h-6 shrink-0 rounded-md border border-accent/70 bg-accent/15 px-2.5 font-sans text-xs font-medium text-accent transition-all duration-100 hover:bg-accent/25 active:scale-95 disabled:border-border disabled:bg-transparent disabled:text-fg-muted"
         >
           {composer.draft.amend ? "Amend" : "Commit"}
         </button>
@@ -515,27 +529,29 @@ const CommitRow = memo(function CommitRow({ id, top, height, row, graphWidth, he
       aria-label={label}
       onClick={onClick}
       style={{ position: "absolute", top, height, left: 0, right: 0 }}
-      className={`flex cursor-default items-center gap-3 pr-5 ${focused ? "bg-selection" : "hover:bg-hover"}`}
+      className={`flex cursor-default items-center gap-2 sm:gap-3 pr-3 sm:pr-5 transition-colors duration-100 ${
+        focused ? "bg-selection relative before:absolute before:left-0 before:top-1 before:bottom-1 before:w-[2px] before:bg-accent before:rounded-r" : "hover:bg-hover"
+      }`}
     >
       <span className="shrink-0 pl-1.5" style={{ width: Math.max(graphWidth, CONTENT_LEFT - 12) }}>
         {row.graph !== undefined && (
           <GraphCell row={row.graph} width={graphWidth} height={height} laneWidth={LANE} head={head} selected={focused} uncommitted={uncommitted} />
         )}
       </span>
-      <span className="flex min-w-0 flex-1 items-center gap-3" style={{ marginLeft: Math.max(0, CONTENT_LEFT - 12 - Math.max(graphWidth, CONTENT_LEFT - 12)) }}>
+      <span className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3" style={{ marginLeft: Math.max(0, CONTENT_LEFT - 12 - Math.max(graphWidth, CONTENT_LEFT - 12)) }}>
         {hasRefs && <RefBadges refs={refs ?? []} head={headState} detachedHead={detachedHere} max={map ? 4 : 2} />}
-        <span className={`truncate text-sm ${map && !hasRefs ? "text-fg-muted" : merge ? "text-fg-secondary" : "text-fg"}`}>{commit.summary}</span>
+        <span className={`truncate text-xs sm:text-sm font-sans font-medium tracking-tight ${map && !hasRefs ? "text-fg-muted" : merge ? "text-fg-secondary" : "text-fg"}`}>{commit.summary}</span>
         {map && row.hidden > 0 && <span className="shrink-0 font-mono text-2xs text-fg-muted">· {row.hidden} commit{row.hidden === 1 ? "" : "s"} below folded</span>}
       </span>
       {!map && (
-        <span className="w-32 shrink-0 truncate text-xs text-fg-muted" title={commit.authorEmail}>
+        <span className="hidden md:inline-block w-28 lg:w-32 shrink-0 truncate text-xs text-fg-muted/90 font-sans" title={commit.authorEmail}>
           {commit.authorName}
         </span>
       )}
-      <time dateTime={new Date(commit.authorTime * 1000).toISOString()} title={formatAbsolute(commit.authorTime)} className="w-20 shrink-0 text-right font-mono text-xs text-fg-muted">
+      <time dateTime={new Date(commit.authorTime * 1000).toISOString()} title={formatAbsolute(commit.authorTime)} className="w-16 sm:w-20 shrink-0 text-right font-mono text-2xs sm:text-xs text-fg-muted/80 tabular-nums">
         {formatRelative(commit.authorTime)}
       </time>
-      <span className={`w-14 shrink-0 font-mono text-xs ${focused ? "text-accent" : "text-fg-muted"}`}>{commit.oid.slice(0, 7)}</span>
+      <span className={`w-14 shrink-0 font-mono text-2xs sm:text-xs text-right ${focused ? "text-accent font-semibold" : "text-fg-muted/70"}`}>{commit.oid.slice(0, 7)}</span>
     </div>
   );
 });

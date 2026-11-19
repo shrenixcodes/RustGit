@@ -115,38 +115,64 @@ export function RepositoriesView() {
       <PageHeader title="Repositories" visible />
 
       <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-4 px-6 sm:px-8 pb-6">
-        {/* Action Header Card */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-border/80 bg-elevated/40 p-4 shadow-sm backdrop-blur-xs">
-          <div>
-            <div className="flex items-center gap-2">
-              <FolderGit2 className="size-4 text-accent" />
-              <h3 className="font-semibold text-sm text-fg">Repositories Registry</h3>
-              <span className="rounded-full bg-elevated border border-border px-2 py-0.5 font-mono text-2xs text-fg-muted">
-                {repositories.data?.length ?? 0} total
-              </span>
+        {/* Action Header Card — Shown only when repositories exist */}
+        {(repositories.data?.length ?? 0) > 0 && (
+          <>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-border/80 bg-elevated/40 p-4 shadow-sm backdrop-blur-xs">
+              <div>
+                <div className="flex items-center gap-2">
+                  <FolderGit2 className="size-4 text-accent" />
+                  <h3 className="font-semibold text-sm text-fg">Repositories Registry</h3>
+                  <span className="rounded-full bg-elevated border border-border px-2 py-0.5 font-mono text-2xs text-fg-muted">
+                    {repositories.data?.length ?? 0} total
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-fg-muted">
+                  Add local repositories, clone remote repositories, or initialize new Git projects.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  onClick={() => { setCloning(false); setCreating((prev) => !prev); }}
+                  className={creating ? "border-accent text-accent bg-accent/15" : ""}
+                >
+                  <FolderPlus aria-hidden className="size-3.5 text-accent" /> Create…
+                </Button>
+                <Button
+                  onClick={() => { setCreating(false); setCloning((prev) => !prev); }}
+                  className={cloning ? "border-accent text-accent bg-accent/15" : ""}
+                >
+                  <Download aria-hidden className="size-3.5" /> Clone…
+                </Button>
+                <Button variant="primary" onClick={handleAdd}>
+                  <FolderOpen aria-hidden className="size-3.5" /> Add existing…
+                </Button>
+              </div>
             </div>
-            <p className="mt-1 text-xs text-fg-muted">
-              Add local repositories, clone remote repositories, or initialize new Git projects.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              onClick={() => { setCloning(false); setCreating((prev) => !prev); }}
-              className={creating ? "border-accent text-accent bg-accent/15" : ""}
-            >
-              <FolderPlus aria-hidden className="size-3.5 text-accent" /> Create…
-            </Button>
-            <Button
-              onClick={() => { setCreating(false); setCloning((prev) => !prev); }}
-              className={cloning ? "border-accent text-accent bg-accent/15" : ""}
-            >
-              <Download aria-hidden className="size-3.5" /> Clone…
-            </Button>
-            <Button variant="primary" onClick={handleAdd}>
-              <FolderOpen aria-hidden className="size-3.5" /> Add existing…
-            </Button>
-          </div>
-        </div>
+
+            <label className="flex h-10 items-center gap-2.5 rounded-lg border border-border/70 bg-canvas/60 px-3 transition-all focus-within:border-accent focus-within:bg-canvas focus-within:ring-1 focus-within:ring-accent/30">
+              <Search aria-hidden className="size-3.5 text-fg-muted" />
+              <span className="sr-only">Search repositories</span>
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search repositories by name or path…"
+                className="h-full flex-1 bg-transparent text-sm outline-none placeholder:text-fg-muted/70"
+              />
+              {query !== "" && (
+                <button
+                  type="button"
+                  onClick={() => setQuery("")}
+                  className="text-fg-muted hover:text-fg text-xs px-1"
+                  title="Clear search"
+                >
+                  ×
+                </button>
+              )}
+            </label>
+          </>
+        )}
 
         {gitInfo.isError && gitInfo.error.kind === "git_not_found" && (
           <ErrorNotice
@@ -212,42 +238,20 @@ export function RepositoriesView() {
           />
         )}
 
-        <label className="flex h-10 items-center gap-2.5 rounded-lg border border-border/70 bg-canvas/60 px-3 transition-all focus-within:border-accent focus-within:bg-canvas focus-within:ring-1 focus-within:ring-accent/30">
-          <Search aria-hidden className="size-3.5 text-fg-muted" />
-          <span className="sr-only">Search repositories</span>
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search repositories by name or path…"
-            className="h-full flex-1 bg-transparent text-sm outline-none placeholder:text-fg-muted/70"
-          />
-          {query !== "" && (
-            <button
-              type="button"
-              onClick={() => setQuery("")}
-              className="text-fg-muted hover:text-fg text-xs px-1"
-              title="Clear search"
-            >
-              ×
-            </button>
-          )}
-        </label>
-
         {repositories.isPending && <p className="text-fg-muted">Loading repositories…</p>}
         {repositories.isError && <ErrorNotice title="Could not load repositories" error={repositories.error} />}
 
-        {repositories.isSuccess && repositories.data.length === 0 && (
-          <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden py-10 text-center">
+        {repositories.isSuccess && repositories.data.length === 0 && !creating && !cloning && (
+          <div className="my-auto flex flex-1 flex-col items-center justify-center overflow-hidden py-12 text-center">
             {/* Ambient halo: a soft, slow gradient so the welcome screen reads
              * as a stage rather than an empty box. Decorative only. */}
             <div
               aria-hidden
-              className="pointer-events-none absolute left-1/2 top-1/3 -z-10 h-[360px] w-[560px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/15 blur-3xl"
+              className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[380px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/15 blur-3xl"
             />
             <div
               aria-hidden
-              className="pointer-events-none absolute left-1/2 top-1/3 -z-10 h-[220px] w-[380px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo/10 blur-2xl"
+              className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[240px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo/10 blur-2xl"
             />
 
             <div className="relative mb-5 flex size-16 items-center justify-center rounded-2xl border border-accent/30 bg-elevated/70 shadow-raised">
@@ -280,14 +284,14 @@ export function RepositoriesView() {
               />
               <WelcomeCard
                 icon={FolderOpen}
-                title="Open local folder"
-                hint="Pick an existing repo on disk"
+                title="Add existing repository"
+                hint="Pick an existing folder on disk"
                 accent="clay"
                 onClick={handleAdd}
               />
               <WelcomeCard
                 icon={FolderPlus}
-                title="Create new"
+                title="Create repository"
                 hint="Initialize a fresh Git project"
                 accent="moss"
                 onClick={() => { setCloning(false); setCreating(true); }}

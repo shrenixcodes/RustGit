@@ -66,11 +66,8 @@ export function Seal() {
   return (
     <header
       aria-label="Repository"
-      className="relative flex h-13 shrink-0 items-center justify-between gap-2 sm:gap-3 border-b border-border/70 px-3 sm:px-4 select-none backdrop-blur-md transition-colors"
-      style={{
-        backgroundImage:
-          "linear-gradient(180deg, color-mix(in oklab, var(--rg-elevated) 70%, transparent) 0%, var(--rg-bg) 100%)",
-      }}
+      className="relative z-30 flex h-13 shrink-0 items-center justify-between gap-2 sm:gap-3 border-b border-border/70 bg-surface px-3 sm:px-4 select-none transition-colors"
+      style={{ backgroundColor: "var(--rg-surface)" }}
     >
       {/* Zone 1: Repository Identity & Branch */}
       <div ref={root} className="flex min-w-0 items-center gap-2 sm:gap-2.5">

@@ -137,7 +137,7 @@ export function SwitcherPopover({
       role="dialog"
       aria-label="Switch repository"
       onKeyDown={onKeyDown}
-      className="absolute left-0 top-full z-40 mt-1.5 w-[440px] max-w-[calc(100vw-24px)] overflow-hidden rounded-xl border border-border bg-elevated shadow-popover"
+      className="absolute left-0 top-full z-50 mt-1.5 w-[440px] max-w-[calc(100vw-24px)] overflow-hidden rounded-xl border border-border bg-elevated shadow-popover"
       style={{ backgroundColor: "var(--rg-elevated)" }}
     >
       {view === "list" && (
@@ -225,7 +225,13 @@ export function SwitcherPopover({
           )}
 
           {/* Repository List */}
-          <div id={listId} role="listbox" aria-label="Repositories" className="max-h-80 overflow-y-auto py-1">
+          <div
+            id={listId}
+            role="listbox"
+            aria-label="Repositories"
+            className="max-h-80 overflow-y-auto py-1 bg-elevated"
+            style={{ backgroundColor: "var(--rg-elevated)" }}
+          >
             {repositories.isPending && <div className="px-3 py-3 text-xs text-fg-muted">Loading repositories…</div>}
 
             {repositories.isSuccess && visible.length === 0 && (

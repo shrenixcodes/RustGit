@@ -129,6 +129,7 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
 
   // Unfolding geometry.
   const [viewportHint, setViewportHint] = useState<number>(800);
+  const [measuredCommitHeight, setMeasuredCommitHeight] = useState<number>(360);
   const unfoldedIndex: number = unfolded === null ? -1 : (indexById.get(unfolded) ?? -1);
   const unfoldedRow: ThreadRowModel | undefined = rows[unfoldedIndex];
   const unfoldHeight: number =
@@ -138,7 +139,7 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
         ? Math.max(360, viewportHint - rowHeight * 2)
         : unfoldedRow.id.startsWith("m:")
           ? Math.min(Math.max(150, 80 + (refMap.get(unfoldedRow.commit.oid)?.length ?? 0) * 64), 420)
-          : Math.max(480, viewportHint - rowHeight * 2);
+          : Math.min(measuredCommitHeight, Math.max(380, viewportHint - rowHeight * 2));
   const unfolding: Unfolding | null = useMemo(
     () => (unfoldedIndex >= 0 ? { after: unfoldedIndex, height: unfoldHeight } : null),
     [unfoldedIndex, unfoldHeight],
@@ -353,6 +354,7 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
                   currentBranch={currentBranch}
                   height={unfolding.height}
                   onGoTo={goTo}
+                  onHeightChange={setMeasuredCommitHeight}
                 />
               )}
             </div>

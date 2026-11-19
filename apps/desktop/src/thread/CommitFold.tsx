@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Check, ChevronDown, ChevronRight, Copy, GitCompare, GitFork, RotateCcw } from "lucide-react";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { Button } from "../components/Button";
@@ -26,16 +26,31 @@ interface CommitFoldProps {
   currentBranch: string | null;
   height: number;
   onGoTo: (oid: string) => void;
+  onHeightChange?: (height: number) => void;
 }
 
 /** A commit unfolded in place: everything about it, under its own row. */
-export function CommitFold({ repositoryId, oid, refs, head, currentBranch, height, onGoTo }: CommitFoldProps) {
+export function CommitFold({ repositoryId, oid, refs, head, currentBranch, height, onGoTo, onHeightChange }: CommitFoldProps) {
   const details = useCommitDetails(repositoryId, oid);
   const operation = useBranchOperation(repositoryId);
   const [openFiles, setOpenFiles] = useState<ReadonlySet<string>>(new Set());
   const [pending, setPending] = useState<{ request: BranchRequest; title: string; body: string; label: string } | null>(null);
   const [outcome, setOutcome] = useState<BranchOutcome | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const detached: boolean = head?.kind === "detached" && head.oid === oid;
+
+  useLayoutEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const measure = (): void => {
+      const measured = Math.ceil(el.getBoundingClientRect().height) + 24;
+      onHeightChange?.(measured);
+    };
+    measure();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    observer?.observe(el);
+    return () => observer?.disconnect();
+  }, [onHeightChange, details.data]);
 
   const toggleFile = (path: string): void =>
     setOpenFiles((current) => {
@@ -56,11 +71,11 @@ export function CommitFold({ repositoryId, oid, refs, head, currentBranch, heigh
   };
 
   return (
-    <div style={{ height }} className="overflow-y-auto pr-5 pb-5 pl-[72px]">
+    <div style={{ height }} className="overflow-y-auto pr-4 sm:pr-6 pb-5 pl-8 sm:pl-10">
       {details.isPending && <p className="py-4 text-xs font-mono text-fg-muted">Reading commit…</p>}
       {details.isError && <ErrorNotice title="Could not read commit" error={details.error} />}
       {details.data !== undefined && (
-        <div className="space-y-4 pt-3.5 max-w-5xl">
+        <div ref={contentRef} className="space-y-4 pt-3.5 w-full">
           {/* Header pill: SHA, Copy, Badges */}
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/70 bg-elevated/50 px-3 py-2 shadow-2xs">
             <div className="flex items-center gap-2 min-w-0">

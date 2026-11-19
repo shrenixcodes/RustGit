@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
-import { ArrowLeftRight } from "lucide-react";
+import { ArrowLeftRight, GitBranch, GitCompare, GitFork } from "lucide-react";
 import { IconButton } from "../../components/Button";
+import { EmptyState } from "../../components/EmptyState";
 import { ErrorNotice } from "../../components/ErrorNotice";
 import { PageHeader } from "../../components/PageHeader";
 import { SegmentedControl, type SegmentOption } from "../../components/SegmentedControl";
@@ -70,39 +71,80 @@ function Compare({ repositoryId }: { repositoryId: number }) {
   };
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-6">
-      <div className="max-w-3xl space-y-4">
-        <div className="flex flex-wrap items-end gap-3">
-          <RevisionField label="base" value={base} names={names} onChange={(value) => set({ base: value, head })} />
-          <IconButton label="Swap base and head" onClick={() => set({ base: head, head: base })}>
-            <ArrowLeftRight aria-hidden className="size-3.5" />
-          </IconButton>
-          <RevisionField label="head" value={head} names={names} onChange={(value) => set({ base, head: value })} />
-          <SegmentedControl label="Compare files" options={MODES} value={mode} onChange={setMode} />
+    <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-8">
+      <div className="max-w-3xl space-y-5">
+        {/* Revision Selector Card */}
+        <div className="rounded-xl border border-border/80 bg-elevated/40 p-4 shadow-2xs">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <span className="flex items-center gap-2 font-medium text-xs text-fg">
+              <GitCompare className="size-3.5 text-accent" /> Compare revisions
+            </span>
+            <SegmentedControl label="Compare files" options={MODES} value={mode} onChange={setMode} />
+          </div>
+
+          <div className="flex flex-wrap items-end gap-3">
+            <RevisionField label="base" value={base} names={names} onChange={(value) => set({ base: value, head })} />
+            <div className="pb-1">
+              <IconButton label="Swap base and head" onClick={() => set({ base: head, head: base })} className="bg-canvas/80 border border-border/80">
+                <ArrowLeftRight aria-hidden className="size-3.5" />
+              </IconButton>
+            </div>
+            <RevisionField label="head" value={head} names={names} onChange={(value) => set({ base, head: value })} />
+          </div>
         </div>
+
         <datalist id="compare-revisions">
           {names.map((name: string) => (
             <option key={name} value={name} />
           ))}
         </datalist>
 
-        {(base === "" || head === "") && <p className="text-fg-muted">Choose two branches, tags or commit ids.</p>}
+        {(base === "" || head === "") && (
+          <EmptyState
+            icon={GitFork}
+            title="Select revisions to compare"
+            description="Choose two branches, tags, or commit SHAs above to inspect commit history differences and file diffs."
+          />
+        )}
+
         {comparison.isError && <ErrorNotice title="Could not compare" error={comparison.error} />}
-        {comparison.isPending && base !== "" && head !== "" && <p className="text-sm text-fg-muted">Comparing…</p>}
+        {comparison.isPending && base !== "" && head !== "" && (
+          <p className="py-6 text-center text-sm text-fg-muted">Comparing {base} and {head}…</p>
+        )}
+
         {comparison.data !== undefined && (
-          <>
-            <p role="status" className="text-sm text-fg-secondary">
-              {compareSummary(comparison.data, base, head)}
-              {mergeBase && comparison.data.mergeBase === null && " The histories are unrelated; files are compared with an empty tree."}
-            </p>
+          <div className="space-y-4">
+            <div className="rounded-xl border border-border/80 bg-elevated/50 p-4 shadow-2xs">
+              <p role="status" className="font-medium text-xs text-fg leading-relaxed">
+                {compareSummary(comparison.data, base, head)}
+                {mergeBase && comparison.data.mergeBase === null && (
+                  <span className="block mt-1 text-fg-muted font-normal text-2xs">
+                    The histories are unrelated; files are compared with an empty tree.
+                  </span>
+                )}
+              </p>
+              <div className="mt-2.5 flex items-center gap-2 font-mono text-2xs">
+                {comparison.data.ahead > 0 && (
+                  <span className="rounded bg-accent/15 border border-accent/25 px-2 py-0.5 text-accent font-semibold">
+                    {comparison.data.ahead} ahead
+                  </span>
+                )}
+                {comparison.data.behind > 0 && (
+                  <span className="rounded bg-clay/15 border border-clay/25 px-2 py-0.5 text-clay-text font-semibold">
+                    {comparison.data.behind} behind
+                  </span>
+                )}
+              </div>
+            </div>
+
             {comparison.data.files.length === 0 ? (
-              <p className="text-fg-muted">No file differences.</p>
+              <p className="text-center py-6 text-xs text-fg-muted">No file differences between these revisions.</p>
             ) : (
-              <>
+              <div className="space-y-2">
                 <p className="rg-label">
                   {comparison.data.files.length} file{comparison.data.files.length === 1 ? "" : "s"} changed
                 </p>
-                <ul aria-label="Changed files">
+                <ul aria-label="Changed files" className="divide-y divide-divider/70 rounded-xl border border-border/70 bg-canvas/40 overflow-hidden">
                   {comparison.data.files.map((file: CommitFile) => (
                     <FileEntry
                       key={file.path}
@@ -121,9 +163,9 @@ function Compare({ repositoryId }: { repositoryId: number }) {
                     />
                   ))}
                 </ul>
-              </>
+              </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </div>
@@ -142,22 +184,25 @@ function RevisionField({ label, value, names, onChange }: { label: string; value
     if (next !== value) onChange(next);
   };
   return (
-    <label className="block w-56">
-      <span className="rg-label">{label}</span>
-      <input
-        list="compare-revisions"
-        value={text}
-        placeholder={names[0] ?? "branch or commit"}
-        onChange={(event) => {
-          setText(event.target.value);
-          if (names.includes(event.target.value)) onChange(event.target.value);
-        }}
-        onBlur={commit}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") commit();
-        }}
-        className="mt-1 h-8 w-full border-b border-border bg-transparent font-mono text-sm outline-none focus:border-accent"
-      />
+    <label className="block w-64 min-w-48 flex-1">
+      <span className="mb-1 block font-mono text-2xs text-fg-muted uppercase tracking-wider">{label}</span>
+      <div className="relative flex h-8 items-center gap-2 rounded-lg border border-border/80 bg-canvas/70 px-2.5 transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent/30">
+        <GitBranch className="size-3.5 text-fg-muted shrink-0" />
+        <input
+          list="compare-revisions"
+          value={text}
+          placeholder={names[0] ?? "branch or commit"}
+          onChange={(event) => {
+            setText(event.target.value);
+            if (names.includes(event.target.value)) onChange(event.target.value);
+          }}
+          onBlur={commit}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") commit();
+          }}
+          className="h-full w-full bg-transparent font-mono text-xs text-fg outline-none placeholder:text-fg-muted/60"
+        />
+      </div>
     </label>
   );
 }

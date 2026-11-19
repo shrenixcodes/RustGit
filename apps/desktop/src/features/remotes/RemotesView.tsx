@@ -1,7 +1,10 @@
 import { useState, type FormEvent } from "react";
+import { Copy, Check, Globe, Plus, RefreshCw, Trash2, Edit2, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { Button } from "../../components/Button";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { EmptyState } from "../../components/EmptyState";
 import { ErrorNotice } from "../../components/ErrorNotice";
+import { Input } from "../../components/Input";
 import { PageHeader } from "../../components/PageHeader";
 import { networkActions } from "../../services/network";
 import { useRepositories } from "../../services/queries";
@@ -60,94 +63,137 @@ function RemotesList({ repositoryId }: { repositoryId: number }) {
   };
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-6">
-      <div className="max-w-2xl space-y-5">
-        <p className="text-sm text-fg-muted">
-          Git's credential helper authenticates network operations. When it has nothing, RustGit asks for the password or key passphrase and passes it straight to Git without storing it.
-        </p>
-        {remotes.isError && <ErrorNotice title="Could not list remotes" error={remotes.error} />}
-        {remotes.data?.length === 0 && <p className="text-fg-muted">No remotes yet. Add one to fetch from it and push to it.</p>}
+    <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-8">
+      <div className="max-w-3xl space-y-6">
+        <div className="rounded-xl border border-border/70 bg-canvas/40 p-4 text-xs text-fg-muted leading-relaxed">
+          Git's credential helper authenticates network operations. When no stored credentials exist, RustGit asks for the password or key passphrase and passes it directly to Git without storing secrets.
+        </div>
 
-        <ul className="divide-y divide-divider">
-          {remotes.data?.map((remote: Remote) => (
-            <li key={remote.name} className="space-y-2 py-3">
-              <div className="flex items-baseline gap-3">
-                <span className="font-mono text-sm text-indigo-text">{remote.name}</span>
-                <span className="flex-1" />
-                <Button variant="ghost" disabled={fetching} onClick={() => actions.fetch(remote.name).catch(() => {})}>
-                  Fetch
-                </Button>
-                <Button variant="ghost" disabled={operation.isPending} onClick={() => setRemoving(remote.name)}>
-                  Remove…
-                </Button>
-              </div>
-              <UrlLine
-                remote={remote.name}
-                label="fetch"
-                url={remote.fetchUrl}
-                onEdit={() => setEditing({ name: remote.name, push: false, url: remote.fetchUrl ?? "" })}
-              />
-              <UrlLine
-                remote={remote.name}
-                label="push"
-                url={remote.pushUrl}
-                same={remote.pushUrl === remote.fetchUrl}
-                onEdit={() => setEditing({ name: remote.name, push: true, url: remote.pushUrl ?? remote.fetchUrl ?? "" })}
-              />
-              {editing?.name === remote.name && (
-                <form onSubmit={saveUrl} className="flex items-center gap-2">
-                  <label className="flex flex-1 items-center gap-2 border-b border-border focus-within:border-accent">
-                    <span className="sr-only">{`New ${editing.push ? "push" : "fetch"} URL for ${remote.name}`}</span>
-                    <input
-                      autoFocus
-                      value={editing.url}
-                      onChange={(event) => setEditing({ ...editing, url: event.target.value })}
-                      onKeyDown={(event) => {
-                        if (event.key === "Escape") {
-                          event.stopPropagation();
-                          setEditing(null);
-                        }
-                      }}
-                      className="h-7 flex-1 bg-transparent font-mono text-xs outline-none"
+        {remotes.isError && <ErrorNotice title="Could not list remotes" error={remotes.error} />}
+
+        {remotes.data?.length === 0 && (
+          <EmptyState
+            icon={Globe}
+            title="No remotes configured"
+            description="Add a remote repository URL to synchronize, pull latest changes, and push your commits."
+          />
+        )}
+
+        {remotes.data !== undefined && remotes.data.length > 0 && (
+          <div className="space-y-3">
+            <h2 className="rg-label">Configured remotes ({remotes.data.length})</h2>
+            <div className="grid gap-3">
+              {remotes.data.map((remote: Remote) => (
+                <div
+                  key={remote.name}
+                  className="group relative flex flex-col gap-3 rounded-xl border border-border/80 bg-elevated/50 p-4 shadow-2xs transition-all hover:border-border-control hover:bg-elevated/70"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex size-7 items-center justify-center rounded-lg border border-indigo/20 bg-indigo/10 text-indigo-text">
+                        <Globe aria-hidden className="size-3.5" />
+                      </div>
+                      <span className="font-mono text-sm font-semibold tracking-tight text-fg">{remote.name}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        variant="ghost"
+                        disabled={fetching}
+                        onClick={() => actions.fetch(remote.name).catch(() => {})}
+                        className="h-7 text-xs"
+                      >
+                        <RefreshCw aria-hidden className={`size-3 mr-1 ${fetching ? "animate-spin" : ""}`} />
+                        Fetch
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        disabled={operation.isPending}
+                        onClick={() => setRemoving(remote.name)}
+                        className="h-7 text-xs text-danger/80 hover:bg-danger/10 hover:text-danger"
+                      >
+                        <Trash2 aria-hidden className="size-3 mr-1" />
+                        Remove…
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 rounded-lg border border-border/60 bg-canvas/50 p-3 font-mono text-xs">
+                    <UrlLine
+                      remote={remote.name}
+                      label="fetch"
+                      icon={<ArrowDownLeft className="size-3 text-accent" />}
+                      url={remote.fetchUrl}
+                      onEdit={() => setEditing({ name: remote.name, push: false, url: remote.fetchUrl ?? "" })}
                     />
-                  </label>
-                  <Button type="submit" variant="primary" disabled={editing.url.trim() === "" || operation.isPending}>
-                    Save {editing.push ? "push" : "fetch"} URL
-                  </Button>
-                  <Button variant="ghost" onClick={() => setEditing(null)}>
-                    Cancel
-                  </Button>
-                </form>
-              )}
-            </li>
-          ))}
-        </ul>
+                    <UrlLine
+                      remote={remote.name}
+                      label="push"
+                      icon={<ArrowUpRight className="size-3 text-clay-text" />}
+                      url={remote.pushUrl}
+                      same={remote.pushUrl === remote.fetchUrl}
+                      onEdit={() => setEditing({ name: remote.name, push: true, url: remote.pushUrl ?? remote.fetchUrl ?? "" })}
+                    />
+                  </div>
+
+                  {editing?.name === remote.name && (
+                    <form onSubmit={saveUrl} className="flex items-center gap-2 pt-1">
+                      <div className="flex-1">
+                        <Input
+                          autoFocus
+                          value={editing.url}
+                          onChange={(event) => setEditing({ ...editing, url: event.target.value })}
+                          onKeyDown={(event) => {
+                            if (event.key === "Escape") {
+                              event.stopPropagation();
+                              setEditing(null);
+                            }
+                          }}
+                          placeholder={`New ${editing.push ? "push" : "fetch"} URL`}
+                        />
+                      </div>
+                      <Button type="submit" variant="primary" disabled={editing.url.trim() === "" || operation.isPending}>
+                        Save {editing.push ? "push" : "fetch"} URL
+                      </Button>
+                      <Button variant="ghost" onClick={() => setEditing(null)}>
+                        Cancel
+                      </Button>
+                    </form>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {remotes.data?.length === 0 && <PublishToGithub repositoryId={repositoryId} defaultName={defaultName} />}
 
-        <form onSubmit={add} aria-label="Add a remote" className="flex flex-wrap items-end gap-3">
-          <label className="block w-32">
-            <span className="rg-label">name</span>
-            <input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder={remotes.data?.length === 0 ? "origin" : "upstream"}
-              className="mt-1 h-8 w-full border-b border-border bg-transparent font-mono text-sm outline-none focus:border-accent"
-            />
-          </label>
-          <label className="block min-w-64 flex-1">
-            <span className="rg-label">url</span>
-            <input
-              value={url}
-              onChange={(event) => setUrl(event.target.value)}
-              placeholder="https://github.com/owner/repository.git"
-              className="mt-1 h-8 w-full border-b border-border bg-transparent font-mono text-sm outline-none focus:border-accent"
-            />
-          </label>
-          <Button type="submit" variant="primary" disabled={name.trim() === "" || url.trim() === "" || operation.isPending}>
-            Add remote
-          </Button>
-        </form>
+        {/* Add Remote Card */}
+        <div className="rounded-xl border border-border/80 bg-elevated/40 p-5 shadow-2xs">
+          <h3 className="mb-3 flex items-center gap-2 font-medium text-xs text-fg">
+            <Plus className="size-3.5 text-accent" /> Add new remote
+          </h3>
+          <form onSubmit={add} aria-label="Add a remote" className="flex flex-wrap items-end gap-3">
+            <div className="w-36">
+              <span className="mb-1 block font-mono text-2xs text-fg-muted">Remote name</span>
+              <Input
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder={remotes.data?.length === 0 ? "origin" : "upstream"}
+              />
+            </div>
+            <div className="min-w-64 flex-1">
+              <span className="mb-1 block font-mono text-2xs text-fg-muted">Remote URL</span>
+              <Input
+                value={url}
+                onChange={(event) => setUrl(event.target.value)}
+                placeholder="https://github.com/owner/repository.git"
+              />
+            </div>
+            <Button type="submit" variant="primary" disabled={name.trim() === "" || url.trim() === "" || operation.isPending}>
+              Add remote
+            </Button>
+          </form>
+        </div>
 
         {operation.error !== null && <ErrorNotice title="Git did not change the remote" error={operation.error} />}
       </div>
@@ -171,16 +217,57 @@ function RemotesList({ repositoryId }: { repositoryId: number }) {
   );
 }
 
-function UrlLine({ remote, label, url, same = false, onEdit }: { remote: string; label: string; url: string | null; same?: boolean; onEdit: () => void }) {
+function UrlLine({
+  remote,
+  label,
+  icon,
+  url,
+  same = false,
+  onEdit,
+}: {
+  remote: string;
+  label: string;
+  icon?: React.ReactNode;
+  url: string | null;
+  same?: boolean;
+  onEdit: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const copyUrl = (text: string) => {
+    void navigator.clipboard?.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
   return (
-    <p className="flex items-baseline gap-3 font-mono text-xs">
-      <span className="w-10 shrink-0 text-fg-muted">{label}</span>
-      <span data-selectable className="min-w-0 flex-1 truncate text-fg-secondary" title={url ?? undefined}>
-        {url === null ? "not set" : same ? "same as fetch" : url}
+    <div className="flex items-center gap-2 text-xs">
+      <span className="flex w-14 shrink-0 items-center gap-1.5 font-medium text-fg-muted">
+        {icon}
+        <span>{label}</span>
       </span>
-      <button type="button" aria-label={`Change ${label} URL of ${remote}`} onClick={onEdit} className="shrink-0 text-fg-muted hover:text-fg hover:underline">
-        change…
+      <span data-selectable className="min-w-0 flex-1 truncate font-mono text-fg-secondary" title={url ?? undefined}>
+        {url === null ? <span className="italic text-fg-muted">not set</span> : same ? <span className="text-fg-muted">same as fetch</span> : url}
+      </span>
+      {url && !same && (
+        <button
+          type="button"
+          onClick={() => copyUrl(url)}
+          title={copied ? "Copied URL" : "Copy URL"}
+          className="rounded p-1 text-fg-muted hover:bg-hover hover:text-fg"
+        >
+          {copied ? <Check className="size-3 text-success" /> : <Copy className="size-3" />}
+        </button>
+      )}
+      <button
+        type="button"
+        aria-label={`Change ${label} URL of ${remote}`}
+        onClick={onEdit}
+        className="flex items-center gap-1 rounded px-1.5 py-0.5 text-2xs text-fg-muted transition-colors hover:bg-hover hover:text-fg"
+      >
+        <Edit2 className="size-2.5" />
+        <span>change…</span>
       </button>
-    </p>
+    </div>
   );
 }

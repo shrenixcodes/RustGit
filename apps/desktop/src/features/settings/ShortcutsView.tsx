@@ -25,7 +25,7 @@ export function ShortcutsView() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center justify-between px-8 pt-6 pb-2">
+      <div className="flex items-center justify-between px-6 sm:px-8 pt-4 sm:pt-6 pb-2">
         <PageHeader title="Keyboard shortcuts" visible />
         <div className="w-56">
           <Input
@@ -36,7 +36,7 @@ export function ShortcutsView() {
           />
         </div>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-8">
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 sm:px-8 pb-8">
         <div className="grid max-w-4xl gap-4 md:grid-cols-2">
           {filteredGroups.map((group: ShortcutGroup) => (
             <section

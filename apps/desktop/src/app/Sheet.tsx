@@ -84,11 +84,11 @@ export function Sheet() {
         event.preventDefault();
         setSheet(null);
       }}
-      className="m-auto flex h-[min(720px,calc(100vh-64px))] w-[min(920px,calc(100vw-64px))] flex-col rounded-2xl border border-border/80 bg-bg p-0 text-fg shadow-popover backdrop:bg-overlay backdrop:backdrop-blur-sm"
+      className="m-auto flex h-[min(740px,calc(100vh-64px))] w-[min(940px,calc(100vw-64px))] flex-col rounded-2xl border border-border/80 bg-bg p-0 text-fg shadow-popover backdrop:bg-overlay backdrop:backdrop-blur-sm"
     >
       {/* Top Modal Navigation Header */}
-      <div className="relative flex shrink-0 items-center justify-between border-b border-divider/80 bg-canvas/40 px-5 py-2.5">
-        <div className="flex items-center gap-1 overflow-x-auto pr-16 select-none scrollbar-none">
+      <div className="relative flex shrink-0 items-center justify-between border-b border-divider/80 bg-elevated/50 px-5 py-3 backdrop-blur-md">
+        <div className="flex items-center gap-1.5 overflow-x-auto pr-16 select-none scrollbar-none">
           {TABS.map((tab) => {
             if (tab.requiresRepo && activeRepositoryId === null) return null;
             const active = sheet === tab.id;
@@ -98,9 +98,9 @@ export function Sheet() {
                 key={tab.id}
                 type="button"
                 onClick={() => setSheet(tab.id)}
-                className={`flex h-7 items-center gap-1.5 rounded-lg px-2.5 font-sans text-xs font-medium transition-all duration-150 active:scale-95 ${
+                className={`flex h-7.5 items-center gap-1.5 rounded-lg px-3 font-sans text-xs font-semibold transition-all duration-150 active:scale-95 ${
                   active
-                    ? "bg-elevated text-fg shadow-2xs border border-border/80"
+                    ? "bg-canvas text-fg shadow-xs border border-border/80"
                     : "text-fg-muted hover:bg-hover hover:text-fg"
                 }`}
               >
@@ -111,9 +111,9 @@ export function Sheet() {
           })}
         </div>
 
-        <div className="absolute top-2.5 right-4 z-10 flex items-center gap-2">
+        <div className="absolute top-3 right-4 z-10 flex items-center gap-2">
           <span className="hidden sm:inline-flex items-center gap-1 font-mono text-2xs text-fg-muted/70">
-            <kbd className="rounded border border-border/70 bg-elevated px-1 text-2xs">Esc</kbd>
+            <kbd className="rounded border border-border/70 bg-canvas/80 px-1 text-2xs">Esc</kbd>
           </span>
           <IconButton label="Close" onClick={() => setSheet(null)}>
             <X aria-hidden className="size-4" />

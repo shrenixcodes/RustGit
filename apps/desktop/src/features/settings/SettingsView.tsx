@@ -103,20 +103,30 @@ export function SettingsView() {
 
           {/* Git Environment Section */}
           <div className="rounded-xl border border-border/80 bg-elevated/40 p-5 shadow-2xs space-y-4">
-            <h3 className="font-semibold text-xs text-fg flex items-center gap-2">
-              <Terminal className="size-4 text-accent" />
-              <span>Git Environment</span>
+            <h3 className="font-semibold text-xs text-fg flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Terminal className="size-4 text-accent" />
+                <span>Git Environment</span>
+              </span>
+              {gitInfo.data !== undefined && (
+                <span className="flex items-center gap-1.5 font-mono text-2xs text-success">
+                  <span className="size-1.5 rounded-full bg-success" />
+                  <span>operational</span>
+                </span>
+              )}
             </h3>
 
             <Setting label="Git" description="RustGit runs the Git executable found on PATH.">
-              {gitInfo.isPending && <p className="text-xs text-fg-muted">Detecting Git…</p>}
+              {gitInfo.isPending && <p className="text-xs text-fg-muted font-mono">Detecting Git…</p>}
               {gitInfo.isError && <ErrorNotice title="Git is not available" error={gitInfo.error} />}
               {gitInfo.data !== undefined && (
-                <div className="space-y-2 rounded-lg border border-border/70 bg-canvas/60 p-3 text-xs">
-                  <dl className="grid grid-cols-[80px_1fr] items-center gap-x-3 gap-y-1.5">
+                <div className="space-y-2 rounded-xl border border-border/70 bg-canvas/60 p-3.5 text-xs shadow-2xs">
+                  <dl className="grid grid-cols-[80px_1fr] items-center gap-x-3 gap-y-2">
                     <dt className="text-fg-muted text-2xs uppercase tracking-wider font-semibold">Version</dt>
-                    <dd data-selectable className="font-mono text-fg font-medium">
-                      {gitInfo.data.version}
+                    <dd data-selectable className="font-mono text-fg font-semibold">
+                      <span className="rounded bg-elevated border border-border px-2 py-0.5">
+                        {gitInfo.data.version}
+                      </span>
                     </dd>
                     <dt className="text-fg-muted text-2xs uppercase tracking-wider font-semibold">Executable</dt>
                     <dd className="flex items-center gap-2 min-w-0">
@@ -127,9 +137,9 @@ export function SettingsView() {
                         type="button"
                         onClick={() => copyExecPath(gitInfo.data!.executable)}
                         title={copiedExec ? "Copied executable path" : "Copy path"}
-                        className="rounded p-1 text-fg-muted hover:bg-hover hover:text-fg shrink-0"
+                        className="rounded p-1 text-fg-muted hover:bg-hover hover:text-fg shrink-0 transition-colors"
                       >
-                        {copiedExec ? <Check className="size-3 text-success" /> : <Copy className="size-3" />}
+                        {copiedExec ? <Check className="size-3.5 text-success" /> : <Copy className="size-3.5" />}
                       </button>
                     </dd>
                   </dl>

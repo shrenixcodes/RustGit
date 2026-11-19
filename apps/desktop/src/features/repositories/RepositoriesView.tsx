@@ -22,6 +22,7 @@ import { CloneForm } from "./CloneForm";
 import { NewRepositoryForm } from "./NewRepositoryForm";
 import { RepositoryRow } from "./RepositoryRow";
 import { filterRepositories } from "./filterRepositories";
+import { formatShortcut } from "../../app/shortcuts";
 
 interface FailedAction {
   title: string;
@@ -299,7 +300,7 @@ export function RepositoriesView() {
             </div>
 
             <p className="mt-8 text-2xs text-fg-muted/80">
-              Tip: press <kbd className="rounded border border-border/70 bg-elevated/70 px-1 py-0.5 font-mono text-2xs text-fg-secondary">⌘K</kbd> anywhere to open the command palette.
+              Tip: press <kbd className="rounded border border-border/70 bg-elevated/70 px-1 py-0.5 font-mono text-2xs text-fg-secondary">{formatShortcut("Mod+K")}</kbd> anywhere to open the command palette.
             </p>
           </div>
         )}

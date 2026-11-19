@@ -22,6 +22,7 @@ import {
 } from "../features/changes/changeLabels";
 import { buildCanvasRows, type CanvasRow, type DiffLayout } from "../features/changes/diffModel";
 import { DIFF_ROW, HunkHeader, SplitHalf, UnifiedLine, type HunkAction } from "./diffParts";
+import { formatShortcut } from "../app/shortcuts";
 import { SUMMARY_GUIDE, type CommitComposer } from "./useCommitComposer";
 
 const GROUPS: readonly NavigatorGroup[] = ["conflicts", "changes", "untracked"];
@@ -318,7 +319,9 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
             </div>
             <div className="flex items-center gap-2 text-2xs text-fg-muted">
               <span className="font-sans">Press</span>
-              <kbd className="rounded border border-border/70 bg-canvas/80 px-1 py-0.5 font-mono text-fg-secondary">⌘+Enter</kbd>
+              <kbd className="rounded border border-border/70 bg-canvas/80 px-1 py-0.5 font-mono text-fg-secondary">
+                {formatShortcut("Mod+Enter")}
+              </kbd>
               <span className="font-sans">to commit</span>
             </div>
           </div>

@@ -64,7 +64,14 @@ export function Seal() {
   };
 
   return (
-    <header aria-label="Repository" className="flex h-12 shrink-0 items-center gap-2 sm:gap-3 border-b border-divider bg-bg px-3 sm:px-4 overflow-x-clip overflow-y-visible select-none">
+    <header
+      aria-label="Repository"
+      className="relative flex h-12 shrink-0 items-center gap-2 sm:gap-3 border-b border-divider px-3 sm:px-4 overflow-x-clip overflow-y-visible select-none"
+      style={{
+        backgroundImage:
+          "linear-gradient(180deg, color-mix(in oklab, var(--rg-elevated) 55%, transparent) 0%, var(--rg-bg) 100%)",
+      }}
+    >
       <div ref={root} className="relative flex min-w-0 items-center gap-1.5 sm:gap-2">
         <Mark size={20} />
         {repository === undefined ? (

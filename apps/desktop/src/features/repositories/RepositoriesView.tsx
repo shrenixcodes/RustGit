@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import { Download, FolderGit2, FolderOpen, FolderPlus, Search } from "lucide-react";
+import { Download, FolderGit2, FolderOpen, FolderPlus, Search, type LucideIcon } from "lucide-react";
 import { Button } from "../../components/Button";
 import { ErrorNotice } from "../../components/ErrorNotice";
 import { Mark } from "../../components/Mark";
@@ -238,75 +238,65 @@ export function RepositoriesView() {
         {repositories.isError && <ErrorNotice title="Could not load repositories" error={repositories.error} />}
 
         {repositories.isSuccess && repositories.data.length === 0 && (
-          <div className="flex flex-1 flex-col items-center justify-center py-6 text-center">
-            <div className="relative mb-3 flex size-12 items-center justify-center rounded-2xl bg-accent/10 border border-accent/20">
-              <Mark size={28} />
+          <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden py-10 text-center">
+            {/* Ambient halo: a soft, slow gradient so the welcome screen reads
+             * as a stage rather than an empty box. Decorative only. */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute left-1/2 top-1/3 -z-10 h-[360px] w-[560px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/15 blur-3xl"
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute left-1/2 top-1/3 -z-10 h-[220px] w-[380px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo/10 blur-2xl"
+            />
+
+            <div className="relative mb-5 flex size-16 items-center justify-center rounded-2xl border border-accent/30 bg-elevated/70 shadow-raised">
+              <Mark size={36} />
+              <span aria-hidden className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-accent/20" />
             </div>
-            <h2 className="text-lg font-semibold tracking-tight text-fg">Welcome to RustGit</h2>
-            <p className="mt-0.5 text-xs font-medium text-fg-secondary">No repositories yet</p>
-            <p className="mt-1 max-w-sm text-xs text-fg-muted">
-              Fast, lightweight Git without the overhead. Get started with any repository:
+            <h2 className="text-2xl font-semibold tracking-tight text-fg">Welcome to RustGit</h2>
+            <p className="mt-1 text-xs font-medium text-fg-secondary">No repositories yet</p>
+            <p className="mt-2 max-w-md text-sm text-fg-secondary leading-relaxed">
+              Fast, lightweight Git without the overhead. Start with a repository below.
             </p>
 
             {githubStatus.data?.account && (
-              <div className="mt-3.5 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs text-fg">
-                <span className="size-2 rounded-full bg-accent animate-pulse" />
-                <span>Connected to GitHub as <strong>@{githubStatus.data.account.login}</strong></span>
+              <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-success/30 bg-success/10 px-3 py-1 text-xs text-fg">
+                <span className="relative flex size-2 items-center justify-center">
+                  <span className="absolute inset-0 rounded-full bg-success animate-ping opacity-60" />
+                  <span className="relative size-2 rounded-full bg-success" />
+                </span>
+                <span>Signed in as <strong className="font-semibold">@{githubStatus.data.account.login}</strong></span>
               </div>
             )}
 
-            <div className="mt-6 grid w-full max-w-lg grid-cols-1 gap-3 sm:grid-cols-3 text-left">
-              <button
-                type="button"
+            <div className="mt-8 grid w-full max-w-2xl grid-cols-1 gap-3 sm:grid-cols-3 text-left">
+              <WelcomeCard
+                icon={Download}
+                title="Clone repository"
+                hint="From GitHub or any Git URL"
+                accent="accent"
                 onClick={() => { setCreating(false); setCloning(true); }}
-                className="group flex flex-col justify-between rounded-lg border border-border bg-elevated/40 p-3.5 transition-all duration-150 hover:border-accent hover:bg-hover hover:shadow-sm"
-              >
-                <div>
-                  <div className="mb-2.5 flex size-7 items-center justify-center rounded-md bg-accent/10 text-accent group-hover:bg-accent/20">
-                    <Download className="size-3.5" />
-                  </div>
-                  <div className="font-medium text-xs text-fg">Clone repository</div>
-                  <div className="mt-0.5 text-2xs text-fg-muted">From GitHub or a URL</div>
-                </div>
-                <div className="mt-3 text-2xs font-semibold text-accent opacity-0 group-hover:opacity-100 transition-opacity">
-                  Clone →
-                </div>
-              </button>
-
-              <button
-                type="button"
+              />
+              <WelcomeCard
+                icon={FolderOpen}
+                title="Open local folder"
+                hint="Pick an existing repo on disk"
+                accent="clay"
                 onClick={handleAdd}
-                className="group flex flex-col justify-between rounded-lg border border-border bg-elevated/40 p-3.5 transition-all duration-150 hover:border-accent hover:bg-hover hover:shadow-sm"
-              >
-                <div>
-                  <div className="mb-2.5 flex size-7 items-center justify-center rounded-md bg-clay/10 text-clay-text group-hover:bg-clay/20">
-                    <FolderOpen className="size-3.5" />
-                  </div>
-                  <div className="font-medium text-xs text-fg">Open local folder</div>
-                  <div className="mt-0.5 text-2xs text-fg-muted">Choose repository from disk</div>
-                </div>
-                <div className="mt-3 text-2xs font-semibold text-clay-text opacity-0 group-hover:opacity-100 transition-opacity">
-                  Browse →
-                </div>
-              </button>
-
-              <button
-                type="button"
+              />
+              <WelcomeCard
+                icon={FolderPlus}
+                title="Create new"
+                hint="Initialize a fresh Git project"
+                accent="moss"
                 onClick={() => { setCloning(false); setCreating(true); }}
-                className="group flex flex-col justify-between rounded-lg border border-border bg-elevated/40 p-3.5 transition-all duration-150 hover:border-accent hover:bg-hover hover:shadow-sm"
-              >
-                <div>
-                  <div className="mb-2.5 flex size-7 items-center justify-center rounded-md bg-moss/20 text-accent-strong group-hover:bg-moss/30">
-                    <FolderPlus className="size-3.5" />
-                  </div>
-                  <div className="font-medium text-xs text-fg">Create new</div>
-                  <div className="mt-0.5 text-2xs text-fg-muted">Initialize Git project</div>
-                </div>
-                <div className="mt-3 text-2xs font-semibold text-accent-strong opacity-0 group-hover:opacity-100 transition-opacity">
-                  Create →
-                </div>
-              </button>
+              />
             </div>
+
+            <p className="mt-8 text-2xs text-fg-muted/80">
+              Tip: press <kbd className="rounded border border-border/70 bg-elevated/70 px-1 py-0.5 font-mono text-2xs text-fg-secondary">⌘K</kbd> anywhere to open the command palette.
+            </p>
           </div>
         )}
 
@@ -330,5 +320,47 @@ export function RepositoriesView() {
         )}
       </div>
     </div>
+  );
+}
+
+type WelcomeAccent = "accent" | "clay" | "moss";
+
+const WELCOME_ACCENT: Record<WelcomeAccent, { chip: string; text: string; ring: string }> = {
+  accent: { chip: "bg-accent/15 text-accent", text: "text-accent", ring: "group-hover:ring-accent/40" },
+  clay: { chip: "bg-clay/15 text-clay-text", text: "text-clay-text", ring: "group-hover:ring-clay/40" },
+  moss: { chip: "bg-moss/20 text-accent-strong", text: "text-accent-strong", ring: "group-hover:ring-moss/40" },
+};
+
+interface WelcomeCardProps {
+  icon: LucideIcon;
+  title: string;
+  hint: string;
+  accent: WelcomeAccent;
+  onClick: () => void;
+}
+
+/**
+ * A welcome-screen action card. The accent colour is the only variable: the
+ * frame, motion and hierarchy are shared so the three CTAs read as one row.
+ */
+function WelcomeCard({ icon: Icon, title, hint, accent, onClick }: WelcomeCardProps) {
+  const style = WELCOME_ACCENT[accent];
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`group relative flex flex-col justify-between overflow-hidden rounded-xl border border-border/80 bg-elevated/60 p-4 text-left shadow-subtle ring-1 ring-transparent ring-inset transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-border-control hover:bg-elevated hover:shadow-raised ${style.ring} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg`}
+    >
+      <div>
+        <div className={`mb-3 flex size-8 items-center justify-center rounded-lg ${style.chip} transition-transform duration-200 group-hover:scale-105`}>
+          <Icon aria-hidden className="size-4" strokeWidth={1.75} />
+        </div>
+        <div className="font-semibold text-sm text-fg">{title}</div>
+        <div className="mt-1 text-xs text-fg-muted leading-relaxed">{hint}</div>
+      </div>
+      <div className={`mt-4 flex items-center gap-1 text-xs font-semibold ${style.text} opacity-0 translate-x-[-4px] transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100`}>
+        Get started <span aria-hidden>→</span>
+      </div>
+    </button>
   );
 }

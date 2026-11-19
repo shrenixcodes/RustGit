@@ -153,7 +153,7 @@ export function SettingsView() {
                 <div className="flex items-center justify-between rounded-lg border border-border/70 bg-canvas/60 p-3">
                   <div className="flex items-center gap-2">
                     <span className="text-fg-muted">Installed version:</span>
-                    <span className="font-mono font-semibold text-fg">{updateCheck.data?.currentVersion ?? "0.2.3"}</span>
+                    <span className="font-mono font-semibold text-fg">{updateCheck.data?.currentVersion ?? "0.2.4"}</span>
                   </div>
                   <Button
                     variant="secondary"

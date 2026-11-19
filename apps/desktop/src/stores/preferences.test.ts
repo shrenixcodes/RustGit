@@ -48,5 +48,20 @@ describe("preferences", () => {
     applyPreferences({ personality: "deep", motion: "reduce" }, root);
     expect(root.dataset.workspace).toBe("deep");
     expect(root.dataset.motion).toBe("reduce");
+    applyPreferences({ personality: "quiet", motion: "full" }, root);
+    expect(root.dataset.workspace).toBe("quiet");
+    expect(root.dataset.motion).toBe("full");
+  });
+
+  it("persists and restores the full motion setting", async () => {
+    usePreferences.getState().setMotion("full");
+    const stored = JSON.parse(localStorage.getItem("rustgit.preferences") ?? "{}") as {
+      state: { motion: string };
+    };
+    expect(stored.state.motion).toBe("full");
+
+    localStorage.setItem("rustgit.preferences", JSON.stringify({ state: { motion: "full" }, version: 3 }));
+    await usePreferences.persist.rehydrate();
+    expect(usePreferences.getState().motion).toBe("full");
   });
 });

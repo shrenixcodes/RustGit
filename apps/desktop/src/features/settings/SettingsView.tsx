@@ -21,9 +21,13 @@ const PERSONALITY_OPTIONS: readonly SegmentOption<Personality>[] = [
   { value: "deep", label: "Deep" },
 ];
 
+const isWindows = typeof navigator !== "undefined" && /Win/i.test(navigator.userAgent);
+const systemMotionLabel = isWindows ? "Follow Windows" : "Follow system";
+
 const MOTION_OPTIONS: readonly SegmentOption<MotionPreference>[] = [
-  { value: "system", label: "Follow system" },
-  { value: "reduce", label: "Reduce" },
+  { value: "full", label: "Full" },
+  { value: "system", label: systemMotionLabel },
+  { value: "reduce", label: "Reduced" },
 ];
 
 export function SettingsView() {
@@ -79,7 +83,7 @@ export function SettingsView() {
 
               <Setting
                 label="Motion"
-                description="Reduce turns off transitions even when the operating system allows them."
+                description={`Full enables all transitions and animations. ${systemMotionLabel} matches operating system settings. Reduced turns off motion.`}
               >
                 <SegmentedControl label="Motion" options={MOTION_OPTIONS} value={motion} onChange={setMotion} />
               </Setting>

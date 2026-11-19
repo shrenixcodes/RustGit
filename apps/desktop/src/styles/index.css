@@ -119,11 +119,11 @@
     background: transparent;
   }
 
-  /* OS preference and the in-app setting both disable motion. */
+  /* OS preference and the in-app setting both control motion. */
   @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
+    :root:not([data-motion="full"]) *,
+    :root:not([data-motion="full"]) *::before,
+    :root:not([data-motion="full"]) *::after {
       animation-duration: 0.01ms !important;
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
@@ -135,6 +135,9 @@
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+  :root[data-motion="full"] .motion-safe\:animate-spin {
+    animation: spin 1s linear infinite;
   }
 }
 

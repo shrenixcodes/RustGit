@@ -132,6 +132,9 @@ export function CommandPalette() {
       { id: "theme-dark", group: "Settings", title: "Theme: dark", run: () => setTheme.mutate("dark") },
       { id: "theme-light", group: "Settings", title: "Theme: light", run: () => setTheme.mutate("light") },
       { id: "theme-system", group: "Settings", title: "Theme: follow the system", run: () => setTheme.mutate("system") },
+      { id: "motion-full", group: "Settings", title: "Motion: full animations", run: () => prefs.setMotion("full") },
+      { id: "motion-system", group: "Settings", title: "Motion: follow the system", run: () => prefs.setMotion("system") },
+      { id: "motion-reduce", group: "Settings", title: "Motion: reduced animations", run: () => prefs.setMotion("reduce") },
       { id: "deep", group: "Settings", title: "Toggle the deep workspace", shortcut: "Mod+Shift+D", run: prefs.togglePersonality },
       { id: "activity", group: "Settings", title: "Toggle the activity panel", shortcut: "Mod+J", run: () => prefs.setActivityOpen(!prefs.activityOpen) },
     );

@@ -9,7 +9,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 
 /** Quiet: spacious, for daily work. Deep: darker and denser, for history and investigation. */
 export type Personality = "quiet" | "deep";
-export type MotionPreference = "system" | "reduce";
+export type MotionPreference = "system" | "reduce" | "full";
 /** How far the thread is seen from: every commit, or only branch heads, forks and merges. */
 export type Zoom = "thread" | "map";
 /** How Pull integrates the upstream (the backend's PullMode). */
@@ -101,7 +101,7 @@ export const usePreferences = create<PreferencesState>()(
         return {
           ...current,
           personality: stored.personality === "deep" ? "deep" : "quiet",
-          motion: stored.motion === "reduce" ? "reduce" : "system",
+          motion: stored.motion === "reduce" ? "reduce" : stored.motion === "full" ? "full" : "system",
           zoom: stored.zoom === "map" ? "map" : "thread",
           pullMode: stored.pullMode === "merge" || stored.pullMode === "rebase" ? stored.pullMode : "ff_only",
           activityOpen: stored.activityOpen === true,

@@ -114,7 +114,7 @@ export function RepositoriesView() {
     <div className="flex min-h-0 flex-1 flex-col">
       <PageHeader title="Repositories" visible />
 
-      <div className="flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-4 px-6 sm:px-8 pb-6">
+      <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-4 px-6 sm:px-8 pb-6">
         {/* Action Header Card */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-border/80 bg-elevated/40 p-4 shadow-sm backdrop-blur-xs">
           <div>

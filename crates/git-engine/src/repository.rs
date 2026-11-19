@@ -156,11 +156,13 @@ pub fn init_with_options(
         created_files.push("README.md");
     }
 
-    if let Some(template) = &options.gitignore_template {
-        if let Some(content) = gitignore_text(template) {
-            std::fs::write(path.join(".gitignore"), content)?;
-            created_files.push(".gitignore");
-        }
+    if let Some(content) = options
+        .gitignore_template
+        .as_deref()
+        .and_then(gitignore_text)
+    {
+        std::fs::write(path.join(".gitignore"), content)?;
+        created_files.push(".gitignore");
     }
 
     if let Some(template) = &options.license_template {

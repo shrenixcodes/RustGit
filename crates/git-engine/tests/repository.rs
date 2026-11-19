@@ -58,7 +58,8 @@ fn init_with_readme_gitignore_and_license() {
         gitignore_template: Some("rust".to_owned()),
         license_template: Some("mit".to_owned()),
     };
-    let location = rustgit_git_engine::init_with_options(&git, &project_path, &options).expect("init_with_options");
+    let location = rustgit_git_engine::init_with_options(&git, &project_path, &options)
+        .expect("init_with_options");
 
     let readme = std::fs::read_to_string(location.root.join("README.md")).expect("readme");
     assert!(readme.contains("# my-cool-project"));
@@ -70,7 +71,8 @@ fn init_with_readme_gitignore_and_license() {
     let license = std::fs::read_to_string(location.root.join("LICENSE")).expect("license");
     assert!(license.contains("MIT License"));
 
-    let git_desc = std::fs::read_to_string(location.git_dir.join("description")).expect("description");
+    let git_desc =
+        std::fs::read_to_string(location.git_dir.join("description")).expect("description");
     assert_eq!(git_desc.trim(), "A test project description");
 }
 

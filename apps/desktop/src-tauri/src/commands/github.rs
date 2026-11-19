@@ -242,13 +242,7 @@ pub async fn github_create_repository(
     let github: Arc<GithubState> = Arc::clone(&state.github);
     blocking(move || {
         with_token(&github, |http, token| {
-            github::create_repository(
-                http,
-                token,
-                name.trim(),
-                description.as_deref(),
-                private,
-            )
+            github::create_repository(http, token, name.trim(), description.as_deref(), private)
         })
     })
     .await

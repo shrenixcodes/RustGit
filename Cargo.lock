@@ -2830,7 +2830,7 @@ dependencies = [
 
 [[package]]
 name = "rustgit-core"
-version = "0.2.4"
+version = "0.2.6"
 dependencies = [
  "getrandom 0.3.4",
  "keyring",
@@ -2848,7 +2848,7 @@ dependencies = [
 
 [[package]]
 name = "rustgit-desktop"
-version = "0.2.4"
+version = "0.2.6"
 dependencies = [
  "rustgit-core",
  "rustgit-git-engine",
@@ -2863,7 +2863,7 @@ dependencies = [
 
 [[package]]
 name = "rustgit-git-engine"
-version = "0.2.4"
+version = "0.2.6"
 dependencies = [
  "serde",
  "tempfile",

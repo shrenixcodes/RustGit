@@ -62,8 +62,8 @@ export function Seal() {
   };
 
   return (
-    <header aria-label="Repository" className="flex h-12 shrink-0 items-center gap-3.5 border-b border-divider bg-bg/95 px-4 backdrop-blur-md">
-      <div ref={root} className="relative flex min-w-0 items-center gap-2.5">
+    <header aria-label="Repository" className="flex h-12 shrink-0 items-center gap-2 sm:gap-3 border-b border-divider bg-bg px-3 sm:px-4 overflow-hidden select-none">
+      <div ref={root} className="relative flex min-w-0 items-center gap-2">
         <Mark size={20} />
         <button
           ref={trigger}
@@ -73,7 +73,7 @@ export function Seal() {
           aria-label={repository === undefined ? "Choose a repository" : `Repository ${repository.name}. Switch repository`}
           title={`Switch repository (${formatShortcut("Mod+P")})`}
           onClick={() => setSwitcherOpen(!switcherOpen)}
-          className="group flex min-w-0 items-center gap-1.5 rounded-md px-2 py-1 text-left transition-colors hover:bg-hover active:scale-[0.98]"
+          className="group flex min-w-0 max-w-[140px] sm:max-w-[200px] items-center gap-1.5 rounded-md px-1.5 sm:px-2 py-1 text-left transition-colors hover:bg-hover active:scale-[0.98]"
         >
           <span className={`truncate text-sm font-semibold tracking-tight ${repository === undefined ? "text-fg-muted" : "text-fg"}`}>
             {repository?.name ?? "RustGit"}
@@ -84,7 +84,7 @@ export function Seal() {
       </div>
 
       {repository !== undefined && status.data !== undefined && (
-        <div className="flex min-w-0 items-center gap-3">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <BranchPath branch={status.data.branch} />
           <SyncControls repositoryId={repository.id} branch={status.data.branch} />
           {status.data.inProgress !== "none" && (
@@ -99,7 +99,7 @@ export function Seal() {
 
       {repository !== undefined && (
         <>
-          <label className="flex w-60 items-center gap-2 rounded-md border border-border/70 bg-canvas/60 px-2.5 py-1 transition-all focus-within:border-accent focus-within:bg-canvas focus-within:ring-1 focus-within:ring-accent/30">
+          <label className="flex w-24 sm:w-36 md:w-52 focus-within:w-60 min-w-0 items-center gap-2 rounded-md border border-border/70 bg-canvas/60 px-2 sm:px-2.5 py-1 transition-all focus-within:border-accent focus-within:bg-canvas focus-within:ring-1 focus-within:ring-accent/30">
             <Search aria-hidden className="size-3.5 shrink-0 text-fg-muted" />
             <span className="sr-only">Search the thread</span>
             <input
@@ -132,7 +132,9 @@ export function Seal() {
               </button>
             )}
           </label>
-          <SegmentedControl label="Distance" options={ZOOMS} value={zoom} onChange={setZoom} />
+          <div className="hidden sm:inline-flex shrink-0">
+            <SegmentedControl label="Distance" options={ZOOMS} value={zoom} onChange={setZoom} />
+          </div>
           <IconButton
             label="Refresh"
             shortcut="Mod+R"
@@ -159,7 +161,7 @@ export function Seal() {
           type="button"
           onClick={() => setSheet("settings")}
           title={`GitHub: @${githubStatus.data.account.login} (Manage account)`}
-          className="flex h-7 items-center gap-1.5 rounded-full border border-border/80 bg-elevated/60 px-2.5 font-mono text-xs text-fg-secondary transition-all hover:border-accent hover:bg-elevated hover:text-fg active:scale-95"
+          className="hidden lg:flex h-7 items-center gap-1.5 rounded-full border border-border/80 bg-elevated/60 px-2.5 font-mono text-xs text-fg-secondary transition-all hover:border-accent hover:bg-elevated hover:text-fg active:scale-95"
         >
           <span className="size-2 rounded-full bg-success ring-2 ring-success/20" />
           <span>@{githubStatus.data.account.login}</span>
@@ -169,7 +171,7 @@ export function Seal() {
           type="button"
           onClick={() => setSheet("settings")}
           title="Connect GitHub account"
-          className="flex h-7 items-center gap-1.5 rounded-full border border-border/80 bg-canvas/40 px-2.5 font-sans text-xs text-fg-muted transition-all hover:border-border-control hover:bg-elevated/50 hover:text-fg active:scale-95"
+          className="hidden lg:flex h-7 items-center gap-1.5 rounded-full border border-border/80 bg-canvas/40 px-2.5 font-sans text-xs text-fg-muted transition-all hover:border-border-control hover:bg-elevated/50 hover:text-fg active:scale-95"
         >
           <span>Connect GitHub</span>
         </button>
@@ -181,7 +183,7 @@ export function Seal() {
         type="button"
         onClick={() => setPaletteOpen(true)}
         title={`Commands (${formatShortcut("Mod+K")})`}
-        className="flex h-7 items-center gap-1.5 rounded-md border border-border/80 bg-canvas/50 px-2 font-mono text-xs text-fg-muted transition-all hover:border-border-control hover:bg-elevated hover:text-fg active:scale-95"
+        className="hidden md:flex h-7 items-center gap-1.5 rounded-md border border-border/80 bg-canvas/50 px-2 font-mono text-xs text-fg-muted transition-all hover:border-border-control hover:bg-elevated hover:text-fg active:scale-95"
       >
         <Command aria-hidden className="size-3" />
         <span className="font-sans text-2xs">{formatShortcut("Mod+K")}</span>
@@ -206,7 +208,7 @@ export function BranchPath({ branch }: { branch: BranchStatus }) {
     <span className="flex min-w-0 items-center gap-2 font-mono text-xs">
       <span className="group inline-flex items-center gap-1.5 rounded-md border border-border/70 bg-elevated/50 px-2 py-0.5 shadow-2xs backdrop-blur-xs">
         <GitBranch aria-hidden className={`size-3.5 shrink-0 ${detached ? "text-clay-text" : "text-accent"}`} />
-        <span className={`truncate font-medium ${detached ? "text-clay-text" : "text-fg"}`}>
+        <span className={`max-w-[100px] sm:max-w-[180px] md:max-w-[220px] truncate font-medium ${detached ? "text-clay-text" : "text-fg"}`}>
           {branch.head ?? `detached at ${branch.oid?.slice(0, 7) ?? "?"}`}
         </span>
         {branch.head !== null && (

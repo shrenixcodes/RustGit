@@ -12,7 +12,7 @@ import { useUi } from "../stores/ui";
 const PULL_MODES: readonly PullMode[] = ["ff_only", "merge", "rebase"];
 
 const CONTROL =
-  "flex h-7 min-w-7 items-center gap-1.5 rounded-md px-2 font-mono text-xs text-fg-secondary transition-all hover:bg-hover hover:text-fg active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100";
+  "flex h-7 min-w-7 items-center gap-1.5 rounded-md px-1.5 sm:px-2 font-sans text-xs font-medium text-fg-secondary transition-all hover:bg-hover hover:text-fg active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100";
 
 /** "5 min ago" style age of the last successful fetch in this session. */
 function useLastFetched(repositoryId: number): string {
@@ -111,18 +111,18 @@ export function SyncControls({ repositoryId, branch }: { repositoryId: number; b
   ];
 
   return (
-    <div role="group" aria-label="Sync" className="flex shrink-0 items-center rounded-lg border border-border/70 bg-elevated/50 p-0.5 shadow-2xs backdrop-blur-xs">
+    <div role="group" aria-label="Sync" className="flex shrink-0 min-w-0 items-center rounded-lg border border-border/80 bg-elevated/70 p-0.5 shadow-2xs backdrop-blur-xs">
       <button
         type="button"
         className={CONTROL}
         disabled={busy("fetch") || remotes.data === undefined}
         onClick={() => actions.fetch(null).catch(ignore)}
-        title="Fetch all remotes and prune deleted remote branches"
+        title={`Fetch all remotes and prune deleted remote branches (${lastFetched})`}
       >
         {busy("fetch") ? <LoaderCircle aria-hidden className="size-3 motion-safe:animate-spin" /> : <RefreshCcw aria-hidden className="size-3" />}
-        fetch
+        <span className="hidden sm:inline">fetch</span>
       </button>
-      <span className="px-2 font-sans text-xs text-fg-muted/80 border-r border-divider/60" title="The ahead and behind counts only change after a fetch">
+      <span className="hidden xl:inline px-2 font-sans text-xs text-fg-muted/80 border-r border-divider/60" title="The ahead and behind counts only change after a fetch">
         {lastFetched}
       </span>
 
@@ -135,7 +135,7 @@ export function SyncControls({ repositoryId, branch }: { repositoryId: number; b
           title={hasUpstream ? `${PULL_LABEL[pullMode]} from ${branch.upstream}` : "The branch has no upstream to pull from"}
         >
           {busy("pull") ? <LoaderCircle aria-hidden className="size-3 motion-safe:animate-spin" /> : <ArrowDown aria-hidden className="size-3" />}
-          pull
+          <span className="hidden sm:inline">pull</span>
           {branch.behind > 0 && (
             <span className="rounded-full bg-clay/20 border border-clay/30 px-1.5 text-2xs font-bold text-clay-text">
               {branch.behind}
@@ -161,7 +161,7 @@ export function SyncControls({ repositoryId, branch }: { repositoryId: number; b
             title={`Push ${branch.head ?? ""} to ${branch.upstream ?? ""}`}
           >
             {busy("push") ? <LoaderCircle aria-hidden className="size-3 motion-safe:animate-spin" /> : <ArrowUp aria-hidden className="size-3" />}
-            push
+            <span className="hidden sm:inline">push</span>
             {branch.ahead > 0 && (
               <span className="rounded-full bg-accent/20 border border-accent/30 px-1.5 text-2xs font-bold text-accent">
                 {branch.ahead}
@@ -177,7 +177,7 @@ export function SyncControls({ repositoryId, branch }: { repositoryId: number; b
             title={`Push ${branch.head ?? ""} to ${list[0].name} and track it`}
           >
             {busy("push") ? <LoaderCircle aria-hidden className="size-3 motion-safe:animate-spin" /> : <ArrowUp aria-hidden className="size-3" />}
-            publish
+            <span className="hidden sm:inline">publish</span>
           </button>
         ) : (
           <Menu
@@ -188,7 +188,7 @@ export function SyncControls({ repositoryId, branch }: { repositoryId: number; b
             trigger={
               <>
                 <ArrowUp aria-hidden className="size-3" />
-                publish
+                <span className="hidden sm:inline">publish</span>
               </>
             }
           />

@@ -27,7 +27,7 @@ export function OperationShelf() {
     <footer
       aria-label="Operations"
       style={{ height: "var(--rg-shelf)" }}
-      className="flex shrink-0 items-center gap-4 border-t border-divider bg-bg/95 px-5 font-mono text-xs text-fg-muted backdrop-blur-md"
+      className="flex shrink-0 items-center gap-4 border-t border-divider bg-bg px-4 sm:px-5 font-sans text-xs text-fg-muted select-none"
     >
       {network[0] !== undefined ? (
         <RunningNetworkOperation operation={network[0]} more={running - 1} />

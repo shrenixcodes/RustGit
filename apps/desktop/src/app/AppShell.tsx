@@ -60,6 +60,7 @@ function useGlobalShortcuts(): void {
   const setZoom = usePreferences((state) => state.setZoom);
   const switcherOpen: boolean = useUi((state) => state.switcherOpen);
   const setSwitcherOpen = useUi((state) => state.setSwitcherOpen);
+  const openSwitcher = useUi((state) => state.openSwitcher);
   const paletteOpen: boolean = useUi((state) => state.paletteOpen);
   const setPaletteOpen = useUi((state) => state.setPaletteOpen);
   const setSheet = useUi((state) => state.setSheet);
@@ -80,6 +81,8 @@ function useGlobalShortcuts(): void {
   useShortcuts([
     { shortcut: "Mod+K", run: () => setPaletteOpen(!paletteOpen), allowInInput: true },
     { shortcut: "Mod+P", run: () => setSwitcherOpen(!switcherOpen), allowInInput: true },
+    { shortcut: "Mod+N", run: () => openSwitcher("create"), allowInInput: true },
+    { shortcut: "Mod+O", run: () => openSwitcher("list"), allowInInput: true },
     { shortcut: "Mod+,", run: () => setSheet("settings"), allowInInput: true },
     { shortcut: "Mod+Shift+O", run: () => setSheet("repositories"), allowInInput: true },
     { shortcut: "Mod+J", run: () => setActivityOpen(!activityOpen), allowInInput: true },

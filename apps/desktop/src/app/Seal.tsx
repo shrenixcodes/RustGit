@@ -39,6 +39,8 @@ export function Seal() {
   const status = useRepositoryStatus(activeRepositoryId);
   const githubStatus = useGithubStatus();
   const switcherOpen: boolean = useUi((state) => state.switcherOpen);
+  const switcherView = useUi((state) => state.switcherView);
+  const openSwitcher = useUi((state) => state.openSwitcher);
   const setSwitcherOpen = useUi((state) => state.setSwitcherOpen);
   const setPaletteOpen = useUi((state) => state.setPaletteOpen);
   const setSheet = useUi((state) => state.setSheet);
@@ -73,7 +75,10 @@ export function Seal() {
             aria-expanded={switcherOpen}
             aria-label="Choose a repository"
             title={`Open or switch repository (${formatShortcut("Mod+P")})`}
-            onClick={() => setSwitcherOpen(!switcherOpen)}
+            onClick={() => {
+              if (switcherOpen) setSwitcherOpen(false);
+              else openSwitcher("list");
+            }}
             className="group flex min-w-0 items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/15 px-2.5 py-1 text-left text-accent transition-all hover:bg-accent/25 active:scale-[0.98]"
           >
             <FolderPlus className="size-3.5 shrink-0 text-accent" />
@@ -81,15 +86,18 @@ export function Seal() {
             <ChevronDown aria-hidden className="size-3 shrink-0 text-accent/80 transition-transform duration-150 group-hover:text-accent group-aria-expanded:rotate-180" />
           </button>
         ) : (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             <button
               ref={trigger}
               type="button"
               aria-haspopup="dialog"
-              aria-expanded={switcherOpen}
+              aria-expanded={switcherOpen && switcherView === "list"}
               aria-label={`Repository ${repository.name}. Switch repository`}
               title={`Switch repository (${formatShortcut("Mod+P")})`}
-              onClick={() => setSwitcherOpen(!switcherOpen)}
+              onClick={() => {
+                if (switcherOpen && switcherView === "list") setSwitcherOpen(false);
+                else openSwitcher("list");
+              }}
               className="group flex min-w-0 max-w-[150px] sm:max-w-[220px] items-center gap-1.5 rounded-lg border border-border/80 bg-elevated/60 px-2.5 py-1 text-left transition-all hover:border-accent hover:bg-elevated hover:text-fg active:scale-[0.98]"
             >
               <FolderGit2 className="size-3.5 shrink-0 text-accent" />
@@ -100,12 +108,16 @@ export function Seal() {
             </button>
             <button
               type="button"
-              onClick={() => setSwitcherOpen(true)}
-              title={`Add or create repository (${formatShortcut("Mod+P")})`}
-              aria-label="Add or create repository"
-              className="flex size-7 items-center justify-center rounded-lg border border-border/80 bg-elevated/40 text-fg-muted hover:border-accent hover:text-accent hover:bg-elevated active:scale-95 transition-all"
+              onClick={() => {
+                if (switcherOpen && switcherView === "create") setSwitcherOpen(false);
+                else openSwitcher("create");
+              }}
+              title={`Create new repository (${formatShortcut("Mod+N")})`}
+              aria-label="Create new repository"
+              className="flex h-7 items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/15 px-2.5 text-xs font-semibold text-accent hover:bg-accent/25 active:scale-95 transition-all shadow-2xs"
             >
               <Plus className="size-3.5" />
+              <span className="font-sans text-xs">New</span>
             </button>
           </div>
         )}
@@ -176,6 +188,9 @@ export function Seal() {
             align="end"
             className="flex size-7 items-center justify-center rounded-md text-fg-muted transition-colors hover:bg-hover hover:text-fg active:scale-95"
             items={[
+              { id: "new_repo", label: "Create new repository…", run: () => openSwitcher("create") },
+              { id: "clone_repo", label: "Clone repository…", run: () => openSwitcher("clone") },
+              { id: "manage_repos", label: "Manage all repositories…", run: () => setSheet("repositories") },
               { id: "compare", label: "Compare branches…", run: () => setSheet("compare") },
               { id: "remotes", label: "Remotes…", run: () => setSheet("remotes") },
               { id: "stashes", label: "Stash…", run: () => setSheet("stashes") },

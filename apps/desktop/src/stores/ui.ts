@@ -12,9 +12,12 @@ export const EMPTY_DRAFT: CommitDraft = { summary: "", description: "", amend: f
 /** Overlays reached from the seal or the command palette. */
 export type Sheet = "settings" | "repositories" | "remotes" | "stashes" | "worktrees" | "shortcuts" | "compare" | null;
 
+export type SwitcherView = "list" | "create" | "clone";
+
 /** Transient UI state that is not persisted. */
 interface UiState {
   switcherOpen: boolean;
+  switcherView: SwitcherView;
   paletteOpen: boolean;
   sheet: Sheet;
   /** Thread search text (message, author or commit id). */
@@ -31,6 +34,8 @@ interface UiState {
   /** Opens the compare sheet on two revisions. */
   openCompare: (base: string, head: string) => void;
   setSwitcherOpen: (open: boolean) => void;
+  setSwitcherView: (view: SwitcherView) => void;
+  openSwitcher: (view?: SwitcherView) => void;
   setPaletteOpen: (open: boolean) => void;
   setSheet: (sheet: Sheet) => void;
   setSearch: (search: string) => void;
@@ -43,6 +48,7 @@ interface UiState {
 
 export const useUi = create<UiState>()((set) => ({
   switcherOpen: false,
+  switcherView: "list",
   paletteOpen: false,
   sheet: null,
   search: "",
@@ -52,7 +58,9 @@ export const useUi = create<UiState>()((set) => ({
   compare: null,
   setCompare: (compare) => set({ compare }),
   openCompare: (base: string, head: string) => set({ compare: { base, head }, sheet: "compare" }),
-  setSwitcherOpen: (switcherOpen: boolean) => set({ switcherOpen }),
+  setSwitcherOpen: (switcherOpen: boolean) => set({ switcherOpen, switcherView: "list" }),
+  setSwitcherView: (switcherView: SwitcherView) => set({ switcherView }),
+  openSwitcher: (view: SwitcherView = "list") => set({ switcherOpen: true, switcherView: view }),
   setPaletteOpen: (paletteOpen: boolean) => set({ paletteOpen }),
   setSheet: (sheet: Sheet) => set({ sheet }),
   setSearch: (search: string) => set({ search }),

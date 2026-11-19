@@ -44,6 +44,7 @@ export function CommandPalette() {
   const setOpen = useUi((state) => state.setPaletteOpen);
   const setSheet = useUi((state) => state.setSheet);
   const setSwitcherOpen = useUi((state) => state.setSwitcherOpen);
+  const openSwitcher = useUi((state) => state.openSwitcher);
   const requestSearchFocus = useUi((state) => state.requestSearchFocus);
   const activeRepositoryId: number | null = useWorkspace((state) => state.activeRepositoryId);
   const repositories = useRepositories();
@@ -114,7 +115,9 @@ export function CommandPalette() {
       });
     }
     list.push(
-      { id: "switch", group: "Repositories", title: "Switch repository…", shortcut: "Mod+P", run: () => setSwitcherOpen(true) },
+      { id: "create-repo", group: "Repositories", title: "Create new repository…", shortcut: "Mod+N", run: () => openSwitcher("create") },
+      { id: "clone-repo", group: "Repositories", title: "Clone repository…", run: () => openSwitcher("clone") },
+      { id: "switch", group: "Repositories", title: "Switch repository…", shortcut: "Mod+P", run: () => openSwitcher("list") },
       { id: "repos", group: "Repositories", title: "Manage repositories…", shortcut: "Mod+Shift+O", run: () => setSheet("repositories") },
       ...(activeRepositoryId === null
         ? []
@@ -133,7 +136,7 @@ export function CommandPalette() {
       { id: "activity", group: "Settings", title: "Toggle the activity panel", shortcut: "Mod+J", run: () => prefs.setActivityOpen(!prefs.activityOpen) },
     );
     return list;
-  }, [activeRepositoryId, refs.data, repositories.data, client, openRepository, requestSearchFocus, setSheet, setSwitcherOpen, setTheme]);
+  }, [activeRepositoryId, refs.data, repositories.data, client, openRepository, requestSearchFocus, setSheet, setSwitcherOpen, openSwitcher, setTheme]);
 
   const visible: PaletteCommand[] = useMemo(() => {
     if (query.trim() === "") return commands;

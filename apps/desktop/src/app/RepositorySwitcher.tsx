@@ -19,7 +19,7 @@ type SwitcherView = "list" | "create" | "clone";
 export function SwitcherPopover({
   onClose,
   root,
-  initialView = "list",
+  initialView,
 }: {
   onClose: () => void;
   root: RefObject<HTMLDivElement | null>;
@@ -31,9 +31,20 @@ export function SwitcherPopover({
   const setPinned = useSetRepositoryPinned();
   const activate = useWorkspace((state) => state.openRepository);
   const setSheet = useUi((state) => state.setSheet);
+  const storeView = useUi((state) => state.switcherView);
+  const setStoreView = useUi((state) => state.setSwitcherView);
   const activeRepositoryId: number | null = useWorkspace((state) => state.activeRepositoryId);
 
-  const [view, setView] = useState<SwitcherView>(initialView);
+  const [view, setViewInternal] = useState<SwitcherView>(initialView ?? storeView ?? "list");
+  const setView = (next: SwitcherView) => {
+    setViewInternal(next);
+    setStoreView(next);
+  };
+
+  useEffect(() => {
+    if (initialView !== undefined) setViewInternal(initialView);
+    else if (storeView !== undefined) setViewInternal(storeView);
+  }, [initialView, storeView]);
   const [query, setQuery] = useState<string>("");
   const [highlight, setHighlight] = useState<number>(0);
   const [failure, setFailure] = useState<{ name: string; error: IpcError } | null>(null);
@@ -146,18 +157,9 @@ export function SwitcherPopover({
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                onClick={() => void handleAddLocal()}
-                title="Add an existing local repository from disk"
-                className="flex h-6 items-center gap-1 rounded-md border border-border/80 bg-elevated px-2 font-sans text-2xs font-medium text-fg-secondary hover:border-accent hover:text-fg transition-all active:scale-95"
-              >
-                <FolderOpen className="size-3 text-clay-text" />
-                <span>Add Local</span>
-              </button>
-              <button
-                type="button"
                 onClick={() => setView("create")}
-                title="Create a new Git repository"
-                className="flex h-6 items-center gap-1 rounded-md border border-accent/40 bg-accent/15 px-2 font-sans text-2xs font-medium text-accent hover:bg-accent/25 transition-all active:scale-95"
+                title="Create a new Git repository (+)"
+                className="flex h-6.5 items-center gap-1.5 rounded-md border border-accent/40 bg-accent/15 px-2.5 font-sans text-xs font-semibold text-accent hover:bg-accent/25 transition-all active:scale-95 shadow-2xs"
               >
                 <FolderPlus className="size-3 text-accent" />
                 <span>+ New</span>
@@ -166,10 +168,19 @@ export function SwitcherPopover({
                 type="button"
                 onClick={() => setView("clone")}
                 title="Clone repository from GitHub or URL"
-                className="flex h-6 items-center gap-1 rounded-md border border-border/80 bg-elevated px-2 font-sans text-2xs font-medium text-fg-secondary hover:border-accent hover:text-fg transition-all active:scale-95"
+                className="flex h-6.5 items-center gap-1.5 rounded-md border border-border/80 bg-elevated px-2 font-sans text-xs font-medium text-fg-secondary hover:border-accent hover:text-fg transition-all active:scale-95"
               >
                 <Download className="size-3 text-fg-muted" />
                 <span>Clone</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleAddLocal()}
+                title="Add an existing local repository from disk"
+                className="flex h-6.5 items-center gap-1.5 rounded-md border border-border/80 bg-elevated px-2 font-sans text-xs font-medium text-fg-secondary hover:border-accent hover:text-fg transition-all active:scale-95"
+              >
+                <FolderOpen className="size-3 text-clay-text" />
+                <span>Add Local</span>
               </button>
             </div>
           </div>

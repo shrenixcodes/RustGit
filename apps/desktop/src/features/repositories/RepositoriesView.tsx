@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import { Download, FolderOpen, FolderPlus, Search } from "lucide-react";
+import { Download, FolderGit2, FolderOpen, FolderPlus, Search } from "lucide-react";
 import { Button } from "../../components/Button";
 import { ErrorNotice } from "../../components/ErrorNotice";
 import { Mark } from "../../components/Mark";
@@ -114,21 +114,40 @@ export function RepositoriesView() {
     <div className="flex min-h-0 flex-1 flex-col">
       <PageHeader title="Repositories" visible />
 
-      <div className="flex min-h-0 w-full max-w-3xl flex-1 flex-col gap-4 px-8 pb-6">
-        <div className="flex items-end gap-3">
-          <p className="flex-1 text-sm text-fg-muted">
-            Repositories RustGit knows about. Removing one here never deletes files.
-          </p>
-          <Button onClick={() => { setCreating(false); setCloning(true); }} disabled={cloning}>
-            <Download aria-hidden className="size-3.5" /> Clone…
-          </Button>
-          <Button onClick={() => { setCloning(false); setCreating(true); }} disabled={creating}>
-            <FolderPlus aria-hidden className="size-3.5" /> Create…
-          </Button>
-          <Button variant="primary" onClick={handleAdd}>
-            <FolderOpen aria-hidden className="size-3.5" /> Add existing…
-          </Button>
+      <div className="flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-4 px-6 sm:px-8 pb-6">
+        {/* Action Header Card */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-border/80 bg-elevated/40 p-4 shadow-sm backdrop-blur-xs">
+          <div>
+            <div className="flex items-center gap-2">
+              <FolderGit2 className="size-4 text-accent" />
+              <h3 className="font-semibold text-sm text-fg">Repositories Registry</h3>
+              <span className="rounded-full bg-elevated border border-border px-2 py-0.5 font-mono text-2xs text-fg-muted">
+                {repositories.data?.length ?? 0} total
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-fg-muted">
+              Add local repositories, clone remote repositories, or initialize new Git projects.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              onClick={() => { setCloning(false); setCreating((prev) => !prev); }}
+              className={creating ? "border-accent text-accent bg-accent/15" : ""}
+            >
+              <FolderPlus aria-hidden className="size-3.5 text-accent" /> Create…
+            </Button>
+            <Button
+              onClick={() => { setCreating(false); setCloning((prev) => !prev); }}
+              className={cloning ? "border-accent text-accent bg-accent/15" : ""}
+            >
+              <Download aria-hidden className="size-3.5" /> Clone…
+            </Button>
+            <Button variant="primary" onClick={handleAdd}>
+              <FolderOpen aria-hidden className="size-3.5" /> Add existing…
+            </Button>
+          </div>
         </div>
+
         {gitInfo.isError && gitInfo.error.kind === "git_not_found" && (
           <ErrorNotice
             title="Git is not installed"
@@ -141,8 +160,45 @@ export function RepositoriesView() {
             }
           />
         )}
-        {cloning && <CloneForm onDone={() => setCloning(false)} />}
-        {creating && <NewRepositoryForm onDone={() => setCreating(false)} />}
+
+        {creating && (
+          <div className="rounded-xl border border-accent/40 bg-elevated/70 p-4 shadow-md backdrop-blur-xs">
+            <div className="flex items-center justify-between pb-3 mb-3 border-b border-border/80">
+              <div className="flex items-center gap-2">
+                <FolderPlus className="size-4 text-accent" />
+                <h4 className="font-semibold text-xs text-fg">Initialize New Repository</h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCreating(false)}
+                className="text-fg-muted hover:text-fg text-xs"
+              >
+                Cancel
+              </button>
+            </div>
+            <NewRepositoryForm onDone={() => setCreating(false)} />
+          </div>
+        )}
+
+        {cloning && (
+          <div className="rounded-xl border border-accent/40 bg-elevated/70 p-4 shadow-md backdrop-blur-xs">
+            <div className="flex items-center justify-between pb-3 mb-3 border-b border-border/80">
+              <div className="flex items-center gap-2">
+                <Download className="size-4 text-accent" />
+                <h4 className="font-semibold text-xs text-fg">Clone Remote Repository</h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCloning(false)}
+                className="text-fg-muted hover:text-fg text-xs"
+              >
+                Cancel
+              </button>
+            </div>
+            <CloneForm onDone={() => setCloning(false)} />
+          </div>
+        )}
+
         {failure !== null && (
           <ErrorNotice
             title={failure.title}

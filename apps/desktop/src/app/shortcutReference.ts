@@ -20,6 +20,8 @@ export interface ShortcutGroup {
 export const GLOBAL_SHORTCUTS: readonly ShortcutEntry[] = [
   { keys: "Mod+K", action: "Commands" },
   { keys: "Mod+P", action: "Switch repository" },
+  { keys: "Mod+N", action: "Create new repository" },
+  { keys: "Mod+O", action: "Open repository" },
   { keys: "Mod+Shift+O", action: "Manage repositories" },
   { keys: "Mod+,", action: "Settings" },
   { keys: "Mod+J", action: "Activity panel" },

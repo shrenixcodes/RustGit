@@ -334,7 +334,7 @@ type WelcomeAccent = "accent" | "clay" | "moss";
 const WELCOME_ACCENT: Record<WelcomeAccent, { chip: string; text: string; ring: string }> = {
   accent: { chip: "bg-accent/15 text-accent", text: "text-accent", ring: "group-hover:ring-accent/40" },
   clay: { chip: "bg-clay/15 text-clay-text", text: "text-clay-text", ring: "group-hover:ring-clay/40" },
-  moss: { chip: "bg-moss/20 text-accent-strong", text: "text-accent-strong", ring: "group-hover:ring-moss/40" },
+  moss: { chip: "bg-success/15 text-success", text: "text-success", ring: "group-hover:ring-success/40" },
 };
 
 interface WelcomeCardProps {

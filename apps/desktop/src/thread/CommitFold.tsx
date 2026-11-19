@@ -360,7 +360,7 @@ function CopyButton({ value }: { value: string }) {
           () => setCopied(false),
         )
       }
-      className="flex items-center gap-1 text-xs text-fg-muted hover:text-fg"
+      className="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-fg-muted transition-colors hover:bg-hover hover:text-fg active:scale-95 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
     >
       {copied ? <Check aria-hidden className="size-3 text-success" /> : <Copy aria-hidden className="size-3" />}
       {copied ? "copied" : "copy"}

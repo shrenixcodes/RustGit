@@ -283,7 +283,7 @@ export function BranchPath({ branch }: { branch: BranchStatus }) {
             onClick={() => copyBranch(branch.head!)}
             title={copied ? "Copied branch name" : "Copy branch name"}
             aria-label={copied ? "Copied branch name" : "Copy branch name"}
-            className="ml-0.5 rounded p-0.5 text-fg-muted opacity-0 transition-all hover:bg-hover hover:text-fg group-hover:opacity-100"
+            className="ml-0.5 rounded p-0.5 text-fg-muted opacity-0 transition-all hover:bg-hover hover:text-fg group-hover:opacity-100 focus-visible:opacity-100"
           >
             {copied ? <Check aria-hidden className="size-2.5 text-success" /> : <Copy aria-hidden className="size-2.5" />}
           </button>

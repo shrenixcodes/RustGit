@@ -70,7 +70,7 @@ export function RepositoryRow({ entry, active, onOpen, onRemove, onTogglePin }: 
           onClick={() => copyPath(entry.path)}
           aria-label={copied ? "Copied path" : "Copy path"}
           title={copied ? "Copied path" : "Copy path"}
-          className="rounded-md p-1.5 text-fg-muted opacity-0 transition-all hover:bg-hover hover:text-fg group-hover:opacity-100 active:scale-95"
+          className="rounded-md p-1.5 text-fg-muted opacity-0 transition-all hover:bg-hover hover:text-fg group-hover:opacity-100 focus-visible:opacity-100 active:scale-95"
         >
           {copied ? <Check aria-hidden className="size-3.5 text-success" /> : <Copy aria-hidden className="size-3.5" />}
         </button>
@@ -80,7 +80,7 @@ export function RepositoryRow({ entry, active, onOpen, onRemove, onTogglePin }: 
           aria-label={entry.pinned ? `Unpin ${entry.name}` : `Pin ${entry.name}`}
           title={entry.pinned ? "Unpin" : "Pin to top"}
           className={`rounded-md p-1.5 transition-all hover:bg-hover active:scale-95 ${
-            entry.pinned ? "text-accent" : "text-fg-muted opacity-0 group-hover:opacity-100 hover:text-fg"
+            entry.pinned ? "text-accent" : "text-fg-muted opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:text-fg"
           }`}
         >
           {entry.pinned ? <PinOff aria-hidden className="size-3.5" /> : <Pin aria-hidden className="size-3.5" />}
@@ -90,7 +90,7 @@ export function RepositoryRow({ entry, active, onOpen, onRemove, onTogglePin }: 
           onClick={() => onRemove(entry)}
           aria-label={`Remove ${entry.name} from RustGit`}
           title="Remove from list (files are kept)"
-          className="rounded-md p-1.5 text-fg-muted opacity-0 transition-all hover:bg-danger/10 hover:text-danger active:scale-95 group-hover:opacity-100"
+          className="rounded-md p-1.5 text-fg-muted opacity-0 transition-all hover:bg-danger/10 hover:text-danger active:scale-95 group-hover:opacity-100 focus-visible:opacity-100"
         >
           <X aria-hidden className="size-3.5" />
         </button>

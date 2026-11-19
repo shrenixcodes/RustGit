@@ -79,12 +79,14 @@ export function Sheet() {
   const dialog = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
+    const previousFocus = document.activeElement as HTMLElement | null;
     const element: HTMLDialogElement | null = dialog.current;
     if (element === null || sheet === null) return;
     if (typeof element.showModal === "function" && !element.open) element.showModal();
     else element.setAttribute("open", "");
     return () => {
       if (typeof element.close === "function" && element.open) element.close();
+      previousFocus?.focus();
     };
   }, [sheet]);
 

@@ -57,12 +57,14 @@ export function CommandPalette() {
   const listId: string = useId();
 
   useEffect(() => {
+    const previousFocus = document.activeElement as HTMLElement | null;
     const element: HTMLDialogElement | null = dialog.current;
     if (element === null) return;
     if (typeof element.showModal === "function" && !element.open) element.showModal();
     else element.setAttribute("open", "");
     return () => {
       if (typeof element.close === "function" && element.open) element.close();
+      previousFocus?.focus();
     };
   }, []);
 

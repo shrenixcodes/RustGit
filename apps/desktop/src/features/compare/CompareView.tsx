@@ -56,7 +56,7 @@ function Compare({ repositoryId }: { repositoryId: number }) {
   const setCompare = useUi((state) => state.setCompare);
   const refs = useRefs(repositoryId);
   const [mode, setMode] = useState<Mode>("three");
-  const [openFile, setOpenFile] = useState<string | null>(null);
+  const [openFiles, setOpenFiles] = useState<ReadonlySet<string>>(new Set());
   const names: string[] = (refs.data?.refs ?? [])
     .filter((entry: RefEntry) => !entry.shortName.endsWith("/HEAD"))
     .map((entry: RefEntry) => entry.shortName);
@@ -65,8 +65,21 @@ function Compare({ repositoryId }: { repositoryId: number }) {
   const mergeBase: boolean = mode === "three";
   const comparison = useComparison(repositoryId, base, head, mergeBase);
 
+  const toggleFile = (path: string): void =>
+    setOpenFiles((current) => {
+      const next = new Set(current);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      return next;
+    });
+
+  const allExpanded: boolean =
+    comparison.data !== undefined &&
+    comparison.data.files.length > 0 &&
+    comparison.data.files.every((file: CommitFile) => openFiles.has(file.path));
+
   const set = (next: { base: string; head: string }): void => {
-    setOpenFile(null);
+    setOpenFiles(new Set());
     setCompare(next);
   };
 
@@ -140,17 +153,28 @@ function Compare({ repositoryId }: { repositoryId: number }) {
             {comparison.data.files.length === 0 ? (
               <p className="text-center py-6 text-xs text-fg-muted">No file differences between these revisions.</p>
             ) : (
-              <div className="space-y-2">
-                <p className="rg-label">
-                  {comparison.data.files.length} file{comparison.data.files.length === 1 ? "" : "s"} changed
-                </p>
-                <ul aria-label="Changed files" className="divide-y divide-divider/70 rounded-xl border border-border/70 bg-canvas/40 overflow-hidden">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="rg-label">
+                    {comparison.data.files.length} file{comparison.data.files.length === 1 ? "" : "s"} changed
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setOpenFiles(allExpanded ? new Set() : new Set(comparison.data.files.map((file: CommitFile) => file.path)))
+                    }
+                    className="rounded-md border border-border/80 bg-canvas/60 px-2.5 py-1 font-sans text-xs font-medium text-accent hover:bg-hover hover:border-accent transition-all cursor-pointer shadow-2xs"
+                  >
+                    {allExpanded ? "Fold all" : "Expand all"}
+                  </button>
+                </div>
+                <ul aria-label="Changed files" className="space-y-2">
                   {comparison.data.files.map((file: CommitFile) => (
                     <FileEntry
                       key={file.path}
                       file={file}
-                      open={openFile === file.path}
-                      onToggle={() => setOpenFile(openFile === file.path ? null : file.path)}
+                      open={openFiles.has(file.path)}
+                      onToggle={() => toggleFile(file.path)}
                       diff={() => (
                         <CompareDiff
                           repositoryId={repositoryId}

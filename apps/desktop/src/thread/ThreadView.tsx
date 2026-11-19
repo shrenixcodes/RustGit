@@ -1,6 +1,7 @@
 import { memo, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { ChevronRight } from "lucide-react";
 import { OpenNode } from "../components/Mark";
-import { useCommitDetails, useLogPages, useRefs, useRepositoryStatus, type LogFilters } from "../services/queries";
+import { useLogPages, useRefs, useRepositoryStatus, type LogFilters } from "../services/queries";
 import type { HeadState, LogCommit, LogPage, RefEntry, StatusSnapshot } from "../services/types";
 import { rowHeightFor, usePreferences, type Zoom } from "../stores/preferences";
 import { useUi } from "../stores/ui";
@@ -130,8 +131,6 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
   const [viewportHint, setViewportHint] = useState<number>(800);
   const unfoldedIndex: number = unfolded === null ? -1 : (indexById.get(unfolded) ?? -1);
   const unfoldedRow: ThreadRowModel | undefined = rows[unfoldedIndex];
-  // The fold reads the same cached details; its height follows the real file count.
-  const unfoldedDetails = useCommitDetails(repositoryId, unfoldedRow?.kind === "commit" && unfoldedRow.id.startsWith("c:") ? unfoldedRow.commit.oid : null);
   const unfoldHeight: number =
     unfoldedRow === undefined
       ? 0
@@ -139,7 +138,7 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
         ? Math.max(360, viewportHint - rowHeight * 2)
         : unfoldedRow.id.startsWith("m:")
           ? Math.min(Math.max(150, 80 + (refMap.get(unfoldedRow.commit.oid)?.length ?? 0) * 64), 420)
-          : Math.min(Math.round(viewportHint * 0.7), 560, Math.max(200, 150 + (unfoldedDetails.data?.files.length ?? 3) * 24));
+          : Math.max(480, viewportHint - rowHeight * 2);
   const unfolding: Unfolding | null = useMemo(
     () => (unfoldedIndex >= 0 ? { after: unfoldedIndex, height: unfoldHeight } : null),
     [unfoldedIndex, unfoldHeight],
@@ -448,6 +447,12 @@ function NowRow({ id, top, height, lane, graphWidth, linked, focused, unfolded, 
         <OpenNode cx={cx} cy={height / 2} r={6} stroke="var(--rg-clay)" width={1.6} />
       </svg>
       <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3" style={{ marginLeft: Math.max(0, CONTENT_LEFT - 12 - Math.max(graphWidth, CONTENT_LEFT - 12)) }}>
+        <ChevronRight
+          aria-hidden
+          className={`size-3.5 shrink-0 transition-transform duration-150 ${
+            unfolded ? "rotate-90 text-accent" : "text-fg-muted/60"
+          }`}
+        />
         <label className="min-w-0 flex-1">
           <span className="sr-only">Summary of the next commit</span>
           <input
@@ -565,6 +570,12 @@ const CommitRow = memo(function CommitRow({ id, top, height, row, graphWidth, he
         )}
       </span>
       <span className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3" style={{ marginLeft: Math.max(0, CONTENT_LEFT - 12 - Math.max(graphWidth, CONTENT_LEFT - 12)) }}>
+        <ChevronRight
+          aria-hidden
+          className={`size-3.5 shrink-0 transition-transform duration-150 ${
+            unfolded ? "rotate-90 text-accent" : "text-fg-muted/60"
+          }`}
+        />
         {hasRefs && <RefBadges refs={refs ?? []} head={headState} detachedHead={detachedHere} max={map ? 4 : 2} />}
         <span className={`truncate text-xs sm:text-sm font-sans font-medium tracking-tight ${map && !hasRefs ? "text-fg-muted" : merge ? "text-fg-secondary" : "text-fg"}`}>{commit.summary}</span>
         {map && row.hidden > 0 && <span className="shrink-0 font-mono text-2xs text-fg-muted">· {row.hidden} commit{row.hidden === 1 ? "" : "s"} below folded</span>}

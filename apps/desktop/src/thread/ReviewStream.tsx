@@ -32,7 +32,7 @@ const LAYOUTS: readonly SegmentOption<DiffLayout>[] = [
 /** Diff rows are indented under their file, which hangs off the thread. */
 const DIFF_INDENT = 40;
 /** Expanding every file is offered only up to this many (each costs a diff request). */
-export const EXPAND_ALL_LIMIT = 40;
+export const EXPAND_ALL_LIMIT = 100;
 
 type StreamRow =
   | { kind: "group"; group: NavigatorGroup; count: number }

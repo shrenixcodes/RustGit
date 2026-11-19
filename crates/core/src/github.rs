@@ -269,9 +269,14 @@ pub fn create_repository(
     http: &dyn Http,
     token: &str,
     name: &str,
+    description: Option<&str>,
     private: bool,
 ) -> Result<GithubRepository, GithubError> {
-    let body: String = serde_json::json!({ "name": name, "private": private }).to_string();
+    let mut body_map = serde_json::json!({ "name": name, "private": private });
+    if let Some(desc) = description.filter(|d| !d.trim().is_empty()) {
+        body_map["description"] = serde_json::Value::String(desc.trim().to_owned());
+    }
+    let body: String = body_map.to_string();
     let text: String = authorised(
         http,
         "POST",
@@ -617,7 +622,7 @@ mod tests {
             Err(GithubError::Unauthorized)
         ));
         let refused = Scripted::new(&[], (422, r#"{"message":"name already exists"}"#));
-        let error = create_repository(&refused, "t", "x", true).expect_err("refused");
+        let error = create_repository(&refused, "t", "x", None, true).expect_err("refused");
         assert!(error.to_string().contains("name already exists"));
         let account = Scripted::new(&[], (200, r#"{"login":"octo"}"#));
         assert_eq!(current_account(&account, "t").expect("user").login, "octo");

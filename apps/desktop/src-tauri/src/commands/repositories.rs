@@ -36,12 +36,23 @@ pub async fn add_repository(
 pub async fn init_repository(
     state: State<'_, AppState>,
     path: String,
+    description: Option<String>,
+    readme: Option<bool>,
+    gitignore: Option<String>,
+    license: Option<String>,
 ) -> CommandResult<RepositoryEntry> {
     let git: GitExecutor = state.git.clone();
     let database: Arc<Database> = Arc::clone(&state.database);
     blocking(move || {
+        let options = rustgit_git_engine::InitOptions {
+            initial_branch: Some(DEFAULT_INITIAL_BRANCH.to_owned()),
+            description,
+            readme: readme.unwrap_or(false),
+            gitignore_template: gitignore,
+            license_template: license,
+        };
         let location: RepositoryLocation =
-            rustgit_git_engine::init(&git, Path::new(&path), DEFAULT_INITIAL_BRANCH)?;
+            rustgit_git_engine::init_with_options(&git, Path::new(&path), &options)?;
         register(&database, &location)
     })
     .await

@@ -46,7 +46,7 @@ pub use refs::{
     HeadState, RefEntry, RefKind, RefList, checkout_branch, create_branch, delete_branch,
     list_refs, rename_branch, set_upstream,
 };
-pub use repository::{RepositoryLocation, discover, init};
+pub use repository::{InitOptions, RepositoryLocation, discover, init, init_with_options};
 pub use status::{
     BranchStatus, ChangeKind, FileStatus, InProgress, StatusSnapshot, in_progress, read_status,
 };

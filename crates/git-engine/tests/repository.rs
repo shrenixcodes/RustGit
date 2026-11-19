@@ -47,6 +47,34 @@ fn init_then_discover_from_subdirectory() {
 }
 
 #[test]
+fn init_with_readme_gitignore_and_license() {
+    let dir: tempfile::TempDir = tempfile::tempdir().expect("tempdir");
+    let git: GitExecutor = support::executor();
+    let project_path = dir.path().join("my-cool-project");
+    let options = rustgit_git_engine::InitOptions {
+        initial_branch: Some("main".to_owned()),
+        description: Some("A test project description".to_owned()),
+        readme: true,
+        gitignore_template: Some("rust".to_owned()),
+        license_template: Some("mit".to_owned()),
+    };
+    let location = rustgit_git_engine::init_with_options(&git, &project_path, &options).expect("init_with_options");
+
+    let readme = std::fs::read_to_string(location.root.join("README.md")).expect("readme");
+    assert!(readme.contains("# my-cool-project"));
+    assert!(readme.contains("A test project description"));
+
+    let gitignore = std::fs::read_to_string(location.root.join(".gitignore")).expect("gitignore");
+    assert!(gitignore.contains("/target/"));
+
+    let license = std::fs::read_to_string(location.root.join("LICENSE")).expect("license");
+    assert!(license.contains("MIT License"));
+
+    let git_desc = std::fs::read_to_string(location.git_dir.join("description")).expect("description");
+    assert_eq!(git_desc.trim(), "A test project description");
+}
+
+#[test]
 fn discover_rejects_plain_directory_and_missing_path() {
     let dir: tempfile::TempDir = tempfile::tempdir().expect("tempdir");
     let git: GitExecutor = support::executor();

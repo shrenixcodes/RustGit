@@ -80,6 +80,14 @@ async function call<T>(command: string, args?: Record<string, unknown>): Promise
   }
 }
 
+export interface InitRepositoryOptions {
+  path: string;
+  description?: string | undefined;
+  readme?: boolean | undefined;
+  gitignore?: string | undefined;
+  license?: string | undefined;
+}
+
 export const ipc = {
   gitInfo: (): Promise<GitInfo> => call("git_info"),
   getSettings: (): Promise<Settings> => call("get_settings"),
@@ -87,7 +95,10 @@ export const ipc = {
 
   listRepositories: (): Promise<RepositoryEntry[]> => call("list_repositories"),
   addRepository: (path: string): Promise<RepositoryEntry> => call("add_repository", { path }),
-  initRepository: (path: string): Promise<RepositoryEntry> => call("init_repository", { path }),
+  initRepository: (request: string | InitRepositoryOptions): Promise<RepositoryEntry> => {
+    const payload = typeof request === "string" ? { path: request } : request;
+    return call("init_repository", { ...payload });
+  },
   openRepository: (id: number): Promise<RepositoryEntry> => call("open_repository", { id }),
   setRepositoryPinned: (id: number, pinned: boolean): Promise<RepositoryEntry> =>
     call("set_repository_pinned", { id, pinned }),
@@ -227,8 +238,8 @@ export const ipc = {
   githubSavePat: (token: string): Promise<GithubAccount> => call("github_save_pat", { token }),
   githubSignOut: (): Promise<void> => call("github_sign_out"),
   githubListRepositories: (page: number): Promise<GithubRepository[]> => call("github_list_repositories", { page }),
-  githubCreateRepository: (name: string, isPrivate: boolean): Promise<GithubRepository> =>
-    call("github_create_repository", { name, private: isPrivate }),
+  githubCreateRepository: (name: string, isPrivate: boolean, description?: string): Promise<GithubRepository> =>
+    call("github_create_repository", { name, private: isPrivate, description: description?.trim() || null }),
   respondCredential: (requestId: string, answer: string | null): Promise<boolean> =>
     call("respond_credential", { requestId, answer }),
 

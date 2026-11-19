@@ -25,6 +25,7 @@ export function PublishToGithub({ repositoryId, defaultName }: { repositoryId: n
   const remotes = useRemotes(repositoryId);
   const addRemote = useRemoteOperation(repositoryId);
   const [name, setName] = useState<string>(defaultName);
+  const [description, setDescription] = useState<string>("");
   const [isPrivate, setIsPrivate] = useState<boolean>(true);
   const [busy, setBusy] = useState<boolean>(false);
   const [error, setError] = useState<IpcError | null>(null);
@@ -43,7 +44,7 @@ export function PublishToGithub({ repositoryId, defaultName }: { repositoryId: n
     setError(null);
     setDone(null);
     try {
-      const created = await ipc.githubCreateRepository(name.trim(), isPrivate);
+      const created = await ipc.githubCreateRepository(name.trim(), isPrivate, description.trim() || undefined);
       await addRemote.mutateAsync({ kind: "add", name: remoteName, url: created.cloneUrl });
       await networkActions(repositoryId).push({ remote: remoteName, branch: null, setUpstream: true, forceWithLease: false });
       setDone(created.fullName);
@@ -70,6 +71,16 @@ export function PublishToGithub({ repositoryId, defaultName }: { repositoryId: n
           className="mt-1 h-8 w-full border-b border-border bg-transparent font-mono text-sm outline-none focus:border-accent"
         />
         {problem !== null && <span className="mt-1 block text-xs text-danger">{problem}</span>}
+      </label>
+      <label className="block">
+        <span className="rg-label">description (optional)</span>
+        <input
+          value={description}
+          disabled={busy}
+          onChange={(event) => setDescription(event.target.value)}
+          placeholder="Short description of the repository"
+          className="mt-1 h-8 w-full border-b border-border bg-transparent font-sans text-sm outline-none focus:border-accent"
+        />
       </label>
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={isPrivate} disabled={busy} onChange={(event) => setIsPrivate(event.target.checked)} />

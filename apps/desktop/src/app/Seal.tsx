@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronDown, Command, Copy, Ellipsis, GitBranch, RefreshCw, Search, Settings } from "lucide-react";
+import { Check, ChevronDown, Command, Copy, Ellipsis, FolderGit2, FolderPlus, GitBranch, Plus, RefreshCw, Search, Settings } from "lucide-react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { IconButton } from "../components/Button";
 import { Mark } from "../components/Mark";
@@ -63,23 +63,52 @@ export function Seal() {
 
   return (
     <header aria-label="Repository" className="flex h-12 shrink-0 items-center gap-2 sm:gap-3 border-b border-divider bg-bg px-3 sm:px-4 overflow-hidden select-none">
-      <div ref={root} className="relative flex min-w-0 items-center gap-2">
+      <div ref={root} className="relative flex min-w-0 items-center gap-1.5 sm:gap-2">
         <Mark size={20} />
-        <button
-          ref={trigger}
-          type="button"
-          aria-haspopup="dialog"
-          aria-expanded={switcherOpen}
-          aria-label={repository === undefined ? "Choose a repository" : `Repository ${repository.name}. Switch repository`}
-          title={`Switch repository (${formatShortcut("Mod+P")})`}
-          onClick={() => setSwitcherOpen(!switcherOpen)}
-          className="group flex min-w-0 max-w-[140px] sm:max-w-[200px] items-center gap-1.5 rounded-md px-1.5 sm:px-2 py-1 text-left transition-colors hover:bg-hover active:scale-[0.98]"
-        >
-          <span className={`truncate text-sm font-semibold tracking-tight ${repository === undefined ? "text-fg-muted" : "text-fg"}`}>
-            {repository?.name ?? "RustGit"}
-          </span>
-          <ChevronDown aria-hidden className="size-3.5 shrink-0 text-fg-muted transition-transform duration-150 group-hover:text-fg group-aria-expanded:rotate-180" />
-        </button>
+        {repository === undefined ? (
+          <button
+            ref={trigger}
+            type="button"
+            aria-haspopup="dialog"
+            aria-expanded={switcherOpen}
+            aria-label="Choose a repository"
+            title={`Open or switch repository (${formatShortcut("Mod+P")})`}
+            onClick={() => setSwitcherOpen(!switcherOpen)}
+            className="group flex min-w-0 items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/15 px-2.5 py-1 text-left text-accent transition-all hover:bg-accent/25 active:scale-[0.98]"
+          >
+            <FolderPlus className="size-3.5 shrink-0 text-accent" />
+            <span className="truncate text-xs font-semibold tracking-tight">Open or Create Repository</span>
+            <ChevronDown aria-hidden className="size-3 shrink-0 text-accent/80 transition-transform duration-150 group-hover:text-accent group-aria-expanded:rotate-180" />
+          </button>
+        ) : (
+          <div className="flex items-center gap-1">
+            <button
+              ref={trigger}
+              type="button"
+              aria-haspopup="dialog"
+              aria-expanded={switcherOpen}
+              aria-label={`Repository ${repository.name}. Switch repository`}
+              title={`Switch repository (${formatShortcut("Mod+P")})`}
+              onClick={() => setSwitcherOpen(!switcherOpen)}
+              className="group flex min-w-0 max-w-[150px] sm:max-w-[220px] items-center gap-1.5 rounded-lg border border-border/80 bg-elevated/60 px-2.5 py-1 text-left transition-all hover:border-accent hover:bg-elevated hover:text-fg active:scale-[0.98]"
+            >
+              <FolderGit2 className="size-3.5 shrink-0 text-accent" />
+              <span className="truncate text-xs font-semibold tracking-tight text-fg">
+                {repository.name}
+              </span>
+              <ChevronDown aria-hidden className="size-3 shrink-0 text-fg-muted transition-transform duration-150 group-hover:text-fg group-aria-expanded:rotate-180" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setSwitcherOpen(true)}
+              title={`Add or create repository (${formatShortcut("Mod+P")})`}
+              aria-label="Add or create repository"
+              className="flex size-7 items-center justify-center rounded-lg border border-border/80 bg-elevated/40 text-fg-muted hover:border-accent hover:text-accent hover:bg-elevated active:scale-95 transition-all"
+            >
+              <Plus className="size-3.5" />
+            </button>
+          </div>
+        )}
         {switcherOpen && <SwitcherPopover onClose={close} root={root} />}
       </div>
 

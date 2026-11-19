@@ -1,173 +1,172 @@
 /*
  * RustGit design tokens.
  *
+ * Dark mode: Dusty purple, Charcoal, Gold.
+ * Light mode: Bottle green, Bone, Vermilion.
+ *
  * Contrast is enforced by src/styles/tokens.test.ts, which parses this file:
  * text tokens >= 4.5:1 and graphical/control tokens >= 3:1 on every surface
  * of every theme block below.
- *
- * Deviations from the brief (lightness only, for contrast):
- *   dark text-muted  #858A7C -> #969B8D (3.95:1 -> 4.92:1)
- *   dark danger      #C77B76 -> #D18A85 (4.35:1 -> 5.13:1)
- *   clay, indigo, moss are kept as graphics-only tokens; text uses the
- *   lighter clay-text #CF8A6F and indigo-text #9894B8.
- *   control borders (not in the brief): dark #79806F, light #7A7D71.
- *
- * Variable names keep the established mapping (accent = sage, lavender =
- * indigo, amber = clay-text) so existing components follow the new palette.
  */
 
 :root,
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --rg-bg: #0c0e12;
-  --rg-canvas: #11141a;
-  --rg-sidebar: #0c0e12;
-  --rg-surface: #171b23;
-  --rg-elevated: #1e232e;
+  /* Charcoal surfaces. */
+  --rg-bg: #121316;
+  --rg-canvas: #16181d;
+  --rg-sidebar: #121316;
+  --rg-surface: #1b1e24;
+  --rg-elevated: #232730;
 
-  --rg-border: #2b313e;
-  --rg-divider: #202530;
-  --rg-border-control: #8590a2;
+  --rg-border: #2f3440;
+  --rg-divider: #252932;
+  --rg-border-control: #838c9d;
 
-  --rg-text: #f1f5f9;
-  --rg-text-secondary: #cbd5e1;
-  --rg-text-muted: #94a3b8;
+  --rg-text: #f0edf5;
+  --rg-text-secondary: #c6c2cf;
+  --rg-text-muted: #9690a2;
 
-  /* Accents. */
-  --rg-accent: #60a5fa;
-  --rg-accent-strong: #93c5fd;
-  --rg-accent-contrast: #0c0e12;
-  --rg-moss: #34d399;
-  --rg-clay: #f97316;
-  --rg-clay-text: #fb923c;
-  --rg-indigo: #818cf8;
-  --rg-indigo-text: #a5b4fc;
-  /* Legacy names mapped onto the palette. */
-  --rg-lavender: #c4b5fd;
-  --rg-violet: #a855f7;
-  --rg-amber: #fbbf24;
-  --rg-yellow: #fde047;
+  /* Dusty purple primary accent. */
+  --rg-accent: #baa5d8;
+  --rg-accent-strong: #d4c5eb;
+  --rg-accent-contrast: #14121a;
+  --rg-indigo: #9088cc;
+  --rg-indigo-text: #aca4e2;
+  --rg-lavender: #cfc6eb;
+  --rg-violet: #a788e0;
 
-  --rg-success: #4ade80;
-  --rg-warning: #fbbf24;
-  --rg-danger: #f87171;
-  --rg-info: #60a5fa;
+  /* Gold focal accent and status. */
+  --rg-amber: #e6bd67;
+  --rg-yellow: #eed078;
+  --rg-warning: #e6bd67;
 
-  --rg-selection: rgb(96 165 250 / 0.12);
-  --rg-selection-strong: rgb(96 165 250 / 0.22);
-  --rg-hover: rgb(241 245 249 / 0.05);
-  --rg-glow: 0 0 0 1px rgb(96 165 250 / 0.4);
-  --rg-canvas-line: rgb(241 245 249 / 0.03);
-  --rg-overlay: rgb(5 7 10 / 0.7);
+  /* Semantic & graphics tokens. */
+  --rg-moss: #5ea880;
+  --rg-clay: #d67a63;
+  --rg-clay-text: #e59582;
+  --rg-success: #65c48b;
+  --rg-danger: #eb7f7a;
+  --rg-info: #9aa7f0;
+
+  --rg-selection: rgb(186 165 216 / 0.14);
+  --rg-selection-strong: rgb(186 165 216 / 0.24);
+  --rg-hover: rgb(240 237 245 / 0.05);
+  --rg-glow: 0 0 0 1px rgb(186 165 216 / 0.45);
+  --rg-canvas-line: rgb(240 237 245 / 0.03);
+  --rg-overlay: rgb(8 9 12 / 0.72);
   --rg-shadow-popover: 0 16px 40px -4px rgb(0 0 0 / 0.6), 0 6px 16px -2px rgb(0 0 0 / 0.35);
   --rg-shadow-subtle: 0 1px 3px rgb(0 0 0 / 0.25);
 
-  --rg-diff-add-bg: rgb(74 222 128 / 0.12);
-  --rg-diff-add-marker: rgb(74 222 128 / 0.3);
-  --rg-diff-del-bg: rgb(248 113 113 / 0.12);
-  --rg-diff-del-marker: rgb(248 113 113 / 0.3);
+  --rg-diff-add-bg: rgb(101 196 139 / 0.12);
+  --rg-diff-add-marker: rgb(101 196 139 / 0.3);
+  --rg-diff-del-bg: rgb(235 127 122 / 0.12);
+  --rg-diff-del-marker: rgb(235 127 122 / 0.3);
 
   /* Lineage lanes: lane 0 is the current branch's first-parent line. */
-  --rg-lane-0: #60a5fa;
-  --rg-lane-1: #a78bfa;
-  --rg-lane-2: #f472b6;
-  --rg-lane-3: #34d399;
-  --rg-lane-4: #fbbf24;
-  --rg-lane-5: #38bdf8;
+  --rg-lane-0: #baa5d8;
+  --rg-lane-1: #e6bd67;
+  --rg-lane-2: #65c48b;
+  --rg-lane-3: #eb7f7a;
+  --rg-lane-4: #8bbaf5;
+  --rg-lane-5: #df92c9;
 }
 
-/* Deep workspace: same hues, darker surfaces for history and investigation. */
+/* Deep workspace: darker charcoal surfaces for history and investigation. */
 :root[data-theme="dark"][data-workspace="deep"] {
-  --rg-bg: #07080a;
-  --rg-canvas: #0c0e12;
-  --rg-sidebar: #07080a;
-  --rg-surface: #12151b;
-  --rg-elevated: #181c24;
-  --rg-border: #232833;
-  --rg-divider: #191d25;
-  --rg-border-control: #8590a2;
-  --rg-text: #f1f5f9;
-  --rg-text-secondary: #cbd5e1;
-  --rg-text-muted: #94a3b8;
-  --rg-accent: #60a5fa;
-  --rg-accent-strong: #93c5fd;
-  --rg-moss: #34d399;
-  --rg-clay: #f97316;
-  --rg-clay-text: #fb923c;
-  --rg-indigo: #818cf8;
-  --rg-indigo-text: #a5b4fc;
-  --rg-lavender: #c4b5fd;
-  --rg-violet: #a855f7;
-  --rg-amber: #fbbf24;
-  --rg-yellow: #fde047;
-  --rg-success: #4ade80;
-  --rg-warning: #fbbf24;
-  --rg-danger: #f87171;
-  --rg-info: #60a5fa;
-  --rg-lane-0: #60a5fa;
-  --rg-lane-1: #a78bfa;
-  --rg-lane-2: #f472b6;
-  --rg-lane-3: #34d399;
-  --rg-lane-4: #fbbf24;
-  --rg-lane-5: #38bdf8;
+  --rg-bg: #0b0c0e;
+  --rg-canvas: #0f1013;
+  --rg-sidebar: #0b0c0e;
+  --rg-surface: #14161a;
+  --rg-elevated: #1a1d23;
+  --rg-border: #252932;
+  --rg-divider: #1c1f26;
+  --rg-border-control: #838c9d;
+  --rg-text: #f0edf5;
+  --rg-text-secondary: #c6c2cf;
+  --rg-text-muted: #9690a2;
+  --rg-accent: #baa5d8;
+  --rg-accent-strong: #d4c5eb;
+  --rg-moss: #5ea880;
+  --rg-clay: #d67a63;
+  --rg-clay-text: #e59582;
+  --rg-indigo: #9088cc;
+  --rg-indigo-text: #aca4e2;
+  --rg-lavender: #cfc6eb;
+  --rg-violet: #a788e0;
+  --rg-amber: #e6bd67;
+  --rg-yellow: #eed078;
+  --rg-success: #65c48b;
+  --rg-warning: #e6bd67;
+  --rg-danger: #eb7f7a;
+  --rg-info: #9aa7f0;
+  --rg-lane-0: #baa5d8;
+  --rg-lane-1: #e6bd67;
+  --rg-lane-2: #65c48b;
+  --rg-lane-3: #eb7f7a;
+  --rg-lane-4: #8bbaf5;
+  --rg-lane-5: #df92c9;
 }
 
 :root[data-theme="light"] {
   color-scheme: light;
 
-  --rg-bg: #f3f0e8;
-  --rg-canvas: #ece8de;
-  --rg-sidebar: #ece8de;
-  --rg-surface: #faf8f3;
+  /* Bone surfaces. */
+  --rg-bg: #f5f2ea;
+  --rg-canvas: #ece7dc;
+  --rg-sidebar: #ece7dc;
+  --rg-surface: #fbf9f4;
   --rg-elevated: #ffffff;
 
-  --rg-border: #d9d4c7;
-  --rg-divider: #e4e0d5;
-  --rg-border-control: #7a7d71;
+  --rg-border: #dcd6c8;
+  --rg-divider: #e6e1d4;
+  --rg-border-control: #76746b;
 
-  --rg-text: #24261f;
-  --rg-text-secondary: #4f5347;
-  --rg-text-muted: #63675b;
+  --rg-text: #1d201c;
+  --rg-text-secondary: #484c45;
+  --rg-text-muted: #62665e;
 
-  --rg-accent: #5a6248;
-  --rg-accent-strong: #4a5139;
-  --rg-accent-contrast: #faf8f3;
-  --rg-moss: #4e5843;
-  --rg-clay: #9a4e32;
-  --rg-clay-text: #9a4e32;
-  --rg-indigo: #565184;
-  --rg-indigo-text: #565184;
-  --rg-lavender: #565184;
-  --rg-violet: #565184;
-  --rg-amber: #9a4e32;
-  --rg-yellow: #7f5a1c;
+  /* Bottle green primary accent. */
+  --rg-accent: #2c593f;
+  --rg-accent-strong: #1f432d;
+  --rg-accent-contrast: #fbf9f4;
+  --rg-moss: #3d6e50;
+  --rg-success: #2c6e3b;
 
-  --rg-success: #3a6b4a;
-  --rg-warning: #7f5a1c;
-  --rg-danger: #9e423b;
-  --rg-info: #565184;
+  /* Vermilion accents. */
+  --rg-clay: #b8432a;
+  --rg-clay-text: #ad3d26;
+  --rg-danger: #b3382c;
 
-  --rg-selection: rgb(90 98 72 / 0.08);
-  --rg-selection-strong: rgb(90 98 72 / 0.14);
-  --rg-hover: rgb(36 38 31 / 0.04);
-  --rg-glow: 0 0 0 1px rgb(90 98 72 / 0.45);
-  --rg-canvas-line: rgb(36 38 31 / 0.045);
-  --rg-overlay: rgb(36 38 31 / 0.28);
-  --rg-shadow-popover: 0 8px 24px rgb(36 38 31 / 0.14);
+  --rg-indigo: #4a4d7a;
+  --rg-indigo-text: #4a4d7a;
+  --rg-lavender: #4a4d7a;
+  --rg-violet: #52477c;
+  --rg-amber: #8a5814;
+  --rg-yellow: #805210;
+  --rg-warning: #805210;
+  --rg-info: #355375;
 
+  --rg-selection: rgb(44 89 63 / 0.1);
+  --rg-selection-strong: rgb(44 89 63 / 0.18);
+  --rg-hover: rgb(29 32 28 / 0.045);
+  --rg-glow: 0 0 0 1px rgb(44 89 63 / 0.45);
+  --rg-canvas-line: rgb(29 32 28 / 0.045);
+  --rg-overlay: rgb(29 32 28 / 0.32);
+  --rg-shadow-popover: 0 8px 24px rgb(29 32 28 / 0.14);
 
-  --rg-diff-add-bg: rgb(58 107 74 / 0.08);
-  --rg-diff-add-marker: rgb(58 107 74 / 0.2);
-  --rg-diff-del-bg: rgb(158 66 59 / 0.07);
-  --rg-diff-del-marker: rgb(158 66 59 / 0.18);
+  --rg-diff-add-bg: rgb(44 110 59 / 0.08);
+  --rg-diff-add-marker: rgb(44 110 59 / 0.22);
+  --rg-diff-del-bg: rgb(179 56 44 / 0.08);
+  --rg-diff-del-marker: rgb(179 56 44 / 0.22);
 
-  --rg-lane-0: #5a6248;
-  --rg-lane-1: #565184;
-  --rg-lane-2: #9a4e32;
-  --rg-lane-3: #4e5843;
-  --rg-lane-4: #7f5a1c;
-  --rg-lane-5: #3a6b4a;
+  --rg-lane-0: #2c593f;
+  --rg-lane-1: #b8432a;
+  --rg-lane-2: #4a4d7a;
+  --rg-lane-3: #8a5814;
+  --rg-lane-4: #355375;
+  --rg-lane-5: #6d4263;
 }
 
 /* Workspace personalities (spacing). Quiet is the default. */

@@ -10,7 +10,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   ref,
 ) {
   return (
-    <div className={`group relative flex h-8 items-center gap-2 rounded-lg border border-border/80 bg-canvas/70 px-2.5 transition-all duration-150 focus-within:border-accent focus-within:bg-canvas focus-within:ring-1 focus-within:ring-accent/30 ${className}`}>
+    <div className={`group relative flex h-8 items-center gap-2 rounded-lg border border-border/80 bg-canvas/70 px-2.5 shadow-2xs transition-all duration-150 hover:border-border-control focus-within:border-accent focus-within:bg-canvas focus-within:ring-1 focus-within:ring-accent/30 ${className}`}>
       {icon && <span className="shrink-0 text-fg-muted transition-colors group-focus-within:text-accent">{icon}</span>}
       <input
         ref={ref}

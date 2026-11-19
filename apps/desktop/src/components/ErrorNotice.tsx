@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { CircleAlert } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { Check, CircleAlert, Copy } from "lucide-react";
 import type { IpcError } from "../services/ipc";
 import type { ErrorKind } from "../services/types";
 
@@ -26,18 +26,42 @@ interface ErrorNoticeProps {
 
 export function ErrorNotice({ title, error, actions }: ErrorNoticeProps) {
   const hint: string | undefined = HINTS[error.kind];
+  const [copied, setCopied] = useState<boolean>(false);
+
+  const copyError = () => {
+    void navigator.clipboard?.writeText(error.message).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
   return (
     <div
       role="alert"
-      className="flex gap-3 rounded-lg border border-danger/30 bg-danger/5 p-3.5 shadow-2xs transition-all"
+      className="flex gap-3.5 rounded-xl border border-danger/35 bg-danger/10 p-4 shadow-sm transition-all"
     >
-      <CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-danger" />
-      <div className="min-w-0 flex-1 space-y-1.5">
-        <p className="font-semibold text-fg text-sm">{title}</p>
-        <p data-selectable className="max-h-48 overflow-y-auto break-words whitespace-pre-wrap font-mono text-xs text-fg-secondary/90 leading-relaxed">
-          {error.message}
-        </p>
-        {hint !== undefined && <p className="text-xs text-fg-muted">{hint}</p>}
+      <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-danger/15 border border-danger/25 text-danger">
+        <CircleAlert aria-hidden className="size-4" />
+      </div>
+      <div className="min-w-0 flex-1 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <p className="font-semibold text-fg text-sm tracking-tight">{title}</p>
+          <button
+            type="button"
+            onClick={copyError}
+            title={copied ? "Copied error message" : "Copy error message"}
+            className="flex items-center gap-1 rounded px-1.5 py-0.5 text-2xs text-fg-muted hover:bg-hover hover:text-fg transition-colors"
+          >
+            {copied ? <Check aria-hidden className="size-3 text-success" /> : <Copy aria-hidden className="size-3" />}
+            <span>{copied ? "copied" : "copy"}</span>
+          </button>
+        </div>
+        <div className="rounded-lg border border-danger/20 bg-canvas/60 p-2.5">
+          <p data-selectable className="max-h-48 overflow-y-auto break-words whitespace-pre-wrap font-mono text-xs text-fg-secondary leading-relaxed">
+            {error.message}
+          </p>
+        </div>
+        {hint !== undefined && <p className="text-xs text-fg-muted font-sans leading-relaxed">{hint}</p>}
         {actions !== undefined && <div className="flex items-center gap-2 pt-1">{actions}</div>}
       </div>
     </div>

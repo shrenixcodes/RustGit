@@ -135,7 +135,7 @@ export function Sheet() {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 flex flex-col">
+      <div key={sheet} className="rg-tab-anim min-h-0 flex-1 flex flex-col">
         <SheetContent sheet={sheet} />
       </div>
     </dialog>

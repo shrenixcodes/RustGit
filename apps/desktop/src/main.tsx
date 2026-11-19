@@ -7,6 +7,7 @@ import "./styles/index.css";
 // Dark is RustGit's default look; the first paint is dark and App applies
 // the saved preference once settings load.
 document.documentElement.dataset.theme = resolveTheme("dark", true);
+document.documentElement.dataset.motion = "full";
 
 const container: HTMLElement | null = document.getElementById("root");
 if (!container) {

@@ -137,7 +137,7 @@ export function SwitcherPopover({
       role="dialog"
       aria-label="Switch repository"
       onKeyDown={onKeyDown}
-      className="absolute left-0 top-full z-50 mt-1.5 w-[440px] max-w-[calc(100vw-24px)] overflow-hidden rounded-xl border border-border bg-elevated shadow-popover"
+      className="rg-popover-anim absolute left-0 top-full z-50 mt-1.5 w-[440px] max-w-[calc(100vw-24px)] overflow-hidden rounded-xl border border-border bg-elevated shadow-popover"
       style={{ backgroundColor: "var(--rg-elevated)" }}
     >
       {view === "list" && (

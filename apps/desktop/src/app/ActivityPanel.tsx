@@ -36,7 +36,7 @@ export function ActivityPanel() {
   return (
     <>
       <Splitter panel="activity" label="Resize activity panel" grows="up" />
-      <section aria-label="Activity" style={{ height }} className="flex shrink-0 flex-col bg-surface border-t border-divider">
+      <section aria-label="Activity" style={{ height }} className="rg-drawer-anim flex shrink-0 flex-col bg-surface border-t border-divider">
         <header className="flex h-10 shrink-0 items-center gap-4 px-5 border-b border-divider/60 bg-canvas/30">
           <div className="flex items-center gap-2">
             <Terminal className="size-3.5 text-accent" />

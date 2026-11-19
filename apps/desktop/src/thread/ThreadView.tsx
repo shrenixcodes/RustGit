@@ -330,7 +330,7 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
               role="group"
               aria-label={unfoldedRow.kind === "now" ? "Uncommitted changes" : `Commit ${unfoldedRow.commit.oid.slice(0, 7)} unfolded`}
               style={{ position: "absolute", top: (unfolding.after + 1) * rowHeight, height: unfolding.height, left: 0, right: 0 }}
-              className="border-y border-divider bg-surface"
+              className="rg-fold-anim border-y border-divider bg-surface"
             >
               {/* The thread keeps running past the fold: every lane that passes this point, in its colour. */}
               <FoldLanes row={unfoldedRow} headLane={headLane} />

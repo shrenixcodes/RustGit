@@ -278,7 +278,7 @@ export function FileEntry({
           )}
         </span>
       </button>
-      {open && <div className="border-t border-border/60 bg-surface/80 p-3 overflow-x-auto w-full transition-all">{diff()}</div>}
+      {open && <div className="rg-fold-anim border-t border-border/60 bg-surface/80 p-3 overflow-x-auto w-full">{diff()}</div>}
     </li>
   );
 }

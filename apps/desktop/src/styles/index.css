@@ -123,7 +123,8 @@
   @media (prefers-reduced-motion: reduce) {
     :root:not([data-motion="full"]) *,
     :root:not([data-motion="full"]) *::before,
-    :root:not([data-motion="full"]) *::after {
+    :root:not([data-motion="full"]) *::after,
+    :root:not([data-motion="full"]) *::backdrop {
       animation-duration: 0.01ms !important;
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
@@ -131,13 +132,121 @@
   }
   :root[data-motion="reduce"] *,
   :root[data-motion="reduce"] *::before,
-  :root[data-motion="reduce"] *::after {
+  :root[data-motion="reduce"] *::after,
+  :root[data-motion="reduce"] *::backdrop {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
   :root[data-motion="full"] .motion-safe\:animate-spin {
     animation: spin 1s linear infinite;
+  }
+
+  /* Full motion mode parameters */
+  :root[data-motion="full"] {
+    --rg-duration-fast: 160ms;
+    --rg-duration-base: 240ms;
+    --rg-duration-slow: 360ms;
+    --rg-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Keyframes for interface animations */
+  @keyframes rg-modal-enter {
+    from {
+      opacity: 0;
+      transform: scale(0.96) translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  @keyframes rg-backdrop-enter {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes rg-palette-enter {
+    from {
+      opacity: 0;
+      transform: translateY(-16px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes rg-popover-enter {
+    from {
+      opacity: 0;
+      transform: translateY(-8px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes rg-drawer-enter {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes rg-fold-enter {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes rg-tab-enter {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Animated surfaces */
+  dialog[open] {
+    animation: rg-modal-enter var(--rg-duration-base) var(--rg-ease-out) both;
+  }
+  dialog[open]::backdrop {
+    animation: rg-backdrop-enter var(--rg-duration-base) var(--rg-ease-out) both;
+  }
+  .rg-palette-anim {
+    animation: rg-palette-enter var(--rg-duration-fast) var(--rg-ease-out) both !important;
+  }
+  .rg-popover-anim {
+    animation: rg-popover-enter var(--rg-duration-fast) var(--rg-ease-out) both;
+  }
+  .rg-drawer-anim {
+    animation: rg-drawer-enter var(--rg-duration-base) var(--rg-ease-out) both;
+  }
+  .rg-fold-anim {
+    animation: rg-fold-enter var(--rg-duration-fast) var(--rg-ease-out) both;
+  }
+  .rg-tab-anim {
+    animation: rg-tab-enter var(--rg-duration-fast) var(--rg-ease-out) both;
   }
 }
 

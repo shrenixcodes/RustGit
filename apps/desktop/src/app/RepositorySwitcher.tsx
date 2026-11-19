@@ -79,9 +79,10 @@ export function SwitcherPopover({ onClose, root }: { onClose: () => void; root: 
       aria-label="Switch repository"
       onKeyDown={onKeyDown}
       // Explicit pixels: the root font size is 13 px, so rem-based widths would be too narrow.
-      className="absolute left-0 top-full z-40 mt-1.5 w-[380px] max-w-[calc(100vw-16px)] overflow-hidden rounded-xl border border-border/80 bg-elevated/95 shadow-popover backdrop-blur-md"
+      className="absolute left-0 top-full z-40 mt-1.5 w-[380px] max-w-[calc(100vw-16px)] overflow-hidden rounded-xl border border-border bg-elevated shadow-popover"
+      style={{ backgroundColor: "var(--rg-elevated)" }}
     >
-      <label className="flex h-10 items-center gap-2.5 border-b border-border/70 px-3">
+      <label className="flex h-10 items-center gap-2.5 border-b border-border bg-elevated px-3" style={{ backgroundColor: "var(--rg-elevated)" }}>
         <Search aria-hidden className="size-3.5 text-fg-muted" />
         <span className="sr-only">Filter repositories</span>
         <input
@@ -167,7 +168,7 @@ export function SwitcherPopover({ onClose, root }: { onClose: () => void; root: 
         })}
       </ul>
 
-      <div className="flex items-center justify-between border-t border-divider/60 bg-surface/30 px-2 py-1.5">
+      <div className="flex items-center justify-between border-t border-divider bg-surface px-2 py-1.5" style={{ backgroundColor: "var(--rg-surface)" }}>
         <button
           type="button"
           onClick={manage}

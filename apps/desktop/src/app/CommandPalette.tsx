@@ -182,7 +182,8 @@ function iconForCommand(command: PaletteCommand) {
       onClick={(event) => {
         if (event.target === dialog.current) close();
       }}
-      className="mx-auto mt-[12vh] w-[min(580px,calc(100vw-48px))] overflow-hidden rounded-xl border border-border/80 bg-elevated/95 p-0 text-fg shadow-popover backdrop:bg-overlay backdrop:backdrop-blur-sm"
+      className="mx-auto mt-[12vh] w-[min(580px,calc(100vw-48px))] overflow-hidden rounded-xl border border-border bg-elevated p-0 text-fg shadow-popover backdrop:bg-overlay"
+      style={{ backgroundColor: "var(--rg-elevated)" }}
     >
       <div onKeyDown={onKeyDown}>
         <label className="flex h-12 items-center gap-3 border-b border-border/70 px-4">

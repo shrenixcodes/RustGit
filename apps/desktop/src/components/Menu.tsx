@@ -107,9 +107,10 @@ export function Menu({ label, items, trigger, className = "", disabled = false, 
             event.preventDefault();
             event.stopPropagation();
           }}
-          className={`absolute top-full z-30 mt-1.5 min-w-56 rounded-lg border border-border/80 bg-elevated/95 py-1.5 shadow-popover backdrop-blur-md outline-none ${
+          className={`absolute top-full z-30 mt-1.5 min-w-56 rounded-lg border border-border bg-elevated py-1.5 shadow-popover outline-none ${
             align === "end" ? "right-0" : "left-0"
           }`}
+          style={{ backgroundColor: "var(--rg-elevated)" }}
         >
           {items.map((item, index) => (
             <li

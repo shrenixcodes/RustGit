@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Check, ChevronDown, ChevronRight, Copy } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Copy, GitCompare, GitFork, RotateCcw } from "lucide-react";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { Button } from "../components/Button";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -43,53 +43,68 @@ export function CommitFold({ repositoryId, oid, refs, head, currentBranch, heigh
   };
 
   return (
-    <div style={{ height }} className="overflow-y-auto pr-5 pb-4 pl-[72px]">
-      {details.isPending && <p className="py-3 text-sm text-fg-muted">Reading commit…</p>}
+    <div style={{ height }} className="overflow-y-auto pr-5 pb-5 pl-[72px]">
+      {details.isPending && <p className="py-4 text-xs font-mono text-fg-muted">Reading commit…</p>}
       {details.isError && <ErrorNotice title="Could not read commit" error={details.error} />}
       {details.data !== undefined && (
-        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] gap-10 pt-3">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] gap-6 pt-3.5">
+          {/* Left Column: Metadata, Message & Actions */}
           <div className="min-w-0 space-y-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <span data-selectable className="break-all font-mono text-xs text-accent">
-                {oid}
-              </span>
-              <CopyButton value={oid} />
+            {/* Header pill: SHA, Copy, Badges */}
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/70 bg-elevated/50 px-3 py-2 shadow-2xs">
+              <div className="flex items-center gap-2 min-w-0">
+                <span data-selectable className="font-mono text-xs font-semibold text-accent break-all">
+                  {oid}
+                </span>
+                <CopyButton value={oid} />
+              </div>
+              {(refs.length > 0 || detached) && <RefBadges refs={refs} head={head} detachedHead={detached} max={12} />}
             </div>
-            {(refs.length > 0 || detached) && <RefBadges refs={refs} head={head} detachedHead={detached} max={12} />}
-            <Message message={details.data.message} />
-            <dl className="grid grid-cols-[76px_1fr] gap-x-3 gap-y-1.5 text-sm">
-              <Field label="Author">
-                <Person name={details.data.authorName} email={details.data.authorEmail} time={details.data.authorTime} />
-              </Field>
-              {(details.data.committerName !== details.data.authorName || details.data.committerTime !== details.data.authorTime) && (
-                <Field label="Committer">
-                  <Person name={details.data.committerName} email={details.data.committerEmail} time={details.data.committerTime} />
+
+            {/* Commit Message Box */}
+            <div className="rounded-xl border border-border/80 bg-canvas/40 p-4 shadow-2xs">
+              <Message message={details.data.message} />
+            </div>
+
+            {/* Author / Committer / Parents Grid */}
+            <div className="rounded-xl border border-border/80 bg-elevated/40 p-4 shadow-2xs space-y-3">
+              <dl className="grid grid-cols-[80px_1fr] items-baseline gap-x-3 gap-y-2.5 text-xs">
+                <Field label="Author">
+                  <Person name={details.data.authorName} email={details.data.authorEmail} time={details.data.authorTime} />
                 </Field>
-              )}
-              <Field label={details.data.parents.length > 1 ? "Parents" : "Parent"}>
-                {details.data.parents.length === 0 ? (
-                  <span className="text-fg-muted">None (root commit)</span>
-                ) : (
-                  <span className="flex flex-wrap gap-1.5">
-                    {details.data.parents.map((parent, index) => (
-                      <button
-                        key={parent}
-                        type="button"
-                        onClick={() => onGoTo(parent)}
-                        title={index === 0 ? "Go to the first parent" : `Go to parent ${index + 1} (merged in)`}
-                        className="font-mono text-xs text-fg-secondary underline decoration-border underline-offset-2 hover:text-accent"
-                      >
-                        {parent.slice(0, 7)}
-                      </button>
-                    ))}
-                  </span>
+                {(details.data.committerName !== details.data.authorName || details.data.committerTime !== details.data.authorTime) && (
+                  <Field label="Committer">
+                    <Person name={details.data.committerName} email={details.data.committerEmail} time={details.data.committerTime} />
+                  </Field>
                 )}
-              </Field>
-            </dl>
+                <Field label={details.data.parents.length > 1 ? "Parents" : "Parent"}>
+                  {details.data.parents.length === 0 ? (
+                    <span className="text-fg-muted font-sans">None (root commit)</span>
+                  ) : (
+                    <span className="flex flex-wrap gap-2">
+                      {details.data.parents.map((parent, index) => (
+                        <button
+                          key={parent}
+                          type="button"
+                          onClick={() => onGoTo(parent)}
+                          title={index === 0 ? "Go to the first parent" : `Go to parent ${index + 1} (merged in)`}
+                          className="inline-flex items-center gap-1 rounded-md border border-border/80 bg-canvas/60 px-2 py-0.5 font-mono text-xs font-medium text-fg-secondary hover:border-accent hover:text-accent transition-colors"
+                        >
+                          <GitFork className="size-3 text-accent" />
+                          <span>{parent.slice(0, 7)}</span>
+                        </button>
+                      ))}
+                    </span>
+                  )}
+                </Field>
+              </dl>
+            </div>
+
+            {/* Commit Actions Toolbar */}
             {currentBranch !== null && (
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap items-center gap-2 pt-1">
                 <Button
-                  variant="ghost"
+                  variant="secondary"
                   disabled={operation.isPending}
                   onClick={() =>
                     setPending({
@@ -99,11 +114,13 @@ export function CommitFold({ repositoryId, oid, refs, head, currentBranch, heigh
                       label: "Cherry-pick",
                     })
                   }
+                  className="h-7.5 text-xs font-medium"
                 >
+                  <GitFork className="size-3.5 mr-1 text-accent" />
                   Cherry-pick onto {currentBranch}
                 </Button>
                 <Button
-                  variant="ghost"
+                  variant="secondary"
                   disabled={operation.isPending}
                   onClick={() =>
                     setPending({
@@ -113,24 +130,39 @@ export function CommitFold({ repositoryId, oid, refs, head, currentBranch, heigh
                       label: "Revert",
                     })
                   }
+                  className="h-7.5 text-xs font-medium"
                 >
+                  <RotateCcw className="size-3.5 mr-1 text-clay-text" />
                   Revert…
                 </Button>
-                <Button variant="ghost" onClick={() => useUi.getState().openCompare(oid, "HEAD")}>
+                <Button
+                  variant="ghost"
+                  onClick={() => useUi.getState().openCompare(oid, "HEAD")}
+                  className="h-7.5 text-xs font-medium"
+                >
+                  <GitCompare className="size-3.5 mr-1" />
                   Compare with HEAD
                 </Button>
               </div>
             )}
+
             {operation.error !== null && <ErrorNotice title="Git did not complete the operation" error={operation.error} />}
             {outcome !== null && <OutcomeNotice outcome={outcome} />}
           </div>
 
-          <div className="min-w-0">
-            <p className="rg-label mb-2">
-              files {details.data.files.length}
-              {details.data.parents.length > 1 ? " · against the first parent" : ""}
-            </p>
-            <ul className="space-y-px">
+          {/* Right Column: Files List & Inline Diffs */}
+          <div className="min-w-0 rounded-xl border border-border/80 bg-elevated/40 p-4 shadow-2xs">
+            <div className="flex items-center justify-between pb-2.5 mb-2 border-b border-border/60">
+              <span className="font-semibold text-xs text-fg tracking-tight">
+                Changed files ({details.data.files.length})
+              </span>
+              {details.data.parents.length > 1 && (
+                <span className="font-mono text-2xs text-fg-muted">
+                  against first parent
+                </span>
+              )}
+            </div>
+            <ul className="space-y-1">
               {details.data.files.map((file) => (
                 <FileEntry
                   key={file.path}
@@ -175,35 +207,39 @@ export function FileEntry({
   const { name, directory } = splitPath(file.path);
   const Chevron = open ? ChevronDown : ChevronRight;
   return (
-    <li>
+    <li className="rounded-lg overflow-hidden border border-border/50 bg-canvas/30 hover:bg-hover/60 transition-colors">
       <button
         type="button"
         aria-expanded={open}
         onClick={onToggle}
         title={file.originalPath === null ? file.path : `${file.originalPath} → ${file.path}`}
-        className="flex w-full items-center gap-2 py-0.5 text-left text-sm hover:bg-hover"
+        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-xs cursor-pointer select-none"
       >
-        <Chevron aria-hidden className="size-3 shrink-0 text-fg-muted" />
-        <span aria-label={meta.label} className={`w-3 shrink-0 text-center font-mono text-xs ${meta.tone}`}>
+        <Chevron aria-hidden className="size-3.5 shrink-0 text-fg-muted transition-transform" />
+        <span
+          aria-label={meta.label}
+          className={`flex size-4 shrink-0 items-center justify-center rounded text-2xs font-mono font-bold leading-none ${meta.tone}`}
+        >
           {meta.letter}
         </span>
-        <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
-          <span className="max-w-[70%] shrink-0 truncate font-mono text-xs">{name}</span>
-          <span className="min-w-0 truncate font-mono text-2xs text-fg-muted" dir="rtl">
+        <span className="flex min-w-0 flex-1 items-baseline gap-2">
+          <span className="max-w-[70%] shrink-0 truncate font-mono text-xs font-semibold text-fg tracking-tight">{name}</span>
+          <span className="min-w-0 truncate font-mono text-2xs text-fg-muted/80" dir="rtl">
             <bdi dir="ltr">{directory}</bdi>
           </span>
         </span>
         <span className="shrink-0 font-mono text-2xs tabular-nums">
           {file.additions === null ? (
-            <span className="text-fg-muted">binary</span>
+            <span className="text-fg-muted bg-elevated px-1.5 py-0.5 rounded">binary</span>
           ) : (
-            <>
-              <span className="text-success">+{file.additions}</span> <span className="text-danger">−{file.deletions ?? 0}</span>
-            </>
+            <span className="inline-flex items-center gap-1">
+              <span className="text-success font-semibold">+{file.additions}</span>
+              <span className="text-danger font-semibold">−{file.deletions ?? 0}</span>
+            </span>
           )}
         </span>
       </button>
-      {open && diff()}
+      {open && <div className="border-t border-border/60 bg-surface/50 p-2">{diff()}</div>}
     </li>
   );
 }

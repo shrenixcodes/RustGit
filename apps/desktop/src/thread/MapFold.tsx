@@ -369,16 +369,29 @@ export function MapFold({ repositoryId, oid, refs, currentBranch, dirty, height 
 function BranchLine({ entry, current, children }: { entry: RefEntry; current: boolean; children?: ReactNode }) {
   const relation: string | null = entry.kind === "local" ? upstreamState(entry) : null;
   return (
-    <div className="space-y-1">
-      <p className="flex flex-wrap items-baseline gap-x-3 font-mono text-xs">
-        <span className={current ? "text-accent" : entry.kind === "remote" ? "text-indigo-text" : entry.kind === "tag" ? "text-clay-text" : "text-fg"}>
-          {entry.shortName}
-        </span>
-        <span className="text-fg-muted">{describeRef(entry, current).replace(` ${entry.shortName}`, "")}</span>
-        {relation !== null && <span className="text-fg-muted">{entry.upstream !== null ? `${entry.upstream} · ${relation}` : relation}</span>}
-        <span className="text-fg-muted">last commit {formatRelative(entry.lastCommitTime)}</span>
-      </p>
-      {children !== undefined && <div className="flex flex-wrap gap-1">{children}</div>}
+    <div className="rounded-xl border border-border/80 bg-elevated/50 p-3.5 shadow-2xs space-y-2.5 transition-all hover:border-border-control">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className={`font-mono text-xs font-semibold ${current ? "text-accent" : entry.kind === "remote" ? "text-indigo-text" : entry.kind === "tag" ? "text-clay-text" : "text-fg"}`}>
+            {entry.shortName}
+          </span>
+          {current && (
+            <span className="rounded-full bg-accent/15 border border-accent/25 px-1.5 py-0.2 font-mono text-2xs font-semibold text-accent">
+              current
+            </span>
+          )}
+          <span className="text-2xs text-fg-muted font-sans">{describeRef(entry, current).replace(` ${entry.shortName}`, "")}</span>
+        </div>
+        <div className="flex items-center gap-3 font-mono text-2xs text-fg-muted">
+          {relation !== null && (
+            <span className="rounded bg-canvas/60 border border-border/70 px-1.5 py-0.5 text-fg-secondary">
+              {entry.upstream !== null ? `${entry.upstream} · ${relation}` : relation}
+            </span>
+          )}
+          <span>last commit {formatRelative(entry.lastCommitTime)}</span>
+        </div>
+      </div>
+      {children !== undefined && <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-border/50">{children}</div>}
     </div>
   );
 }

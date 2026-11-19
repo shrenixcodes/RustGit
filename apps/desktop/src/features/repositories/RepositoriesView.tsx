@@ -305,18 +305,20 @@ export function RepositoriesView() {
         )}
 
         {visible.length > 0 && (
-          <ul className="min-h-0 flex-1 divide-y divide-divider/60 overflow-y-auto rounded-lg border border-border/70 bg-canvas/30">
-            {visible.map((entry: RepositoryEntry) => (
-              <RepositoryRow
-                key={entry.id}
-                entry={entry}
-                active={entry.id === activeRepositoryId}
-                onOpen={handleOpen}
-                onRemove={handleRemove}
-                onTogglePin={handleTogglePin}
-              />
-            ))}
-          </ul>
+          <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border/80 bg-elevated/30 shadow-sm backdrop-blur-xs">
+            <ul className="divide-y divide-divider/60">
+              {visible.map((entry: RepositoryEntry) => (
+                <RepositoryRow
+                  key={entry.id}
+                  entry={entry}
+                  active={entry.id === activeRepositoryId}
+                  onOpen={handleOpen}
+                  onRemove={handleRemove}
+                  onTogglePin={handleTogglePin}
+                />
+              ))}
+            </ul>
+          </div>
         )}
       </div>
     </div>

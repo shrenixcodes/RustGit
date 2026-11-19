@@ -447,7 +447,7 @@ function NowRow({ id, top, height, lane, graphWidth, linked, focused, unfolded, 
         )}
         <OpenNode cx={cx} cy={height / 2} r={6} stroke="var(--rg-clay)" width={1.6} />
       </svg>
-      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4" style={{ marginLeft: Math.max(0, CONTENT_LEFT - 12 - Math.max(graphWidth, CONTENT_LEFT - 12)) }}>
+      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3" style={{ marginLeft: Math.max(0, CONTENT_LEFT - 12 - Math.max(graphWidth, CONTENT_LEFT - 12)) }}>
         <label className="min-w-0 flex-1">
           <span className="sr-only">Summary of the next commit</span>
           <input
@@ -467,7 +467,33 @@ function NowRow({ id, top, height, lane, graphWidth, linked, focused, unfolded, 
             className="h-7 w-full bg-transparent font-sans text-xs sm:text-sm font-medium text-fg outline-none placeholder:text-fg-muted/70"
           />
         </label>
-        <span className="shrink-0 font-sans text-xs text-fg-muted/90">{summaryText}</span>
+        {dirty ? (
+          <div className="hidden sm:flex items-center gap-1.5 font-mono text-2xs">
+            {counts.conflicted > 0 && (
+              <span className="rounded bg-danger/15 border border-danger/25 px-1.5 py-0.5 font-semibold text-danger">
+                {counts.conflicted} conflicted
+              </span>
+            )}
+            {counts.staged > 0 && (
+              <span className="rounded bg-accent/15 border border-accent/25 px-1.5 py-0.5 font-semibold text-accent">
+                {counts.staged} staged
+              </span>
+            )}
+            {counts.unstaged > 0 && (
+              <span className="rounded bg-clay/15 border border-clay/25 px-1.5 py-0.5 font-semibold text-clay-text">
+                {counts.unstaged} unstaged
+              </span>
+            )}
+            {counts.untracked > 0 && (
+              <span className="rounded bg-elevated border border-border px-1.5 py-0.5 text-fg-muted">
+                {counts.untracked} untracked
+              </span>
+            )}
+            <span className="sr-only">{summaryText}</span>
+          </div>
+        ) : (
+          <span className="shrink-0 font-sans text-xs text-fg-muted/90">{summaryText}</span>
+        )}
         {composer.done !== null && (
           <span role="status" className="shrink-0 font-mono text-xs text-success font-medium">
             committed {composer.done.oid.slice(0, 7)}
@@ -478,7 +504,7 @@ function NowRow({ id, top, height, lane, graphWidth, linked, focused, unfolded, 
           disabled={!composer.canCommit}
           title={composer.reason ?? "Commit (Ctrl+Enter)"}
           onClick={composer.submit}
-          className="h-6 shrink-0 rounded-md border border-accent/70 bg-accent/15 px-2.5 font-sans text-xs font-medium text-accent transition-all duration-100 hover:bg-accent/25 active:scale-95 disabled:border-border disabled:bg-transparent disabled:text-fg-muted"
+          className="h-6.5 shrink-0 rounded-md border border-accent/70 bg-accent/15 px-3 font-sans text-xs font-semibold text-accent transition-all duration-100 hover:bg-accent/25 active:scale-95 disabled:border-border disabled:bg-transparent disabled:text-fg-muted shadow-2xs"
         >
           {composer.draft.amend ? "Amend" : "Commit"}
         </button>

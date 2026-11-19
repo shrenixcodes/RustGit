@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { ChevronDown, ChevronRight, Search } from "lucide-react";
+import { CheckSquare, ChevronDown, ChevronRight, FileCheck, MinusSquare, Search, Square } from "lucide-react";
 import { Button } from "../components/Button";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { ErrorNotice } from "../components/ErrorNotice";
@@ -299,9 +299,30 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
         </div>
       ) : (
       <>
-      {/* The rest of the next commit: body, amend, identity, and Git's answer. */}
+      {/* Elevated Commit Composer Console */}
       <div className="flex shrink-0 gap-6 py-3 pr-5 pl-[72px]">
-        <div className="min-w-0 flex-1 rounded-xl border border-border/80 bg-canvas/40 p-3.5 shadow-2xs space-y-2.5">
+        <div className="min-w-0 flex-1 rounded-xl border border-border/80 bg-elevated/50 p-4 shadow-sm backdrop-blur-xs space-y-3">
+          <div className="flex items-center justify-between pb-1 border-b border-border/60">
+            <div className="flex items-center gap-2">
+              <FileCheck className="size-3.5 text-accent" />
+              <span className="font-semibold text-xs text-fg tracking-tight">Commit Details</span>
+              {composer.stagedFiles > 0 ? (
+                <span className="rounded-full bg-accent/15 border border-accent/25 px-2 py-0.5 font-mono text-2xs font-semibold text-accent">
+                  {composer.stagedFiles} file{composer.stagedFiles === 1 ? "" : "s"} staged
+                </span>
+              ) : (
+                <span className="rounded-full bg-surface border border-border px-2 py-0.5 font-mono text-2xs text-fg-muted">
+                  no staged files
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2 text-2xs text-fg-muted">
+              <span className="font-sans">Press</span>
+              <kbd className="rounded border border-border/70 bg-canvas/80 px-1 py-0.5 font-mono text-fg-secondary">⌘+Enter</kbd>
+              <span className="font-sans">to commit</span>
+            </div>
+          </div>
+
           <label className="block">
             <span className="sr-only">Description</span>
             <textarea
@@ -315,12 +336,13 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
               }}
               rows={2}
               placeholder="Description (optional)"
-              className="w-full resize-y rounded-lg border border-border/70 bg-canvas/60 p-2 text-xs text-fg outline-none placeholder:text-fg-muted/70 focus:border-accent focus:ring-1 focus:ring-accent/30 font-sans"
+              className="w-full resize-y rounded-lg border border-border/70 bg-canvas/70 p-2.5 text-xs text-fg outline-none placeholder:text-fg-muted/70 focus:border-accent focus:bg-canvas focus:ring-1 focus:ring-accent/30 font-sans transition-all"
             />
           </label>
-          <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-1.5 text-xs">
+
+          <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2 pt-0.5 text-xs">
             <div className="flex items-center gap-4">
-              <label className="flex items-center gap-1.5 text-fg-secondary cursor-pointer select-none">
+              <label className="flex items-center gap-2 text-fg-secondary cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={composer.draft.amend}
@@ -334,24 +356,38 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
                 summary {composer.draft.summary.length}/{SUMMARY_GUIDE}
               </span>
             </div>
-            {ctx !== undefined && !composer.identityMissing && (
-              <span className="truncate font-mono text-2xs text-fg-muted/90">
-                {ctx.authorName} &lt;{ctx.authorEmail}&gt;{ctx.signing !== "off" ? ` · signed (${ctx.signing})` : ""}
-              </span>
-            )}
+
+            <div className="flex items-center gap-3">
+              {ctx !== undefined && !composer.identityMissing && (
+                <span className="truncate font-mono text-2xs text-fg-muted/80 bg-canvas/40 border border-border/60 px-2 py-0.5 rounded-md" title={`Author: ${ctx.authorName} <${ctx.authorEmail}>`}>
+                  {ctx.authorName} &lt;{ctx.authorEmail}&gt;{ctx.signing !== "off" ? ` · signed (${ctx.signing})` : ""}
+                </span>
+              )}
+              <Button
+                type="button"
+                variant="primary"
+                disabled={!composer.canCommit}
+                title={composer.reason ?? "Commit changes (Ctrl+Enter)"}
+                onClick={composer.submit}
+                className="h-7 text-xs font-semibold px-3"
+              >
+                {composer.draft.amend ? "Amend commit" : composer.stagedFiles > 0 ? `Commit ${composer.stagedFiles} file${composer.stagedFiles === 1 ? "" : "s"}` : "Commit"}
+              </Button>
+            </div>
           </div>
+
           {composer.draft.amend && ctx?.head?.onUpstream === true && (
-            <p className="text-2xs text-clay-text">
+            <p className="text-2xs text-clay-text bg-clay/10 border border-clay/20 p-2 rounded-lg">
               The last commit is already on its upstream. Amending rewrites published history; pushing afterwards needs force-with-lease.
             </p>
           )}
           {composer.identityMissing && (
-            <p className="text-2xs text-danger font-medium">
+            <p className="text-2xs text-danger font-medium bg-danger/10 border border-danger/20 p-2 rounded-lg">
               No Git identity. Run <code className="font-mono">git config user.name</code> and{" "}
               <code className="font-mono">git config user.email</code>, then return here.
             </p>
           )}
-          {composer.merging && <p className="text-2xs text-warning font-medium">Completing a merge: the commit records both parents.</p>}
+          {composer.merging && <p className="text-2xs text-warning font-medium bg-warning/10 border border-warning/20 p-2 rounded-lg">Completing a merge: the commit records both parents.</p>}
           {composer.mutation.error !== null && (
             <ErrorNotice
               title={composer.draft.amend ? "Git did not amend the commit" : "Git did not create the commit"}
@@ -361,62 +397,82 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
         </div>
       </div>
 
-      {/* Changes Toolbar */}
-      <div className="flex shrink-0 items-center gap-2 pr-5 pb-2 pl-[72px]">
-        <div className="min-w-0 flex-1">
-          <label className="flex h-7 items-center gap-2 rounded-lg border border-border/80 bg-canvas/70 px-2.5 transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent/30">
+      {/* Changes Review Toolbar */}
+      <div className="flex flex-wrap shrink-0 items-center justify-between gap-2 pr-5 pb-2.5 pl-[72px]">
+        <div className="flex min-w-[200px] flex-1 items-center gap-2">
+          <label className="flex h-7.5 w-full max-w-xs items-center gap-2 rounded-lg border border-border/80 bg-canvas/70 px-2.5 transition-all focus-within:border-accent focus-within:bg-canvas focus-within:ring-1 focus-within:ring-accent/30 shadow-2xs">
             <Search className="size-3 text-fg-muted shrink-0" />
             <span className="sr-only">Filter changed files</span>
             <input
               type="search"
               value={filter}
               onChange={(event) => setFilter(event.target.value)}
-              placeholder="filter files"
+              placeholder="Filter changed files…"
               className="h-full min-w-0 flex-1 bg-transparent font-sans text-xs text-fg outline-none placeholder:text-fg-muted/60"
             />
             {filter !== "" && (
-              <button type="button" onClick={() => setFilter("")} className="text-fg-muted hover:text-fg text-xs">
+              <button type="button" onClick={() => setFilter("")} className="text-fg-muted hover:text-fg text-xs" title="Clear filter">
                 ×
               </button>
             )}
           </label>
+
+          <div className="hidden lg:flex items-center gap-1.5 font-mono text-2xs text-fg-muted pl-1">
+            <span className="rounded bg-elevated border border-border px-1.5 py-0.5">
+              {files.length} file{files.length === 1 ? "" : "s"}
+            </span>
+            {unstagedCount > 0 && (
+              <span className="rounded bg-clay/10 border border-clay/20 px-1.5 py-0.5 text-clay-text">
+                {unstagedCount} unstaged
+              </span>
+            )}
+            {composer.stagedFiles > 0 && (
+              <span className="rounded bg-accent/10 border border-accent/20 px-1.5 py-0.5 text-accent">
+                {composer.stagedFiles} staged
+              </span>
+            )}
+          </div>
         </div>
 
-        <Button
-          variant="secondary"
-          disabled={!anyUnstaged || staging.isPending}
-          onClick={() => staging.mutate({ kind: "stage_all" })}
-          className="h-7 text-xs"
-        >
-          Stage all{unstagedCount > 0 ? ` (${unstagedCount})` : ""}
-        </Button>
-        <Button
-          variant="secondary"
-          disabled={!anyStaged || staging.isPending}
-          onClick={() => staging.mutate({ kind: "unstage_all" })}
-          className="h-7 text-xs"
-        >
-          Unstage all{composer.stagedFiles > 0 ? ` (${composer.stagedFiles})` : ""}
-        </Button>
-        <Button
-          variant="ghost"
-          disabled={!allExpanded && files.length > EXPAND_ALL_LIMIT}
-          title={files.length > EXPAND_ALL_LIMIT ? `Expanding all is limited to ${EXPAND_ALL_LIMIT} files` : undefined}
-          onClick={() => setExpanded(allExpanded ? new Set() : new Set(files.map((file) => file.path)))}
-          className="h-7 text-xs"
-        >
-          {allExpanded ? "Fold all" : "Expand all"}
-        </Button>
-        <label className="flex items-center gap-1.5 font-mono text-2xs text-fg-muted cursor-pointer select-none" title="Hunks of a whitespace-ignoring diff cannot be staged">
-          <input
-            type="checkbox"
-            checked={ignoreWhitespace}
-            onChange={(event) => setIgnoreWhitespace(event.target.checked)}
-            className="rounded border-border text-accent focus:ring-accent"
-          />
-          <span>ignore whitespace</span>
-        </label>
-        <SegmentedControl label="Diff layout" options={LAYOUTS} value={layout} onChange={setLayout} />
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            disabled={!anyUnstaged || staging.isPending}
+            onClick={() => staging.mutate({ kind: "stage_all" })}
+            className="h-7 text-xs font-medium"
+            title="Stage all modified and untracked files"
+          >
+            Stage all{unstagedCount > 0 ? ` (${unstagedCount})` : ""}
+          </Button>
+          <Button
+            variant="secondary"
+            disabled={!anyStaged || staging.isPending}
+            onClick={() => staging.mutate({ kind: "unstage_all" })}
+            className="h-7 text-xs font-medium"
+            title="Unstage all staged changes"
+          >
+            Unstage all{composer.stagedFiles > 0 ? ` (${composer.stagedFiles})` : ""}
+          </Button>
+          <Button
+            variant="ghost"
+            disabled={!allExpanded && files.length > EXPAND_ALL_LIMIT}
+            title={files.length > EXPAND_ALL_LIMIT ? `Expanding all is limited to ${EXPAND_ALL_LIMIT} files` : undefined}
+            onClick={() => setExpanded(allExpanded ? new Set() : new Set(files.map((file) => file.path)))}
+            className="h-7 text-xs"
+          >
+            {allExpanded ? "Fold all" : "Expand all"}
+          </Button>
+          <label className="flex items-center gap-1.5 font-mono text-2xs text-fg-muted cursor-pointer select-none" title="Hunks of a whitespace-ignoring diff cannot be staged">
+            <input
+              type="checkbox"
+              checked={ignoreWhitespace}
+              onChange={(event) => setIgnoreWhitespace(event.target.checked)}
+              className="rounded border-border text-accent focus:ring-accent"
+            />
+            <span>ignore whitespace</span>
+          </label>
+          <SegmentedControl label="Diff layout" options={LAYOUTS} value={layout} onChange={setLayout} />
+        </div>
       </div>
 
       {staging.error !== null && (
@@ -646,6 +702,7 @@ function FileRow({
   const { name, directory } = splitPath(file.path);
   const staged: boolean = file.staged !== null && !file.conflicted;
   const changed: boolean = file.unstaged !== null && !file.conflicted;
+  const partiallyStaged = isPartiallyStaged(file);
   const Chevron = expanded ? ChevronDown : ChevronRight;
 
   return (
@@ -665,17 +722,18 @@ function FileRow({
       }}
       style={style}
       className={`group flex cursor-default items-center gap-2 pr-5 font-sans transition-colors ${
-        active ? "bg-selection-strong" : "hover:bg-hover"
+        active ? "bg-selection-strong font-medium" : "hover:bg-hover/80"
       }`}
     >
       {/* The file hangs off the thread: a short branch from the lane. */}
       <span aria-hidden className="ml-[20px] h-px w-[20px] shrink-0 bg-border-control/60" />
+
       {file.conflicted ? (
-        <span aria-hidden className="w-[40px] text-center font-mono text-xs text-danger font-bold">
+        <span aria-hidden className="w-[36px] text-center font-mono text-xs text-danger font-bold">
           !
         </span>
       ) : (
-        <span aria-hidden className="flex w-[40px] shrink-0 items-center gap-1.5">
+        <span className="flex w-[36px] shrink-0 items-center justify-center">
           <button
             type="button"
             tabIndex={-1}
@@ -685,30 +743,46 @@ function FileRow({
               event.stopPropagation();
               onToggleStage(file);
             }}
-            className="flex size-4 items-center justify-center rounded-full hover:bg-hover transition-transform active:scale-90"
+            className="flex size-5 items-center justify-center rounded hover:bg-hover active:scale-90 transition-all cursor-pointer"
           >
-            <span className={`size-2.5 rounded-full transition-colors ${staged ? "bg-accent ring-2 ring-accent/30" : "border border-border-control"}`} />
+            {partiallyStaged ? (
+              <MinusSquare aria-hidden className="size-3.5 text-clay-text" />
+            ) : staged ? (
+              <CheckSquare aria-hidden className="size-3.5 text-accent" />
+            ) : (
+              <Square aria-hidden className="size-3.5 text-fg-muted/60 group-hover:text-fg-secondary" />
+            )}
           </button>
-          <span className="flex size-4 items-center justify-center" title={changed ? "Changed in the working tree" : "Working tree matches the index"}>
-            <span className={`size-2.5 rounded-full transition-colors ${changed ? "bg-clay ring-2 ring-clay/30" : "border border-border/70"}`} />
-          </span>
         </span>
       )}
-      <span aria-hidden className={`w-4 shrink-0 text-center font-mono text-xs font-bold ${meta?.tone ?? ""}`}>
+
+      {/* Change kind badge */}
+      <span
+        aria-hidden
+        className={`flex size-4 shrink-0 items-center justify-center rounded text-2xs font-mono font-bold leading-none ${
+          meta?.tone ?? "text-fg-muted"
+        }`}
+        title={meta?.label ?? "changed"}
+      >
         {meta?.letter}
       </span>
+
       <Chevron aria-hidden className="size-3.5 shrink-0 text-fg-muted transition-transform" />
+
       <span className="flex min-w-0 flex-1 items-baseline gap-2">
-        <span className="max-w-[60%] shrink-0 truncate font-mono text-xs font-medium text-fg">{name}</span>
+        <span className="max-w-[65%] shrink-0 truncate font-mono text-xs font-semibold text-fg tracking-tight">
+          {name}
+        </span>
         <span className="min-w-0 truncate font-mono text-2xs text-fg-muted/80" dir="rtl">
           <bdi dir="ltr">{directory}</bdi>
         </span>
-        {isPartiallyStaged(file) && (
+        {partiallyStaged && (
           <span className="shrink-0 rounded bg-clay/15 border border-clay/25 px-1.5 py-0.2 font-mono text-2xs font-semibold text-clay-text">
             partly staged
           </span>
         )}
       </span>
+
       {file.conflicted && (
         <button
           type="button"
@@ -718,11 +792,12 @@ function FileRow({
             onSelectFile(file);
             onResolve(file);
           }}
-          className="shrink-0 rounded bg-danger/15 border border-danger/25 px-2 py-0.5 text-2xs font-semibold text-danger hover:bg-danger/25 transition-colors"
+          className="shrink-0 rounded-md bg-danger/15 border border-danger/30 px-2 py-0.5 text-2xs font-semibold text-danger hover:bg-danger/25 transition-all shadow-2xs active:scale-95"
         >
           Resolve…
         </button>
       )}
+
       {changed && (
         <button
           type="button"
@@ -731,7 +806,7 @@ function FileRow({
             event.stopPropagation();
             onDiscardFile(file);
           }}
-          className="shrink-0 rounded px-1.5 py-0.5 text-2xs text-fg-muted opacity-0 transition-all duration-100 group-hover:opacity-100 hover:bg-danger/10 hover:text-danger"
+          className="shrink-0 rounded px-2 py-0.5 text-2xs text-fg-muted opacity-0 transition-all duration-100 group-hover:opacity-100 hover:bg-danger/10 hover:text-danger active:scale-95"
         >
           {file.unstaged === "untracked" ? "Delete…" : "Discard…"}
         </button>

@@ -66,14 +66,18 @@ export function Seal() {
   return (
     <header
       aria-label="Repository"
-      className="relative flex h-12 shrink-0 items-center gap-2 sm:gap-3 border-b border-divider px-3 sm:px-4 overflow-x-clip overflow-y-visible select-none"
+      className="relative flex h-13 shrink-0 items-center justify-between gap-2 sm:gap-3 border-b border-border/70 px-3 sm:px-4 select-none backdrop-blur-md transition-colors"
       style={{
         backgroundImage:
-          "linear-gradient(180deg, color-mix(in oklab, var(--rg-elevated) 55%, transparent) 0%, var(--rg-bg) 100%)",
+          "linear-gradient(180deg, color-mix(in oklab, var(--rg-elevated) 70%, transparent) 0%, var(--rg-bg) 100%)",
       }}
     >
-      <div ref={root} className="relative flex min-w-0 items-center gap-1.5 sm:gap-2">
-        <Mark size={20} />
+      {/* Zone 1: Repository Identity & Branch */}
+      <div ref={root} className="flex min-w-0 items-center gap-2 sm:gap-2.5">
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Mark size={22} />
+        </div>
+
         {repository === undefined ? (
           <button
             ref={trigger}
@@ -86,11 +90,11 @@ export function Seal() {
               if (switcherOpen) setSwitcherOpen(false);
               else openSwitcher("list");
             }}
-            className="group flex min-w-0 items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/15 px-2.5 py-1 text-left text-accent transition-all hover:bg-accent/25 active:scale-[0.98]"
+            className="group flex min-w-0 items-center gap-2 rounded-lg border border-accent/40 bg-accent/15 px-3 py-1.5 text-left text-accent shadow-2xs transition-all hover:bg-accent/25 hover:border-accent active:scale-[0.98]"
           >
-            <FolderPlus className="size-3.5 shrink-0 text-accent" />
+            <FolderPlus className="size-4 shrink-0 text-accent" />
             <span className="truncate text-xs font-semibold tracking-tight">Open or Create Repository</span>
-            <ChevronDown aria-hidden className="size-3 shrink-0 text-accent/80 transition-transform duration-150 group-hover:text-accent group-aria-expanded:rotate-180" />
+            <ChevronDown aria-hidden className="size-3.5 shrink-0 text-accent/80 transition-transform duration-150 group-hover:text-accent group-aria-expanded:rotate-180" />
           </button>
         ) : (
           <div className="flex items-center gap-1.5">
@@ -105,7 +109,7 @@ export function Seal() {
                 if (switcherOpen && switcherView === "list") setSwitcherOpen(false);
                 else openSwitcher("list");
               }}
-              className="group flex min-w-0 max-w-[150px] sm:max-w-[220px] items-center gap-1.5 rounded-lg border border-border/80 bg-elevated/60 px-2.5 py-1 text-left transition-all hover:border-accent hover:bg-elevated hover:text-fg active:scale-[0.98]"
+              className="group flex min-w-0 max-w-[160px] sm:max-w-[240px] items-center gap-2 rounded-lg border border-border/80 bg-elevated/70 px-2.5 py-1 text-left shadow-2xs transition-all hover:border-accent hover:bg-elevated hover:text-fg active:scale-[0.98]"
             >
               <FolderGit2 className="size-3.5 shrink-0 text-accent" />
               <span className="truncate text-xs font-semibold tracking-tight text-fg">
@@ -129,25 +133,27 @@ export function Seal() {
           </div>
         )}
         {switcherOpen && <SwitcherPopover onClose={close} root={root} />}
+
+        {repository !== undefined && status.data !== undefined && (
+          <div className="hidden md:flex min-w-0 items-center gap-2.5 pl-1">
+            <span aria-hidden className="h-4 w-px bg-border/60 shrink-0" />
+            <BranchPath branch={status.data.branch} />
+            {status.data.inProgress !== "none" && (
+              <span className="shrink-0 rounded-md border border-warning/40 bg-warning/15 px-2 py-0.5 font-mono text-2xs font-semibold text-warning animate-pulse">
+                {IN_PROGRESS_LABEL[status.data.inProgress]}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
-      {repository !== undefined && status.data !== undefined && (
-        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-          <BranchPath branch={status.data.branch} />
-          <SyncControls repositoryId={repository.id} branch={status.data.branch} />
-          {status.data.inProgress !== "none" && (
-            <span className="shrink-0 rounded-md border border-warning/30 bg-warning/10 px-2 py-0.5 font-mono text-xs text-warning animate-pulse">
-              {IN_PROGRESS_LABEL[status.data.inProgress]}
-            </span>
-          )}
-        </div>
-      )}
-
-      <span className="flex-1" />
-
+      {/* Zone 2: View Navigation & Instant Filter */}
       {repository !== undefined && (
-        <>
-          <label className="flex w-24 sm:w-36 md:w-52 focus-within:w-60 min-w-0 items-center gap-2 rounded-md border border-border/70 bg-canvas/60 px-2 sm:px-2.5 py-1 transition-all focus-within:border-accent focus-within:bg-canvas focus-within:ring-1 focus-within:ring-accent/30">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <div className="hidden sm:inline-flex shrink-0">
+            <SegmentedControl label="Distance" options={ZOOMS} value={zoom} onChange={setZoom} />
+          </div>
+          <label className="flex w-28 sm:w-44 md:w-56 focus-within:w-64 min-w-0 items-center gap-2 rounded-lg border border-border/70 bg-canvas/70 px-2.5 py-1 shadow-2xs transition-all focus-within:border-accent focus-within:bg-canvas focus-within:ring-1 focus-within:ring-accent/30">
             <Search aria-hidden className="size-3.5 shrink-0 text-fg-muted" />
             <span className="sr-only">Search the thread</span>
             <input
@@ -163,10 +169,10 @@ export function Seal() {
                 }
               }}
               placeholder="Search commits or IDs"
-              className="h-5 min-w-0 flex-1 bg-transparent text-xs outline-none placeholder:text-fg-muted/70"
+              className="h-5 min-w-0 flex-1 bg-transparent font-sans text-xs text-fg outline-none placeholder:text-fg-muted/70"
             />
             {search === "" ? (
-              <kbd className="hidden sm:inline-flex h-4 items-center rounded border border-border/70 bg-elevated/80 px-1 font-mono text-2xs text-fg-muted">
+              <kbd className="hidden sm:inline-flex h-4 items-center rounded border border-border/70 bg-elevated px-1 font-mono text-2xs text-fg-muted">
                 /
               </kbd>
             ) : (
@@ -180,65 +186,77 @@ export function Seal() {
               </button>
             )}
           </label>
-          <div className="hidden sm:inline-flex shrink-0">
-            <SegmentedControl label="Distance" options={ZOOMS} value={zoom} onChange={setZoom} />
-          </div>
-          <IconButton
-            label="Refresh"
-            shortcut="Mod+R"
-            onClick={() => void client.invalidateQueries({ queryKey: queryKeys.repository(repository.id) })}
+        </div>
+      )}
+
+      {/* Zone 3: Sync & Actions */}
+      <div className="flex items-center gap-1.5 sm:gap-2">
+        {repository !== undefined && status.data !== undefined && (
+          <SyncControls repositoryId={repository.id} branch={status.data.branch} />
+        )}
+
+        {repository !== undefined && (
+          <>
+            <IconButton
+              label="Refresh"
+              shortcut="Mod+R"
+              onClick={() => void client.invalidateQueries({ queryKey: queryKeys.repository(repository.id) })}
+            >
+              <RefreshCw aria-hidden className="size-3.5" />
+            </IconButton>
+            <Menu
+              label="Repository tools"
+              align="end"
+              className="flex size-7 items-center justify-center rounded-md text-fg-muted transition-colors hover:bg-hover hover:text-fg active:scale-95"
+              items={[
+                { id: "new_repo", label: "Create new repository…", run: () => openSwitcher("create") },
+                { id: "clone_repo", label: "Clone repository…", run: () => openSwitcher("clone") },
+                { id: "manage_repos", label: "Manage all repositories…", run: () => setSheet("repositories") },
+                { id: "compare", label: "Compare branches…", run: () => setSheet("compare") },
+                { id: "remotes", label: "Remotes…", run: () => setSheet("remotes") },
+                { id: "stashes", label: "Stash…", run: () => setSheet("stashes") },
+                { id: "worktrees", label: "Worktrees…", run: () => setSheet("worktrees") },
+              ] satisfies MenuItem[]}
+              trigger={<Ellipsis aria-hidden className="size-3.5" />}
+            />
+          </>
+        )}
+
+        {githubStatus.data?.account ? (
+          <button
+            type="button"
+            onClick={() => setSheet("settings")}
+            title={`GitHub: @${githubStatus.data.account.login} (Manage account)`}
+            className="hidden lg:flex h-7 items-center gap-1.5 rounded-full border border-border/80 bg-elevated/70 px-2.5 font-mono text-xs text-fg-secondary transition-all hover:border-accent hover:bg-elevated hover:text-fg active:scale-95"
           >
-            <RefreshCw aria-hidden className="size-3.5" />
-          </IconButton>
-          <Menu
-            label="Repository tools"
-            align="end"
-            className="flex size-7 items-center justify-center rounded-md text-fg-muted transition-colors hover:bg-hover hover:text-fg active:scale-95"
-            items={[
-              { id: "new_repo", label: "Create new repository…", run: () => openSwitcher("create") },
-              { id: "clone_repo", label: "Clone repository…", run: () => openSwitcher("clone") },
-              { id: "manage_repos", label: "Manage all repositories…", run: () => setSheet("repositories") },
-              { id: "compare", label: "Compare branches…", run: () => setSheet("compare") },
-              { id: "remotes", label: "Remotes…", run: () => setSheet("remotes") },
-              { id: "stashes", label: "Stash…", run: () => setSheet("stashes") },
-              { id: "worktrees", label: "Worktrees…", run: () => setSheet("worktrees") },
-            ] satisfies MenuItem[]}
-            trigger={<Ellipsis aria-hidden className="size-3.5" />}
-          />
-        </>
-      )}
-      {githubStatus.data?.account ? (
+            <span className="size-2 rounded-full bg-success ring-2 ring-success/20" />
+            <span>@{githubStatus.data.account.login}</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setSheet("settings")}
+            title="Connect GitHub account"
+            className="hidden lg:flex h-7 items-center gap-1.5 rounded-full border border-border/80 bg-canvas/40 px-2.5 font-sans text-xs text-fg-muted transition-all hover:border-border-control hover:bg-elevated/50 hover:text-fg active:scale-95"
+          >
+            <span>Connect GitHub</span>
+          </button>
+        )}
+
+        <IconButton label="Settings" shortcut="Mod+," onClick={() => setSheet("settings")}>
+          <Settings aria-hidden className="size-3.5" />
+        </IconButton>
+
         <button
           type="button"
-          onClick={() => setSheet("settings")}
-          title={`GitHub: @${githubStatus.data.account.login} (Manage account)`}
-          className="hidden lg:flex h-7 items-center gap-1.5 rounded-full border border-border/80 bg-elevated/60 px-2.5 font-mono text-xs text-fg-secondary transition-all hover:border-accent hover:bg-elevated hover:text-fg active:scale-95"
+          onClick={() => setPaletteOpen(true)}
+          title={`Commands (${formatShortcut("Mod+K")})`}
+          className="hidden md:flex h-7 items-center gap-1.5 rounded-md border border-border/80 bg-canvas/60 px-2 font-mono text-xs text-fg-muted transition-all hover:border-border-control hover:bg-elevated hover:text-fg active:scale-95"
         >
-          <span className="size-2 rounded-full bg-success ring-2 ring-success/20" />
-          <span>@{githubStatus.data.account.login}</span>
+          <Command aria-hidden className="size-3" />
+          <span className="font-sans text-2xs">{formatShortcut("Mod+K")}</span>
         </button>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setSheet("settings")}
-          title="Connect GitHub account"
-          className="hidden lg:flex h-7 items-center gap-1.5 rounded-full border border-border/80 bg-canvas/40 px-2.5 font-sans text-xs text-fg-muted transition-all hover:border-border-control hover:bg-elevated/50 hover:text-fg active:scale-95"
-        >
-          <span>Connect GitHub</span>
-        </button>
-      )}
-      <IconButton label="Settings" shortcut="Mod+," onClick={() => setSheet("settings")}>
-        <Settings aria-hidden className="size-3.5" />
-      </IconButton>
-      <button
-        type="button"
-        onClick={() => setPaletteOpen(true)}
-        title={`Commands (${formatShortcut("Mod+K")})`}
-        className="hidden md:flex h-7 items-center gap-1.5 rounded-md border border-border/80 bg-canvas/50 px-2 font-mono text-xs text-fg-muted transition-all hover:border-border-control hover:bg-elevated hover:text-fg active:scale-95"
-      >
-        <Command aria-hidden className="size-3" />
-        <span className="font-sans text-2xs">{formatShortcut("Mod+K")}</span>
-      </button>
+      </div>
     </header>
   );
 }

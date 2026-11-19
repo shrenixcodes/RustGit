@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Search } from "lucide-react";
 import { Button } from "../components/Button";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { ErrorNotice } from "../components/ErrorNotice";
@@ -130,7 +130,6 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
       });
     }
     return out;
-    // diffsByPath is rebuilt each render from query results; these keys capture its content.
   }, [files, expanded, layout, results.map((r) => r.dataUpdatedAt).join(","), results.map((r) => r.status).join(",")]);
 
   const hunkRows: number[] = useMemo(
@@ -302,7 +301,7 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
       <>
       {/* The rest of the next commit: body, amend, identity, and Git's answer. */}
       <div className="flex shrink-0 gap-6 py-3 pr-5 pl-[72px]">
-        <div className="min-w-0 flex-1 space-y-2">
+        <div className="min-w-0 flex-1 rounded-xl border border-border/80 bg-canvas/40 p-3.5 shadow-2xs space-y-2.5">
           <label className="block">
             <span className="sr-only">Description</span>
             <textarea
@@ -316,40 +315,43 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
               }}
               rows={2}
               placeholder="Description (optional)"
-              className="w-full resize-y border-b border-border bg-transparent py-1 text-sm text-fg outline-none placeholder:text-fg-muted focus:border-accent"
+              className="w-full resize-y rounded-lg border border-border/70 bg-canvas/60 p-2 text-xs text-fg outline-none placeholder:text-fg-muted/70 focus:border-accent focus:ring-1 focus:ring-accent/30 font-sans"
             />
           </label>
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs">
-            <label className="flex items-center gap-1.5 text-fg-secondary">
-              <input
-                type="checkbox"
-                checked={composer.draft.amend}
-                disabled={ctx?.head === null}
-                onChange={(event) => composer.toggleAmend(event.target.checked)}
-              />
-              Amend the last commit
-            </label>
-            <span className={`font-mono ${composer.draft.summary.length > SUMMARY_GUIDE ? "text-clay-text" : "text-fg-muted"}`}>
-              summary {composer.draft.summary.length}/{SUMMARY_GUIDE}
-            </span>
+          <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-1.5 text-xs">
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-1.5 text-fg-secondary cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={composer.draft.amend}
+                  disabled={ctx?.head === null}
+                  onChange={(event) => composer.toggleAmend(event.target.checked)}
+                  className="rounded border-border text-accent focus:ring-accent"
+                />
+                <span className="text-2xs font-medium">Amend last commit</span>
+              </label>
+              <span className={`font-mono text-2xs ${composer.draft.summary.length > SUMMARY_GUIDE ? "text-clay-text font-semibold" : "text-fg-muted"}`}>
+                summary {composer.draft.summary.length}/{SUMMARY_GUIDE}
+              </span>
+            </div>
             {ctx !== undefined && !composer.identityMissing && (
-              <span className="truncate font-mono text-fg-muted">
-                {ctx.authorName} &lt;{ctx.authorEmail}&gt;{ctx.signing !== "off" ? ` · signed with ${ctx.signing}` : ""}
+              <span className="truncate font-mono text-2xs text-fg-muted/90">
+                {ctx.authorName} &lt;{ctx.authorEmail}&gt;{ctx.signing !== "off" ? ` · signed (${ctx.signing})` : ""}
               </span>
             )}
           </div>
           {composer.draft.amend && ctx?.head?.onUpstream === true && (
-            <p className="text-xs text-clay-text">
+            <p className="text-2xs text-clay-text">
               The last commit is already on its upstream. Amending rewrites published history; pushing afterwards needs force-with-lease.
             </p>
           )}
           {composer.identityMissing && (
-            <p className="text-xs text-danger">
+            <p className="text-2xs text-danger font-medium">
               No Git identity. Run <code className="font-mono">git config user.name</code> and{" "}
               <code className="font-mono">git config user.email</code>, then return here.
             </p>
           )}
-          {composer.merging && <p className="text-xs text-warning">Completing a merge: the commit records both parents.</p>}
+          {composer.merging && <p className="text-2xs text-warning font-medium">Completing a merge: the commit records both parents.</p>}
           {composer.mutation.error !== null && (
             <ErrorNotice
               title={composer.draft.amend ? "Git did not amend the commit" : "Git did not create the commit"}
@@ -359,21 +361,41 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
         </div>
       </div>
 
+      {/* Changes Toolbar */}
       <div className="flex shrink-0 items-center gap-2 pr-5 pb-2 pl-[72px]">
-        <label className="flex min-w-0 flex-1 items-center gap-2 border-b border-border focus-within:border-accent">
-          <span className="sr-only">Filter changed files</span>
-          <input
-            type="search"
-            value={filter}
-            onChange={(event) => setFilter(event.target.value)}
-            placeholder="filter files"
-            className="h-7 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-fg-muted"
-          />
-        </label>
-        <Button variant="ghost" disabled={!anyUnstaged || staging.isPending} onClick={() => staging.mutate({ kind: "stage_all" })}>
+        <div className="min-w-0 flex-1">
+          <label className="flex h-7 items-center gap-2 rounded-lg border border-border/80 bg-canvas/70 px-2.5 transition-all focus-within:border-accent focus-within:ring-1 focus-within:ring-accent/30">
+            <Search className="size-3 text-fg-muted shrink-0" />
+            <span className="sr-only">Filter changed files</span>
+            <input
+              type="search"
+              value={filter}
+              onChange={(event) => setFilter(event.target.value)}
+              placeholder="filter files"
+              className="h-full min-w-0 flex-1 bg-transparent font-sans text-xs text-fg outline-none placeholder:text-fg-muted/60"
+            />
+            {filter !== "" && (
+              <button type="button" onClick={() => setFilter("")} className="text-fg-muted hover:text-fg text-xs">
+                ×
+              </button>
+            )}
+          </label>
+        </div>
+
+        <Button
+          variant="secondary"
+          disabled={!anyUnstaged || staging.isPending}
+          onClick={() => staging.mutate({ kind: "stage_all" })}
+          className="h-7 text-xs"
+        >
           Stage all{unstagedCount > 0 ? ` (${unstagedCount})` : ""}
         </Button>
-        <Button variant="ghost" disabled={!anyStaged || staging.isPending} onClick={() => staging.mutate({ kind: "unstage_all" })}>
+        <Button
+          variant="secondary"
+          disabled={!anyStaged || staging.isPending}
+          onClick={() => staging.mutate({ kind: "unstage_all" })}
+          className="h-7 text-xs"
+        >
           Unstage all{composer.stagedFiles > 0 ? ` (${composer.stagedFiles})` : ""}
         </Button>
         <Button
@@ -381,12 +403,18 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
           disabled={!allExpanded && files.length > EXPAND_ALL_LIMIT}
           title={files.length > EXPAND_ALL_LIMIT ? `Expanding all is limited to ${EXPAND_ALL_LIMIT} files` : undefined}
           onClick={() => setExpanded(allExpanded ? new Set() : new Set(files.map((file) => file.path)))}
+          className="h-7 text-xs"
         >
           {allExpanded ? "Fold all" : "Expand all"}
         </Button>
-        <label className="flex items-center gap-1.5 font-mono text-xs text-fg-muted" title="Hunks of a whitespace-ignoring diff cannot be staged">
-          <input type="checkbox" checked={ignoreWhitespace} onChange={(event) => setIgnoreWhitespace(event.target.checked)} />
-          ignore whitespace
+        <label className="flex items-center gap-1.5 font-mono text-2xs text-fg-muted cursor-pointer select-none" title="Hunks of a whitespace-ignoring diff cannot be staged">
+          <input
+            type="checkbox"
+            checked={ignoreWhitespace}
+            onChange={(event) => setIgnoreWhitespace(event.target.checked)}
+            className="rounded border-border text-accent focus:ring-accent"
+          />
+          <span>ignore whitespace</span>
         </label>
         <SegmentedControl label="Diff layout" options={LAYOUTS} value={layout} onChange={setLayout} />
       </div>
@@ -394,7 +422,7 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
       {staging.error !== null && (
         <div className="shrink-0 pr-5 pb-2 pl-[72px]">
           {staging.error.kind === "stale_diff" ? (
-            <p role="alert" className="text-sm text-clay-text">
+            <p role="alert" className="text-xs text-clay-text font-medium">
               The file changed since this diff was read. The diff has been refreshed and nothing was applied.
             </p>
           ) : (
@@ -418,7 +446,7 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
         style={{ tabSize: 4, lineHeight: `${DIFF_ROW}px` }}
       >
         {files.length === 0 ? (
-          <p className="py-4 pl-[72px] font-sans text-sm text-fg-muted">
+          <p className="py-6 pl-[72px] font-sans text-xs text-fg-muted">
             {status.files.length === 0 ? "No changes. The working tree is clean." : `No changed files match “${filter}”.`}
           </p>
         ) : (
@@ -515,15 +543,15 @@ function StreamRowView(props: StreamRowViewProps): ReactNode {
   if (row.kind === "group") {
     return (
       <div style={style} className="flex items-end pb-0.5 pl-[72px]">
-        <span className={`rg-tag ${row.group === "conflicts" ? "text-danger" : ""}`}>
-          {row.group} {row.count}
+        <span className={`rg-tag font-semibold tracking-wider uppercase text-2xs ${row.group === "conflicts" ? "text-danger" : "text-fg-muted"}`}>
+          {row.group} ({row.count})
         </span>
       </div>
     );
   }
   if (row.kind === "message") {
     return (
-      <div style={{ ...style, paddingLeft: 72 + DIFF_INDENT }} className="font-sans text-sm text-fg-muted">
+      <div style={{ ...style, paddingLeft: 72 + DIFF_INDENT }} className="font-sans text-xs text-fg-muted italic">
         {row.text}
       </div>
     );
@@ -535,16 +563,16 @@ function StreamRowView(props: StreamRowViewProps): ReactNode {
   if (canvas.kind === "section") {
     return (
       <div style={{ ...style, paddingLeft: indent }} className="flex items-center gap-3">
-        <span className="rg-label">{canvas.side === "staged" ? "staged" : "not staged"}</span>
-        <span className="tabular-nums">
-          <span className="text-success">+{canvas.added}</span> <span className="text-danger">−{canvas.deleted}</span>
+        <span className="rg-label font-medium">{canvas.side === "staged" ? "staged" : "not staged"}</span>
+        <span className="tabular-nums font-mono text-2xs">
+          <span className="text-success font-semibold">+{canvas.added}</span> <span className="text-danger font-semibold">−{canvas.deleted}</span>
         </span>
       </div>
     );
   }
   if (canvas.kind === "note") {
     return (
-      <div style={{ ...style, paddingLeft: indent }} className="font-sans text-sm text-fg-muted">
+      <div style={{ ...style, paddingLeft: indent }} className="font-sans text-xs text-fg-muted">
         {canvas.text}
       </div>
     );
@@ -619,6 +647,7 @@ function FileRow({
   const staged: boolean = file.staged !== null && !file.conflicted;
   const changed: boolean = file.unstaged !== null && !file.conflicted;
   const Chevron = expanded ? ChevronDown : ChevronRight;
+
   return (
     <div
       id={id}
@@ -635,16 +664,18 @@ function FileRow({
         else onToggleExpanded(file.path);
       }}
       style={style}
-      className={`group flex cursor-default items-center gap-2 pr-5 font-sans ${active ? "bg-selection-strong" : "hover:bg-hover"}`}
+      className={`group flex cursor-default items-center gap-2 pr-5 font-sans transition-colors ${
+        active ? "bg-selection-strong" : "hover:bg-hover"
+      }`}
     >
       {/* The file hangs off the thread: a short branch from the lane. */}
-      <span aria-hidden className="ml-[20px] h-px w-[20px] shrink-0 bg-border-control" />
+      <span aria-hidden className="ml-[20px] h-px w-[20px] shrink-0 bg-border-control/60" />
       {file.conflicted ? (
-        <span aria-hidden className="w-[40px] text-center font-mono text-xs text-danger">
+        <span aria-hidden className="w-[40px] text-center font-mono text-xs text-danger font-bold">
           !
         </span>
       ) : (
-        <span aria-hidden className="flex w-[40px] shrink-0 items-center gap-1">
+        <span aria-hidden className="flex w-[40px] shrink-0 items-center gap-1.5">
           <button
             type="button"
             tabIndex={-1}
@@ -654,25 +685,29 @@ function FileRow({
               event.stopPropagation();
               onToggleStage(file);
             }}
-            className="flex size-4 items-center justify-center rounded-full hover:bg-hover"
+            className="flex size-4 items-center justify-center rounded-full hover:bg-hover transition-transform active:scale-90"
           >
-            <span className={`size-2 rounded-full ${staged ? "bg-accent" : "border border-border-control"}`} />
+            <span className={`size-2.5 rounded-full transition-colors ${staged ? "bg-accent ring-2 ring-accent/30" : "border border-border-control"}`} />
           </button>
           <span className="flex size-4 items-center justify-center" title={changed ? "Changed in the working tree" : "Working tree matches the index"}>
-            <span className={`size-2 rounded-full ${changed ? "bg-clay" : "border border-border"}`} />
+            <span className={`size-2.5 rounded-full transition-colors ${changed ? "bg-clay ring-2 ring-clay/30" : "border border-border/70"}`} />
           </span>
         </span>
       )}
-      <span aria-hidden className={`w-3 shrink-0 text-center font-mono text-xs ${meta?.tone ?? ""}`}>
+      <span aria-hidden className={`w-4 shrink-0 text-center font-mono text-xs font-bold ${meta?.tone ?? ""}`}>
         {meta?.letter}
       </span>
-      <Chevron aria-hidden className="size-3 shrink-0 text-fg-muted" />
-      <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
-        <span className="max-w-[60%] shrink-0 truncate font-mono text-xs text-fg">{name}</span>
-        <span className="min-w-0 truncate font-mono text-2xs text-fg-muted" dir="rtl">
+      <Chevron aria-hidden className="size-3.5 shrink-0 text-fg-muted transition-transform" />
+      <span className="flex min-w-0 flex-1 items-baseline gap-2">
+        <span className="max-w-[60%] shrink-0 truncate font-mono text-xs font-medium text-fg">{name}</span>
+        <span className="min-w-0 truncate font-mono text-2xs text-fg-muted/80" dir="rtl">
           <bdi dir="ltr">{directory}</bdi>
         </span>
-        {isPartiallyStaged(file) && <span className="shrink-0 font-mono text-2xs text-clay-text">partly staged</span>}
+        {isPartiallyStaged(file) && (
+          <span className="shrink-0 rounded bg-clay/15 border border-clay/25 px-1.5 py-0.2 font-mono text-2xs font-semibold text-clay-text">
+            partly staged
+          </span>
+        )}
       </span>
       {file.conflicted && (
         <button
@@ -683,7 +718,7 @@ function FileRow({
             onSelectFile(file);
             onResolve(file);
           }}
-          className="shrink-0 text-xs text-danger hover:underline"
+          className="shrink-0 rounded bg-danger/15 border border-danger/25 px-2 py-0.5 text-2xs font-semibold text-danger hover:bg-danger/25 transition-colors"
         >
           Resolve…
         </button>
@@ -696,7 +731,7 @@ function FileRow({
             event.stopPropagation();
             onDiscardFile(file);
           }}
-          className="shrink-0 text-xs text-fg-muted opacity-0 transition-opacity duration-100 group-hover:opacity-100 hover:text-danger"
+          className="shrink-0 rounded px-1.5 py-0.5 text-2xs text-fg-muted opacity-0 transition-all duration-100 group-hover:opacity-100 hover:bg-danger/10 hover:text-danger"
         >
           {file.unstaged === "untracked" ? "Delete…" : "Discard…"}
         </button>

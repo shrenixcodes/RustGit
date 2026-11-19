@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronUp, CircleAlert, LoaderCircle } from "lucide-react";
+import { ChevronUp, CircleAlert, LoaderCircle, CheckCircle2 } from "lucide-react";
 import { formatShortcut } from "./shortcuts";
 import { formatDuration } from "./ActivityPanel";
 import { ProgressLine } from "./ProgressLine";
@@ -27,25 +27,32 @@ export function OperationShelf() {
     <footer
       aria-label="Operations"
       style={{ height: "var(--rg-shelf)" }}
-      className="flex shrink-0 items-center gap-4 border-t border-divider bg-bg px-4 sm:px-5 font-sans text-xs text-fg-muted select-none"
+      className="flex shrink-0 items-center gap-3 border-t border-divider bg-bg px-4 sm:px-5 font-sans text-xs text-fg-muted select-none"
     >
       {network[0] !== undefined ? (
         <RunningNetworkOperation operation={network[0]} more={running - 1} />
       ) : current !== undefined ? (
         <RunningOperation record={current} more={running - 1} />
       ) : last !== undefined ? (
-        <span className="truncate flex items-center gap-1.5" title={new Date(last.startedAt).toLocaleString()}>
-          <span className={`size-1.5 rounded-full ${last.outcome === "failed" ? "bg-danger" : "bg-success"}`} />
-          <span>{last.label.toLowerCase()}</span>
+        <span className="truncate flex items-center gap-2" title={new Date(last.startedAt).toLocaleString()}>
+          <span
+            className={`flex size-2 rounded-full ${
+              last.outcome === "failed" ? "bg-danger" : "bg-success"
+            }`}
+          />
+          <span className="font-medium text-fg">{last.label.toLowerCase()}</span>
           <span className="text-fg-muted/60">·</span>
           {last.outcome === "failed" ? (
-            <span className="text-danger font-medium">failed{last.error !== null ? `: ${firstLine(last.error.message)}` : ""}</span>
+            <span className="text-danger font-medium">{firstLine(last.error?.message ?? "failed")}</span>
           ) : (
-            <span className="text-fg-muted">done {formatDuration((last.finishedAt ?? last.startedAt) - last.startedAt)}</span>
+            <span className="text-fg-muted flex items-center gap-1">
+              <CheckCircle2 className="size-3 text-success inline" />
+              <span>done {formatDuration((last.finishedAt ?? last.startedAt) - last.startedAt)}</span>
+            </span>
           )}
         </span>
       ) : (
-        <span className="flex items-center gap-1.5 text-fg-muted/70">
+        <span className="flex items-center gap-2 text-fg-muted/70">
           <span className="size-1.5 rounded-full bg-fg-muted/40" />
           <span>idle</span>
         </span>
@@ -54,11 +61,12 @@ export function OperationShelf() {
       <span className="flex-1" />
 
       {unseenFailures > 0 && (
-        <span className="flex items-center gap-1.5 rounded-full border border-danger/30 bg-danger/10 px-2 py-0.5 text-xs text-danger font-semibold">
+        <span className="flex items-center gap-1.5 rounded-full border border-danger/40 bg-danger/15 px-2.5 py-0.5 text-2xs text-danger font-semibold animate-pulse">
           <CircleAlert aria-hidden className="size-3" />
           {unseenFailures} failed
         </span>
       )}
+
       <button
         type="button"
         aria-pressed={activityOpen}
@@ -67,14 +75,14 @@ export function OperationShelf() {
         }
         title={`Activity (${formatShortcut("Mod+J")})`}
         onClick={() => setActivityOpen(!activityOpen)}
-        className={`flex h-6 items-center gap-1.5 rounded-md border px-2 text-xs transition-all active:scale-95 ${
+        className={`flex h-6.5 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-all duration-150 active:scale-95 ${
           activityOpen
-            ? "border-accent/40 bg-accent/15 text-accent font-medium"
-            : "border-border/60 bg-canvas/50 text-fg-muted hover:border-border-control hover:text-fg"
+            ? "border-accent/50 bg-accent/15 text-accent shadow-xs"
+            : "border-border/70 bg-elevated/40 text-fg-secondary hover:border-border-control hover:text-fg hover:bg-elevated"
         }`}
       >
-        <span>activity</span>
-        <ChevronUp aria-hidden className={`size-3 transition-transform duration-150 ${activityOpen ? "rotate-180" : ""}`} />
+        <span>Activity</span>
+        <ChevronUp aria-hidden className={`size-3 transition-transform duration-200 ${activityOpen ? "rotate-180" : ""}`} />
       </button>
     </footer>
   );
@@ -89,11 +97,15 @@ function RunningOperation({ record, more }: { record: OperationRecord; more: num
   }, []);
   const seconds: number = Math.max(0, Math.floor((now - record.startedAt) / 1000));
   return (
-    <span role="status" className="flex items-center gap-1.5 text-fg">
-      <LoaderCircle aria-hidden className="size-3 text-accent motion-safe:animate-spin" />
-      {record.label.toLowerCase()}
-      {seconds > 0 && <span className="tabular-nums text-fg-muted">{seconds}s</span>}
-      {more > 0 && <span className="text-fg-muted">+{more}</span>}
+    <span role="status" className="flex items-center gap-2 text-fg font-medium">
+      <LoaderCircle aria-hidden className="size-3.5 text-accent motion-safe:animate-spin" />
+      <span>{record.label.toLowerCase()}</span>
+      {seconds > 0 && (
+        <span className="rounded bg-accent/10 border border-accent/20 px-1 font-mono text-2xs text-accent">
+          {seconds}s
+        </span>
+      )}
+      {more > 0 && <span className="text-2xs text-fg-muted font-mono">+{more}</span>}
     </span>
   );
 }
@@ -107,25 +119,25 @@ function firstLine(message: string): string {
 function RunningNetworkOperation({ operation, more }: { operation: NetworkOperation; more: number }) {
   const [refused, setRefused] = useState<boolean>(false);
   return (
-    <span role="status" className="flex min-w-0 items-center gap-2 text-fg">
-      <LoaderCircle aria-hidden className="size-3 shrink-0 text-accent motion-safe:animate-spin" />
-      <span className="shrink-0">{operation.label.toLowerCase()}</span>
+    <span role="status" className="flex min-w-0 items-center gap-2.5 text-fg">
+      <LoaderCircle aria-hidden className="size-3.5 shrink-0 text-accent motion-safe:animate-spin" />
+      <span className="shrink-0 font-medium">{operation.label.toLowerCase()}</span>
       <span className="truncate text-fg-muted">{describeProgress(operation)}</span>
       <ProgressLine operation={operation} className="w-24 shrink-0" />
       {operation.cancellable ? (
         <button
           type="button"
           onClick={() => void cancelOperation(operation.operationId).then((ok) => setRefused(!ok))}
-          className="shrink-0 rounded-sm px-1 text-fg-secondary underline-offset-2 hover:text-fg hover:underline"
+          className="shrink-0 rounded px-1.5 py-0.5 text-2xs font-semibold text-danger/90 hover:bg-danger/10 hover:text-danger transition-colors"
         >
           cancel
         </button>
       ) : (
-        <span className="shrink-0 text-fg-muted" title={operation.kind === "push" ? "The remote may already have accepted the push" : undefined}>
+        <span className="shrink-0 text-2xs text-fg-muted/70" title={operation.kind === "push" ? "The remote may already have accepted the push" : undefined}>
           {refused ? "can no longer be cancelled" : "not cancellable"}
         </span>
       )}
-      {more > 0 && <span className="shrink-0 text-fg-muted">+{more}</span>}
+      {more > 0 && <span className="shrink-0 text-2xs font-mono text-fg-muted">+{more}</span>}
     </span>
   );
 }

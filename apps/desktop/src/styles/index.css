@@ -53,8 +53,12 @@
   --text-xl: 18px;
 
   --shadow-subtle: var(--rg-shadow-subtle);
+  --shadow-raised: var(--rg-shadow-raised);
   --shadow-popover: var(--rg-shadow-popover);
   --shadow-glow: var(--rg-glow);
+
+  --default-transition-duration: var(--rg-duration-fast);
+  --default-transition-timing-function: var(--rg-ease-out);
 }
 
 @layer base {

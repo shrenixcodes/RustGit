@@ -178,6 +178,22 @@
   --rg-header: 52px;
   --rg-shelf: 26px;
   --rg-gutter: 16px;
+
+  /* Motion. Durations and easings are shared across every transition so the
+   * app moves at one rhythm; swap in reduced-motion via the media query in
+   * index.css, which overrides transition-duration on everything. */
+  --rg-duration-fast: 120ms;
+  --rg-duration-base: 180ms;
+  --rg-duration-slow: 260ms;
+  --rg-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --rg-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* Elevation scale. subtle < raised < popover < overlay. */
+  --rg-shadow-raised: 0 2px 6px rgb(0 0 0 / 0.18), 0 1px 2px rgb(0 0 0 / 0.12);
+}
+
+:root[data-theme="light"] {
+  --rg-shadow-raised: 0 2px 6px rgb(36 38 31 / 0.08), 0 1px 2px rgb(36 38 31 / 0.06);
 }
 
 :root[data-workspace="deep"] {

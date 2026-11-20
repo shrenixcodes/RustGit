@@ -90,7 +90,7 @@ export function Seal() {
             className="group flex min-w-0 items-center gap-2 rounded-lg border border-accent/40 bg-accent/15 px-3 py-1.5 text-left text-accent shadow-2xs transition-all hover:bg-accent/25 hover:border-accent active:scale-[0.98]"
           >
             <FolderPlus className="size-4 shrink-0 text-accent" />
-            <span className="truncate text-xs font-semibold tracking-tight">Open or Create Repository</span>
+            <span className="truncate text-xs font-semibold">Open or Create Repository</span>
             <ChevronDown aria-hidden className="size-3.5 shrink-0 text-accent/80 transition-transform duration-150 group-hover:text-accent group-aria-expanded:rotate-180" />
           </button>
         ) : (
@@ -109,7 +109,7 @@ export function Seal() {
               className="group flex min-w-0 max-w-[160px] sm:max-w-[240px] items-center gap-2 rounded-lg border border-border/80 bg-elevated/70 px-2.5 py-1 text-left shadow-2xs transition-all hover:border-accent hover:bg-elevated hover:text-fg active:scale-[0.98]"
             >
               <FolderGit2 className="size-3.5 shrink-0 text-accent" />
-              <span className="truncate text-xs font-semibold tracking-tight text-fg">
+              <span className="truncate text-xs font-semibold text-fg">
                 {repository.name}
               </span>
               <ChevronDown aria-hidden className="size-3 shrink-0 text-fg-muted transition-transform duration-150 group-hover:text-fg group-aria-expanded:rotate-180" />

@@ -579,7 +579,7 @@ const CommitRow = memo(function CommitRow({ id, top, height, row, graphWidth, he
           }`}
         />
         {hasRefs && <RefBadges refs={refs ?? []} head={headState} detachedHead={detachedHere} max={map ? 4 : 2} />}
-        <span className={`truncate text-xs sm:text-sm font-sans font-medium tracking-tight ${map && !hasRefs ? "text-fg-muted" : merge ? "text-fg-secondary" : "text-fg"}`}>{commit.summary}</span>
+        <span className={`truncate text-xs sm:text-sm font-sans font-medium ${map && !hasRefs ? "text-fg-muted" : merge ? "text-fg-secondary" : "text-fg"}`}>{commit.summary}</span>
         {map && row.hidden > 0 && <span className="shrink-0 font-mono text-2xs text-fg-muted">· {row.hidden} commit{row.hidden === 1 ? "" : "s"} below folded</span>}
       </span>
       {!map && (

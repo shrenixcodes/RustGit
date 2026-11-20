@@ -45,7 +45,7 @@ export function ErrorNotice({ title, error, actions }: ErrorNoticeProps) {
       </div>
       <div className="min-w-0 flex-1 space-y-2">
         <div className="flex items-center justify-between gap-2">
-          <p className="font-semibold text-fg text-sm tracking-tight">{title}</p>
+          <p className="font-semibold text-fg text-sm">{title}</p>
           <button
             type="button"
             onClick={copyError}

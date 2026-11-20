@@ -93,7 +93,7 @@ function RemotesList({ repositoryId }: { repositoryId: number }) {
                       <div className="flex size-7 items-center justify-center rounded-lg border border-indigo/20 bg-indigo/10 text-indigo-text">
                         <Globe aria-hidden className="size-3.5" />
                       </div>
-                      <span className="font-mono text-sm font-semibold tracking-tight text-fg">{remote.name}</span>
+                      <span className="font-mono text-sm font-semibold text-fg">{remote.name}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Button

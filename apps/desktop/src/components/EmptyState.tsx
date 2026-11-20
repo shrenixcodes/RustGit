@@ -28,7 +28,7 @@ export function EmptyState({ icon: Icon, title, description, action, className =
           <Icon aria-hidden className="size-[22px] text-accent" strokeWidth={1.75} />
         </div>
       </div>
-      <h3 className="text-sm font-semibold tracking-tight text-fg">{title}</h3>
+      <h3 className="text-sm font-semibold text-fg">{title}</h3>
       <p className="mt-1.5 max-w-sm text-xs text-fg-muted leading-relaxed">{description}</p>
       {action && <div className="mt-5 flex items-center gap-2">{action}</div>}
     </div>

@@ -182,7 +182,7 @@ export function CommitFold({ repositoryId, oid, refs, head, currentBranch, heigh
           <div className="w-full rounded-xl border border-border/80 bg-elevated/40 p-4 shadow-2xs space-y-3">
             <div className="flex items-center justify-between pb-2.5 border-b border-border/60">
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-xs text-fg tracking-tight">
+                <span className="font-semibold text-xs text-fg">
                   Changed files ({details.data.files.length})
                 </span>
                 {details.data.parents.length > 1 && (
@@ -262,7 +262,7 @@ export function FileEntry({
           {meta.letter}
         </span>
         <span className="flex min-w-0 flex-1 items-baseline gap-2">
-          <span className="max-w-[70%] shrink-0 truncate font-mono text-xs font-semibold text-fg tracking-tight">{name}</span>
+          <span className="max-w-[70%] shrink-0 truncate font-mono text-xs font-semibold text-fg">{name}</span>
           <span className="min-w-0 truncate font-mono text-2xs text-fg-muted" dir="rtl">
             <bdi dir="ltr">{directory}</bdi>
           </span>

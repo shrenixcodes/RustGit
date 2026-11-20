@@ -45,7 +45,7 @@ export function ShortcutsView() {
               className="rounded-xl border border-border/80 bg-elevated/40 p-4 shadow-2xs space-y-3"
             >
               <div>
-                <h3 className="text-xs font-semibold tracking-tight text-fg flex items-center gap-2">
+                <h3 className="text-xs font-semibold text-fg flex items-center gap-2">
                   <Keyboard className="size-3.5 text-accent" />
                   <span>{group.title}</span>
                 </h3>

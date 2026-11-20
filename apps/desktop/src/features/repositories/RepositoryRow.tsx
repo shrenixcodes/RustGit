@@ -46,7 +46,7 @@ export function RepositoryRow({ entry, active, onOpen, onRemove, onTogglePin }: 
         aria-label={`Open ${entry.name}`}
       >
         <div className="flex items-center gap-2">
-          <span className="truncate font-semibold text-sm text-fg tracking-tight">{entry.name}</span>
+          <span className="truncate font-semibold text-sm text-fg">{entry.name}</span>
           {entry.pinned && <Pin aria-label="Pinned" className="size-3 text-accent shrink-0 fill-accent/20" />}
           {active && (
             <span className="rounded-full bg-accent/15 border border-accent/25 px-2 py-0.5 font-mono text-2xs font-semibold text-accent">

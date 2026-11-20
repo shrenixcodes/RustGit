@@ -306,7 +306,7 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
           <div className="flex items-center justify-between pb-1 border-b border-border/60">
             <div className="flex items-center gap-2">
               <FileCheck className="size-3.5 text-accent" />
-              <span className="font-semibold text-xs text-fg tracking-tight">Commit Details</span>
+              <span className="font-semibold text-xs text-fg">Commit Details</span>
               {composer.stagedFiles > 0 ? (
                 <span className="rounded-full bg-accent/15 border border-accent/25 px-2 py-0.5 font-mono text-2xs font-semibold text-accent">
                   {composer.stagedFiles} file{composer.stagedFiles === 1 ? "" : "s"} staged
@@ -773,7 +773,7 @@ function FileRow({
       <Chevron aria-hidden className="size-3.5 shrink-0 text-fg-muted transition-transform" />
 
       <span className="flex min-w-0 flex-1 items-baseline gap-2">
-        <span className="max-w-[65%] shrink-0 truncate font-mono text-xs font-semibold text-fg tracking-tight">
+        <span className="max-w-[65%] shrink-0 truncate font-mono text-xs font-semibold text-fg">
           {name}
         </span>
         <span className="min-w-0 truncate font-mono text-2xs text-fg-muted" dir="rtl">

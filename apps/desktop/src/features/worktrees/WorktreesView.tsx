@@ -120,7 +120,7 @@ function WorktreeList({ repositoryId }: { repositoryId: number }) {
                       <div className="flex size-7 items-center justify-center rounded-lg border border-accent/20 bg-accent/10 text-accent">
                         <GitBranch className="size-3.5" />
                       </div>
-                      <span className="font-mono text-sm font-semibold tracking-tight text-fg">
+                      <span className="font-mono text-sm font-semibold text-fg">
                         {worktreeTitle(worktree)}
                       </span>
                       {worktree.isMain && (

@@ -59,7 +59,7 @@ export function ConfirmDialog({ title, children, confirmLabel, destructive = fal
             {destructive ? <AlertTriangle className="size-5" /> : <HelpCircle className="size-5" />}
           </div>
           <div className="min-w-0 flex-1 space-y-1">
-            <h2 id={titleId} className="text-base font-semibold text-fg tracking-tight">
+            <h2 id={titleId} className="text-base font-semibold text-fg">
               {title}
             </h2>
             <div className="space-y-2 text-xs text-fg-secondary leading-relaxed font-sans">{children}</div>

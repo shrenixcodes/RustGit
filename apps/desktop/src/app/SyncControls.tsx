@@ -12,7 +12,7 @@ import { useUi } from "../stores/ui";
 const PULL_MODES: readonly PullMode[] = ["ff_only", "merge", "rebase"];
 
 const CONTROL =
-  "flex h-7 min-w-7 items-center gap-1.5 rounded-md px-1.5 sm:px-2 font-sans text-xs font-medium text-fg-secondary transition-all hover:bg-hover hover:text-fg active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100";
+  "flex h-7 min-w-7 items-center gap-1.5 whitespace-nowrap rounded-md px-1.5 sm:px-2 font-sans text-xs font-medium text-fg-secondary transition-all hover:bg-hover hover:text-fg active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100";
 
 /** "5 min ago" style age of the last successful fetch in this session. */
 function useLastFetched(repositoryId: number): string {

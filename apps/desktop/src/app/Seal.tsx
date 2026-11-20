@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronDown, Command, Copy, Ellipsis, FolderGit2, FolderPlus, GitBranch, Plus, RefreshCw, Search, Settings } from "lucide-react";
+import { Check, ChevronDown, Copy, Ellipsis, FolderGit2, FolderPlus, GitBranch, Plus, RefreshCw, Search, Settings } from "lucide-react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { IconButton } from "../components/Button";
 import { Mark } from "../components/Mark";
@@ -150,7 +150,7 @@ export function Seal() {
           <div className="hidden sm:inline-flex shrink-0">
             <SegmentedControl label="Distance" options={ZOOMS} value={zoom} onChange={setZoom} />
           </div>
-          <label className="flex w-28 sm:w-44 md:w-56 focus-within:w-64 min-w-0 items-center gap-2 rounded-lg border border-border/70 bg-canvas/70 px-2.5 py-1 shadow-2xs transition-all focus-within:border-accent focus-within:bg-canvas focus-within:ring-1 focus-within:ring-accent/30">
+          <label className="flex w-28 sm:w-36 xl:w-56 min-w-0 items-center gap-2 rounded-lg border border-border/70 bg-canvas/70 px-2.5 py-1 shadow-2xs transition-[border-color,background-color,box-shadow] focus-within:border-accent focus-within:bg-canvas focus-within:ring-1 focus-within:ring-accent/30">
             <Search aria-hidden className="size-3.5 shrink-0 text-fg-muted" />
             <span className="sr-only">Search the thread</span>
             <input
@@ -187,7 +187,7 @@ export function Seal() {
       )}
 
       {/* Zone 3: Sync & Actions */}
-      <div className="flex items-center gap-1.5 sm:gap-2">
+      <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
         {repository !== undefined && status.data !== undefined && (
           <SyncControls repositoryId={repository.id} branch={status.data.branch} />
         )}
@@ -250,7 +250,6 @@ export function Seal() {
           title={`Commands (${formatShortcut("Mod+K")})`}
           className="hidden md:flex h-7 items-center gap-1.5 rounded-md border border-border/80 bg-canvas/60 px-2 font-mono text-xs text-fg-muted transition-all hover:border-border-control hover:bg-elevated hover:text-fg active:scale-95"
         >
-          <Command aria-hidden className="size-3" />
           <span className="font-sans text-2xs">{formatShortcut("Mod+K")}</span>
         </button>
       </div>
@@ -290,7 +289,7 @@ export function BranchPath({ branch }: { branch: BranchStatus }) {
         )}
       </span>
       {branch.upstream === null ? (
-        <span className="shrink-0 text-fg-muted text-2xs">no upstream</span>
+        <span className="hidden shrink-0 text-fg-muted text-2xs lg:inline">no upstream</span>
       ) : (
         <span className="flex shrink-0 items-center gap-1.5 text-fg-muted" title={`Compared with ${branch.upstream} as of the last fetch`}>
           <span aria-hidden className="h-px w-3 bg-border-control/60" />

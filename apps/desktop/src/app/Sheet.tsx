@@ -114,7 +114,7 @@ export function Sheet() {
                 key={tab.id}
                 type="button"
                 onClick={() => setSheet(tab.id)}
-                className={`flex h-7.5 items-center gap-1.5 rounded-lg px-3 font-sans text-xs font-semibold transition-all duration-150 active:scale-95 ${
+                className={`flex h-7.5 items-center gap-1.5 rounded-lg px-3 font-sans text-xs font-semibold transition-all duration-150 focus-visible:-outline-offset-2 active:scale-95 ${
                   active
                     ? "bg-canvas text-fg shadow-xs border border-border/80"
                     : "text-fg-muted hover:bg-hover hover:text-fg"

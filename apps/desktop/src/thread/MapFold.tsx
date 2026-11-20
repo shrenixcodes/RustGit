@@ -194,6 +194,7 @@ export function MapFold({ repositoryId, oid, refs, currentBranch, dirty, height 
               {!current && (
                 <Button
                   variant="ghost"
+                  className="ml-auto text-danger! hover:bg-danger/10"
                   disabled={operation.isPending}
                   onClick={() =>
                     setPending({

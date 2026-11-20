@@ -785,7 +785,7 @@ function FileRow({
             onSelectFile(file);
             onResolve(file);
           }}
-          className="shrink-0 rounded-md bg-danger/15 border border-danger/30 px-2 py-0.5 text-2xs font-semibold text-danger hover:bg-danger/25 transition-all shadow-2xs active:scale-95"
+          className="shrink-0 rounded-md bg-accent/15 border border-accent/40 px-2 py-0.5 text-2xs font-semibold text-accent hover:bg-accent/25 transition-all shadow-2xs active:scale-95"
         >
           Resolve…
         </button>

@@ -97,6 +97,11 @@
     background: var(--rg-selection-strong);
   }
 
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--rg-accent);
+  }
+
   input,
   textarea,
   [data-selectable] {

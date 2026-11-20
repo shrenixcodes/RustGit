@@ -248,7 +248,7 @@ function WorktreeList({ repositoryId }: { repositoryId: number }) {
         >
           <p>Deletes the folder and its working files. The branch and its commits stay in the repository.</p>
           <label className="mt-3 flex items-center gap-2 text-sm cursor-pointer select-none">
-            <input type="checkbox" checked={force} onChange={(event) => setForce(event.target.checked)} className="rounded border-border text-danger" />
+            <input type="checkbox" checked={force} onChange={(event) => setForce(event.target.checked)} className="accent-danger" />
             <span>Remove even with uncommitted changes (they are lost)</span>
           </label>
         </ConfirmDialog>

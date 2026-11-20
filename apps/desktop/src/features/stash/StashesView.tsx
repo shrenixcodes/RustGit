@@ -67,7 +67,7 @@ function StashList({ repositoryId }: { repositoryId: number }) {
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-8">
-      <div className="max-w-3xl space-y-6">
+      <div className="space-y-6">
         {/* Create Stash Card */}
         <div className="rounded-xl border border-border/80 bg-elevated/40 p-5 shadow-2xs">
           <h3 className="mb-3 flex items-center gap-2 font-medium text-xs text-fg">

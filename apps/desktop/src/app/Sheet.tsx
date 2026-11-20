@@ -100,7 +100,7 @@ export function Sheet() {
         event.preventDefault();
         setSheet(null);
       }}
-      className="m-auto flex h-[min(740px,calc(100vh-64px))] w-[min(940px,calc(100vw-64px))] flex-col rounded-2xl border border-border/80 bg-bg p-0 text-fg shadow-popover backdrop:bg-overlay backdrop:backdrop-blur-sm"
+      className="m-auto flex h-[min(740px,calc(100vh-64px))] w-[min(832px,calc(100vw-64px))] flex-col rounded-2xl border border-border/80 bg-bg p-0 text-fg shadow-popover backdrop:bg-overlay backdrop:backdrop-blur-sm"
     >
       {/* Top Modal Navigation Header */}
       <div className="relative flex shrink-0 items-center justify-between border-b border-divider/80 bg-elevated/50 px-5 py-3 backdrop-blur-md">

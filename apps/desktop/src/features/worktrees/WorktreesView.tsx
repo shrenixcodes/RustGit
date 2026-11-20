@@ -85,7 +85,7 @@ function WorktreeList({ repositoryId }: { repositoryId: number }) {
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-8">
-      <div className="max-w-3xl space-y-6">
+      <div className="space-y-6">
         <div className="rounded-xl border border-border/70 bg-canvas/40 p-4 text-xs text-fg-muted leading-relaxed">
           Git worktrees allow you to check out multiple branches at once in separate directories from the same repository.
         </div>

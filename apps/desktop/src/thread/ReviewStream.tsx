@@ -424,16 +424,6 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
             <span className="rounded bg-elevated border border-border px-1.5 py-0.5">
               {files.length} file{files.length === 1 ? "" : "s"}
             </span>
-            {unstagedCount > 0 && (
-              <span className="rounded bg-clay/10 border border-clay/20 px-1.5 py-0.5 text-clay-text">
-                {unstagedCount} unstaged
-              </span>
-            )}
-            {composer.stagedFiles > 0 && (
-              <span className="rounded bg-accent/10 border border-accent/20 px-1.5 py-0.5 text-accent">
-                {composer.stagedFiles} staged
-              </span>
-            )}
           </div>
         </div>
 

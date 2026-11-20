@@ -487,7 +487,7 @@ function NowRow({ id, top, height, lane, graphWidth, linked, focused, unfolded, 
               </span>
             )}
             {counts.unstaged > 0 && (
-              <span className="rounded bg-clay/15 border border-clay/25 px-1.5 py-0.5 font-semibold text-clay-text">
+              <span className="rounded bg-elevated border border-border-control/40 px-1.5 py-0.5 font-semibold text-fg-secondary">
                 {counts.unstaged} unstaged
               </span>
             )}

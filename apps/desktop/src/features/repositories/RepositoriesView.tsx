@@ -267,10 +267,7 @@ export function RepositoriesView() {
 
             {githubStatus.data?.account && (
               <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-success/30 bg-success/10 px-3 py-1 text-xs text-fg">
-                <span className="relative flex size-2 items-center justify-center">
-                  <span className="absolute inset-0 rounded-full bg-success animate-ping opacity-60" />
-                  <span className="relative size-2 rounded-full bg-success" />
-                </span>
+                <span aria-hidden className="size-2 rounded-full bg-success" />
                 <span>Signed in as <strong className="font-semibold">@{githubStatus.data.account.login}</strong></span>
               </div>
             )}
@@ -280,21 +277,18 @@ export function RepositoriesView() {
                 icon={Download}
                 title="Clone repository"
                 hint="From GitHub or any Git URL"
-                accent="accent"
                 onClick={() => { setCreating(false); setCloning(true); }}
               />
               <WelcomeCard
                 icon={FolderOpen}
                 title="Add existing repository"
                 hint="Pick an existing folder on disk"
-                accent="clay"
                 onClick={handleAdd}
               />
               <WelcomeCard
                 icon={FolderPlus}
                 title="Create repository"
                 hint="Initialize a fresh Git project"
-                accent="moss"
                 onClick={() => { setCloning(false); setCreating(true); }}
               />
             </div>
@@ -330,43 +324,31 @@ export function RepositoriesView() {
   );
 }
 
-type WelcomeAccent = "accent" | "clay" | "moss";
-
-const WELCOME_ACCENT: Record<WelcomeAccent, { chip: string; text: string; ring: string }> = {
-  accent: { chip: "bg-accent/15 text-accent", text: "text-accent", ring: "group-hover:ring-accent/40" },
-  clay: { chip: "bg-clay/15 text-clay-text", text: "text-clay-text", ring: "group-hover:ring-clay/40" },
-  moss: { chip: "bg-success/15 text-success", text: "text-success", ring: "group-hover:ring-success/40" },
-};
-
 interface WelcomeCardProps {
   icon: LucideIcon;
   title: string;
   hint: string;
-  accent: WelcomeAccent;
   onClick: () => void;
 }
 
 /**
- * A welcome-screen action card. The accent colour is the only variable: the
- * frame, motion and hierarchy are shared so the three CTAs read as one row.
+ * A welcome-screen action card. The three cards are equal choices, so they
+ * share one treatment; the title names the action and the whole card is the
+ * target.
  */
-function WelcomeCard({ icon: Icon, title, hint, accent, onClick }: WelcomeCardProps) {
-  const style = WELCOME_ACCENT[accent];
+function WelcomeCard({ icon: Icon, title, hint, onClick }: WelcomeCardProps) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`group relative flex flex-col justify-between overflow-hidden rounded-xl border border-border/80 bg-elevated/60 p-4 text-left shadow-subtle ring-1 ring-transparent ring-inset transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-border-control hover:bg-elevated hover:shadow-raised ${style.ring} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg`}
+      className="group relative flex flex-col overflow-hidden rounded-xl border border-border/80 bg-elevated/60 p-4 text-left shadow-subtle transition-[background-color,border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-0.5 hover:border-border-control hover:bg-elevated hover:shadow-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
     >
       <div>
-        <div className={`mb-3 flex size-8 items-center justify-center rounded-lg ${style.chip} transition-transform duration-200 group-hover:scale-105`}>
+        <div className="mb-3 flex size-8 items-center justify-center rounded-lg bg-accent/15 text-accent">
           <Icon aria-hidden className="size-4" strokeWidth={1.75} />
         </div>
         <div className="font-semibold text-sm text-fg">{title}</div>
         <div className="mt-1 text-xs text-fg-muted leading-relaxed">{hint}</div>
-      </div>
-      <div className={`mt-4 flex items-center gap-1 text-xs font-semibold ${style.text} opacity-0 translate-x-[-4px] transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100`}>
-        Get started <span aria-hidden>→</span>
       </div>
     </button>
   );

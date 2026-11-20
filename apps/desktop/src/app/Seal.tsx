@@ -150,7 +150,7 @@ export function Seal() {
           <div className="hidden sm:inline-flex shrink-0">
             <SegmentedControl label="Distance" options={ZOOMS} value={zoom} onChange={setZoom} />
           </div>
-          <label className="flex w-28 sm:w-36 xl:w-56 min-w-0 items-center gap-2 rounded-lg border border-border/70 bg-canvas/70 px-2.5 py-1 shadow-2xs transition-[border-color,background-color,box-shadow] focus-within:border-accent focus-within:bg-canvas focus-within:ring-1 focus-within:ring-accent/30">
+          <label className="flex w-28 sm:w-40 xl:w-56 min-w-0 items-center gap-2 rounded-lg border border-border/70 bg-canvas/70 px-2.5 py-1 shadow-2xs transition-[border-color,background-color,box-shadow] focus-within:border-accent focus-within:bg-canvas focus-within:ring-1 focus-within:ring-accent/30">
             <Search aria-hidden className="size-3.5 shrink-0 text-fg-muted" />
             <span className="sr-only">Search the thread</span>
             <input
@@ -165,11 +165,12 @@ export function Seal() {
                   event.currentTarget.blur();
                 }
               }}
-              placeholder="Search commits or IDs"
+              placeholder="Search commits"
+              title="Search commits by message or ID"
               className="h-5 min-w-0 flex-1 bg-transparent font-sans text-xs text-fg outline-none placeholder:text-fg-muted"
             />
             {search === "" ? (
-              <kbd className="hidden sm:inline-flex h-4 items-center rounded border border-border/70 bg-elevated px-1 font-mono text-2xs text-fg-muted">
+              <kbd className="hidden xl:inline-flex h-4 items-center rounded border border-border/70 bg-elevated px-1 font-mono text-2xs text-fg-muted">
                 /
               </kbd>
             ) : (

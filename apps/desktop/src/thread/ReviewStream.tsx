@@ -302,7 +302,7 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
       <>
       {/* Elevated Commit Composer Console */}
       <div className="flex shrink-0 gap-6 py-3 pr-5 pl-[72px]">
-        <div className="min-w-0 flex-1 rounded-xl border border-border/80 bg-elevated/50 p-4 shadow-sm backdrop-blur-xs space-y-3">
+        <div className="min-w-0 max-w-4xl flex-1 rounded-xl border border-border/80 bg-elevated/50 p-4 shadow-sm backdrop-blur-xs space-y-3">
           <div className="flex items-center justify-between pb-1 border-b border-border/60">
             <div className="flex items-center gap-2">
               <FileCheck className="size-3.5 text-accent" />

@@ -71,7 +71,7 @@ export function OperationShelf() {
       )}
 
       {unseenFailures > 0 && (
-        <span className="flex items-center gap-1.5 rounded-full border border-danger/40 bg-danger/15 px-2.5 py-0.5 text-2xs text-danger font-semibold animate-pulse">
+        <span className="flex items-center gap-1.5 rounded-full border border-danger/40 bg-danger/15 px-2.5 py-0.5 text-2xs text-danger font-semibold">
           <CircleAlert aria-hidden className="size-3" />
           {unseenFailures} failed
         </span>

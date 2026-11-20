@@ -136,7 +136,7 @@ export function Seal() {
             <span aria-hidden className="h-4 w-px bg-border/60 shrink-0" />
             <BranchPath branch={status.data.branch} />
             {status.data.inProgress !== "none" && (
-              <span className="shrink-0 rounded-md border border-warning/40 bg-warning/15 px-2 py-0.5 font-mono text-2xs font-semibold text-warning animate-pulse">
+              <span className="shrink-0 rounded-md border border-warning/40 bg-warning/15 px-2 py-0.5 font-mono text-2xs font-semibold text-warning">
                 {IN_PROGRESS_LABEL[status.data.inProgress]}
               </span>
             )}

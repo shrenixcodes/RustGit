@@ -28,7 +28,7 @@ export function UpdateBanner() {
       className="flex items-center justify-between gap-4 border-b border-accent/30 bg-accent/10 px-4 py-2 text-sm"
     >
       <div className="flex items-center gap-2">
-        <span className="inline-block h-2 w-2 rounded-full bg-accent animate-pulse" />
+        <span className="inline-block h-2 w-2 rounded-full bg-accent" />
         <span>
           <strong className="font-semibold text-fg">RustGit {data.latestVersion}</strong> is available (current: {data.currentVersion}).
         </span>

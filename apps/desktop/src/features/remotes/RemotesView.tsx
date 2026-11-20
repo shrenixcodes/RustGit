@@ -48,9 +48,12 @@ function RemotesList({ repositoryId }: { repositoryId: number }) {
       onSettled: () => setRemoving(null),
     });
 
+  // A blank name uses the suggestion shown as the placeholder.
+  const suggestedName: string = remotes.data?.length === 0 ? "origin" : "upstream";
+
   const add = (event: FormEvent): void => {
     event.preventDefault();
-    run({ kind: "add", name: name.trim(), url: url.trim() }, () => {
+    run({ kind: "add", name: name.trim() || suggestedName, url: url.trim() }, () => {
       setName("");
       setUrl("");
     });
@@ -178,7 +181,7 @@ function RemotesList({ repositoryId }: { repositoryId: number }) {
               <Input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                placeholder={remotes.data?.length === 0 ? "origin" : "upstream"}
+                placeholder={suggestedName}
               />
             </div>
             <div className="min-w-64 flex-1">
@@ -189,7 +192,7 @@ function RemotesList({ repositoryId }: { repositoryId: number }) {
                 placeholder="https://github.com/owner/repository.git"
               />
             </div>
-            <Button type="submit" variant="primary" disabled={name.trim() === "" || url.trim() === "" || operation.isPending}>
+            <Button type="submit" variant="primary" disabled={url.trim() === "" || operation.isPending}>
               Add remote
             </Button>
           </form>

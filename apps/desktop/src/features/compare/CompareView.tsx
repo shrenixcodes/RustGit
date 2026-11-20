@@ -215,7 +215,7 @@ function RevisionField({ label, value, names, onChange }: { label: string; value
         <input
           list="compare-revisions"
           value={text}
-          placeholder={names[0] ?? "branch or commit"}
+          placeholder="branch, tag or commit"
           onChange={(event) => {
             setText(event.target.value);
             if (names.includes(event.target.value)) onChange(event.target.value);

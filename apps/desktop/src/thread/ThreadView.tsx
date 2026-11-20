@@ -449,12 +449,22 @@ function NowRow({ id, top, height, lane, graphWidth, linked, focused, unfolded, 
         <OpenNode cx={cx} cy={height / 2} r={6} stroke="var(--rg-clay)" width={1.6} />
       </svg>
       <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3" style={{ marginLeft: Math.max(0, CONTENT_LEFT - 12 - Math.max(graphWidth, CONTENT_LEFT - 12)) }}>
-        <ChevronRight
-          aria-hidden
-          className={`size-3.5 shrink-0 transition-transform duration-150 ${
-            unfolded ? "rotate-90 text-accent" : "text-fg-muted"
-          }`}
-        />
+        <button
+          type="button"
+          aria-expanded={unfolded}
+          aria-label={unfolded ? "Hide uncommitted changes" : "Show uncommitted changes"}
+          title={unfolded ? "Hide changes" : "Show changes"}
+          onClick={(event) => {
+            event.stopPropagation();
+            onToggle();
+          }}
+          className="-m-1 inline-flex shrink-0 items-center justify-center rounded p-1 text-fg-muted hover:bg-hover hover:text-fg"
+        >
+          <ChevronRight
+            aria-hidden
+            className={`size-3.5 transition-transform duration-150 ${unfolded ? "rotate-90 text-accent" : ""}`}
+          />
+        </button>
         <label className="min-w-0 flex-1">
           <span className="sr-only">Summary of the next commit</span>
           <input

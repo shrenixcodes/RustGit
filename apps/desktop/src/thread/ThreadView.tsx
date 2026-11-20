@@ -600,7 +600,7 @@ const CommitRow = memo(function CommitRow({ id, top, height, row, graphWidth, he
       <time dateTime={new Date(commit.authorTime * 1000).toISOString()} title={formatAbsolute(commit.authorTime)} className="w-16 sm:w-20 shrink-0 text-right font-mono text-2xs sm:text-xs text-fg-muted tabular-nums">
         {formatRelative(commit.authorTime)}
       </time>
-      <span className={`w-14 shrink-0 font-mono text-2xs sm:text-xs text-right ${focused ? "text-accent font-semibold" : "text-fg-muted"}`}>{commit.oid.slice(0, 7)}</span>
+      <span className={`w-[8ch] shrink-0 font-mono text-2xs sm:text-xs text-right ${focused ? "text-accent font-semibold" : "text-fg-muted"}`}>{commit.oid.slice(0, 7)}</span>
     </div>
   );
 });

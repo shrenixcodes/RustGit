@@ -43,7 +43,7 @@ export function OperationShelf() {
             }`}
           />
           <span className="font-medium text-fg">{last.label.toLowerCase()}</span>
-          <span className="text-fg-muted/60">·</span>
+          <span className="text-fg-muted">·</span>
           {last.outcome === "failed" ? (
             <span className="text-danger font-medium">{firstLine(last.error?.message ?? "failed")}</span>
           ) : (
@@ -54,7 +54,7 @@ export function OperationShelf() {
           )}
         </span>
       ) : (
-        <span className="flex items-center gap-2 text-fg-muted/70">
+        <span className="flex items-center gap-2 text-fg-muted">
           <span className="size-1.5 rounded-full bg-fg-muted/40" />
           <span>idle</span>
         </span>
@@ -63,7 +63,7 @@ export function OperationShelf() {
       <span className="flex-1" />
 
       {activeRepositoryId !== null && (
-        <div className="hidden sm:flex items-center gap-2 font-mono text-2xs text-fg-muted/70 pr-2">
+        <div className="hidden sm:flex items-center gap-2 font-mono text-2xs text-fg-muted pr-2">
           <span>UTF-8</span>
           <span>·</span>
           <span>Git Engine</span>
@@ -143,7 +143,7 @@ function RunningNetworkOperation({ operation, more }: { operation: NetworkOperat
           cancel
         </button>
       ) : (
-        <span className="shrink-0 text-2xs text-fg-muted/70" title={operation.kind === "push" ? "The remote may already have accepted the push" : undefined}>
+        <span className="shrink-0 text-2xs text-fg-muted" title={operation.kind === "push" ? "The remote may already have accepted the push" : undefined}>
           {refused ? "can no longer be cancelled" : "not cancellable"}
         </span>
       )}

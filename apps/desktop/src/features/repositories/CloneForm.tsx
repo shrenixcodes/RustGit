@@ -89,7 +89,7 @@ export function CloneForm({ onDone }: { onDone: () => void }) {
           disabled={running}
           onChange={(event) => setUrl(event.target.value)}
           placeholder="https://github.com/owner/repository.git"
-          className="mt-1 flex h-9 w-full rounded-md border border-border/70 bg-canvas/60 px-3 font-mono text-xs outline-none transition-all placeholder:text-fg-muted/60 focus:border-accent focus:bg-canvas focus:ring-1 focus:ring-accent/30"
+          className="mt-1 flex h-9 w-full rounded-md border border-border/70 bg-canvas/60 px-3 font-mono text-xs outline-none transition-all placeholder:text-fg-muted focus:border-accent focus:bg-canvas focus:ring-1 focus:ring-accent/30"
         />
       </label>
       <div className="flex items-end gap-3">
@@ -101,7 +101,7 @@ export function CloneForm({ onDone }: { onDone: () => void }) {
             disabled={running}
             onChange={(event) => setParent(event.target.value)}
             placeholder="Choose a parent folder"
-            className="mt-1 flex h-9 w-full rounded-md border border-border/70 bg-canvas/60 px-3 font-mono text-xs outline-none transition-all placeholder:text-fg-muted/60 focus:border-accent focus:bg-canvas focus:ring-1 focus:ring-accent/30"
+            className="mt-1 flex h-9 w-full rounded-md border border-border/70 bg-canvas/60 px-3 font-mono text-xs outline-none transition-all placeholder:text-fg-muted focus:border-accent focus:bg-canvas focus:ring-1 focus:ring-accent/30"
           />
         </label>
         <Button disabled={running} onClick={() => void pickParent()}>
@@ -115,7 +115,7 @@ export function CloneForm({ onDone }: { onDone: () => void }) {
           disabled={running}
           onChange={(event) => setName(event.target.value)}
           placeholder={directoryNameFor(url) || "from the URL"}
-          className="mt-1 flex h-9 w-full rounded-md border border-border/70 bg-canvas/60 px-3 font-mono text-xs outline-none transition-all placeholder:text-fg-muted/60 focus:border-accent focus:bg-canvas focus:ring-1 focus:ring-accent/30"
+          className="mt-1 flex h-9 w-full rounded-md border border-border/70 bg-canvas/60 px-3 font-mono text-xs outline-none transition-all placeholder:text-fg-muted focus:border-accent focus:bg-canvas focus:ring-1 focus:ring-accent/30"
         />
       </label>
 

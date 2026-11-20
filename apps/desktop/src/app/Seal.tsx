@@ -166,7 +166,7 @@ export function Seal() {
                 }
               }}
               placeholder="Search commits or IDs"
-              className="h-5 min-w-0 flex-1 bg-transparent font-sans text-xs text-fg outline-none placeholder:text-fg-muted/70"
+              className="h-5 min-w-0 flex-1 bg-transparent font-sans text-xs text-fg outline-none placeholder:text-fg-muted"
             />
             {search === "" ? (
               <kbd className="hidden sm:inline-flex h-4 items-center rounded border border-border/70 bg-elevated px-1 font-mono text-2xs text-fg-muted">
@@ -290,7 +290,7 @@ export function BranchPath({ branch }: { branch: BranchStatus }) {
         )}
       </span>
       {branch.upstream === null ? (
-        <span className="shrink-0 text-fg-muted/70 text-2xs">no upstream</span>
+        <span className="shrink-0 text-fg-muted text-2xs">no upstream</span>
       ) : (
         <span className="flex shrink-0 items-center gap-1.5 text-fg-muted" title={`Compared with ${branch.upstream} as of the last fetch`}>
           <span aria-hidden className="h-px w-3 bg-border-control/60" />

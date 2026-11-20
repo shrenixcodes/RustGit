@@ -339,7 +339,7 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
               }}
               rows={2}
               placeholder="Description (optional)"
-              className="w-full resize-y rounded-lg border border-border/70 bg-canvas/70 p-2.5 text-xs text-fg outline-none placeholder:text-fg-muted/70 focus:border-accent focus:bg-canvas focus:ring-1 focus:ring-accent/30 font-sans transition-all"
+              className="w-full resize-y rounded-lg border border-border/70 bg-canvas/70 p-2.5 text-xs text-fg outline-none placeholder:text-fg-muted focus:border-accent focus:bg-canvas focus:ring-1 focus:ring-accent/30 font-sans transition-all"
             />
           </label>
 
@@ -362,7 +362,7 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
 
             <div className="flex items-center gap-3">
               {ctx !== undefined && !composer.identityMissing && (
-                <span className="truncate font-mono text-2xs text-fg-muted/80 bg-canvas/40 border border-border/60 px-2 py-0.5 rounded-md" title={`Author: ${ctx.authorName} <${ctx.authorEmail}>`}>
+                <span className="truncate font-mono text-2xs text-fg-muted bg-canvas/40 border border-border/60 px-2 py-0.5 rounded-md" title={`Author: ${ctx.authorName} <${ctx.authorEmail}>`}>
                   {ctx.authorName} &lt;{ctx.authorEmail}&gt;{ctx.signing !== "off" ? ` · signed (${ctx.signing})` : ""}
                 </span>
               )}
@@ -411,7 +411,7 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
               value={filter}
               onChange={(event) => setFilter(event.target.value)}
               placeholder="Filter changed files…"
-              className="h-full min-w-0 flex-1 bg-transparent font-sans text-xs text-fg outline-none placeholder:text-fg-muted/60"
+              className="h-full min-w-0 flex-1 bg-transparent font-sans text-xs text-fg outline-none placeholder:text-fg-muted"
             />
             {filter !== "" && (
               <button type="button" onClick={() => setFilter("")} className="text-fg-muted hover:text-fg text-xs" title="Clear filter">
@@ -753,7 +753,7 @@ function FileRow({
             ) : staged ? (
               <CheckSquare aria-hidden className="size-3.5 text-accent" />
             ) : (
-              <Square aria-hidden className="size-3.5 text-fg-muted/60 group-hover:text-fg-secondary" />
+              <Square aria-hidden className="size-3.5 text-fg-muted group-hover:text-fg-secondary" />
             )}
           </button>
         </span>
@@ -776,7 +776,7 @@ function FileRow({
         <span className="max-w-[65%] shrink-0 truncate font-mono text-xs font-semibold text-fg tracking-tight">
           {name}
         </span>
-        <span className="min-w-0 truncate font-mono text-2xs text-fg-muted/80" dir="rtl">
+        <span className="min-w-0 truncate font-mono text-2xs text-fg-muted" dir="rtl">
           <bdi dir="ltr">{directory}</bdi>
         </span>
         {partiallyStaged && (

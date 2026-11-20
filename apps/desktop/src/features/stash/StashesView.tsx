@@ -151,7 +151,7 @@ function StashList({ repositoryId }: { repositoryId: number }) {
                       </button>
 
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-2xs text-fg-muted/80 tabular-nums">
+                        <span className="font-mono text-2xs text-fg-muted tabular-nums">
                           {new Date(entry.createdAt * 1000).toLocaleString()}
                         </span>
                         <div className="flex items-center gap-1 border-l border-divider pl-2">

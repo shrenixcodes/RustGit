@@ -204,7 +204,7 @@ export function SwitcherPopover({
                 setHighlight(0);
               }}
               placeholder="Filter repositories by name or path…"
-              className="h-full flex-1 bg-transparent text-xs text-fg outline-none placeholder:text-fg-muted/70"
+              className="h-full flex-1 bg-transparent text-xs text-fg outline-none placeholder:text-fg-muted"
             />
             {query !== "" && (
               <button
@@ -378,7 +378,7 @@ export function SwitcherPopover({
               </span>
             )}
           </span>
-          <span className="block truncate font-mono text-2xs text-fg-muted/80">{entry.path}</span>
+          <span className="block truncate font-mono text-2xs text-fg-muted">{entry.path}</span>
         </span>
 
         <button

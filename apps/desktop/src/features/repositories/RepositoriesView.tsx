@@ -159,7 +159,7 @@ export function RepositoriesView() {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search repositories by name or path…"
-                className="h-full flex-1 bg-transparent text-sm outline-none placeholder:text-fg-muted/70"
+                className="h-full flex-1 bg-transparent text-sm outline-none placeholder:text-fg-muted"
               />
               {query !== "" && (
                 <button
@@ -299,7 +299,7 @@ export function RepositoriesView() {
               />
             </div>
 
-            <p className="mt-8 text-2xs text-fg-muted/80">
+            <p className="mt-8 text-2xs text-fg-muted">
               Tip: press <kbd className="rounded border border-border/70 bg-elevated/70 px-1 py-0.5 font-mono text-2xs text-fg-secondary">{formatShortcut("Mod+K")}</kbd> anywhere to open the command palette.
             </p>
           </div>

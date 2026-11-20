@@ -209,7 +209,7 @@ function iconForCommand(command: PaletteCommand) {
               setHighlight(0);
             }}
             placeholder="Go to, open or change anything…"
-            className="h-full flex-1 bg-transparent text-sm outline-none placeholder:text-fg-muted/70"
+            className="h-full flex-1 bg-transparent text-sm outline-none placeholder:text-fg-muted"
           />
           {query !== "" && (
             <button

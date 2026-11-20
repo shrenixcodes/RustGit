@@ -122,7 +122,7 @@ export function SyncControls({ repositoryId, branch }: { repositoryId: number; b
         {busy("fetch") ? <LoaderCircle aria-hidden className="size-3 motion-safe:animate-spin" /> : <RefreshCcw aria-hidden className="size-3" />}
         <span className="hidden sm:inline">fetch</span>
       </button>
-      <span className="hidden xl:inline px-2 font-sans text-xs text-fg-muted/80 border-r border-divider/60" title="The ahead and behind counts only change after a fetch">
+      <span className="hidden xl:inline px-2 font-sans text-xs text-fg-muted border-r border-divider/60" title="The ahead and behind counts only change after a fetch">
         {lastFetched}
       </span>
 

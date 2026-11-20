@@ -452,7 +452,7 @@ function NowRow({ id, top, height, lane, graphWidth, linked, focused, unfolded, 
         <ChevronRight
           aria-hidden
           className={`size-3.5 shrink-0 transition-transform duration-150 ${
-            unfolded ? "rotate-90 text-accent" : "text-fg-muted/60"
+            unfolded ? "rotate-90 text-accent" : "text-fg-muted"
           }`}
         />
         <label className="min-w-0 flex-1">
@@ -471,7 +471,7 @@ function NowRow({ id, top, height, lane, graphWidth, linked, focused, unfolded, 
               }
             }}
             placeholder={dirty ? "Write the next commit…" : "Nothing to commit"}
-            className="h-7 w-full bg-transparent font-sans text-xs sm:text-sm font-medium text-fg outline-none placeholder:text-fg-muted/70"
+            className="h-7 w-full bg-transparent font-sans text-xs sm:text-sm font-medium text-fg outline-none placeholder:text-fg-muted"
           />
         </label>
         {dirty ? (
@@ -499,7 +499,7 @@ function NowRow({ id, top, height, lane, graphWidth, linked, focused, unfolded, 
             <span className="sr-only">{summaryText}</span>
           </div>
         ) : (
-          <span className="shrink-0 font-sans text-xs text-fg-muted/90">{summaryText}</span>
+          <span className="shrink-0 font-sans text-xs text-fg-muted">{summaryText}</span>
         )}
         {composer.done !== null && (
           <span role="status" className="shrink-0 font-mono text-xs text-success font-medium">
@@ -575,7 +575,7 @@ const CommitRow = memo(function CommitRow({ id, top, height, row, graphWidth, he
         <ChevronRight
           aria-hidden
           className={`size-3.5 shrink-0 transition-transform duration-150 ${
-            unfolded ? "rotate-90 text-accent" : "text-fg-muted/60"
+            unfolded ? "rotate-90 text-accent" : "text-fg-muted"
           }`}
         />
         {hasRefs && <RefBadges refs={refs ?? []} head={headState} detachedHead={detachedHere} max={map ? 4 : 2} />}
@@ -583,14 +583,14 @@ const CommitRow = memo(function CommitRow({ id, top, height, row, graphWidth, he
         {map && row.hidden > 0 && <span className="shrink-0 font-mono text-2xs text-fg-muted">· {row.hidden} commit{row.hidden === 1 ? "" : "s"} below folded</span>}
       </span>
       {!map && (
-        <span className="hidden md:inline-block w-28 lg:w-32 shrink-0 truncate text-xs text-fg-muted/90 font-sans" title={commit.authorEmail}>
+        <span className="hidden md:inline-block w-28 lg:w-32 shrink-0 truncate text-xs text-fg-muted font-sans" title={commit.authorEmail}>
           {commit.authorName}
         </span>
       )}
-      <time dateTime={new Date(commit.authorTime * 1000).toISOString()} title={formatAbsolute(commit.authorTime)} className="w-16 sm:w-20 shrink-0 text-right font-mono text-2xs sm:text-xs text-fg-muted/80 tabular-nums">
+      <time dateTime={new Date(commit.authorTime * 1000).toISOString()} title={formatAbsolute(commit.authorTime)} className="w-16 sm:w-20 shrink-0 text-right font-mono text-2xs sm:text-xs text-fg-muted tabular-nums">
         {formatRelative(commit.authorTime)}
       </time>
-      <span className={`w-14 shrink-0 font-mono text-2xs sm:text-xs text-right ${focused ? "text-accent font-semibold" : "text-fg-muted/70"}`}>{commit.oid.slice(0, 7)}</span>
+      <span className={`w-14 shrink-0 font-mono text-2xs sm:text-xs text-right ${focused ? "text-accent font-semibold" : "text-fg-muted"}`}>{commit.oid.slice(0, 7)}</span>
     </div>
   );
 });

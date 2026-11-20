@@ -107,7 +107,7 @@ export function NewRepositoryForm({ onDone }: { onDone: () => void }) {
             onChange={(event) => setName(event.target.value)}
             placeholder="my-project"
             aria-invalid={problem !== null}
-            className="mt-1 flex h-9 w-full rounded-md border border-border/70 bg-canvas/60 px-3 font-mono text-xs outline-none transition-all placeholder:text-fg-muted/60 focus:border-accent focus:bg-canvas focus:ring-1 focus:ring-accent/30"
+            className="mt-1 flex h-9 w-full rounded-md border border-border/70 bg-canvas/60 px-3 font-mono text-xs outline-none transition-all placeholder:text-fg-muted focus:border-accent focus:bg-canvas focus:ring-1 focus:ring-accent/30"
           />
           {problem !== null && <span className="mt-1 block text-xs text-danger">{problem}</span>}
         </label>
@@ -119,7 +119,7 @@ export function NewRepositoryForm({ onDone }: { onDone: () => void }) {
             disabled={initRepository.isPending}
             onChange={(event) => setDescription(event.target.value)}
             placeholder="A short summary of the repository"
-            className="mt-1 flex h-9 w-full rounded-md border border-border/70 bg-canvas/60 px-3 font-sans text-xs outline-none transition-all placeholder:text-fg-muted/60 focus:border-accent focus:bg-canvas focus:ring-1 focus:ring-accent/30"
+            className="mt-1 flex h-9 w-full rounded-md border border-border/70 bg-canvas/60 px-3 font-sans text-xs outline-none transition-all placeholder:text-fg-muted focus:border-accent focus:bg-canvas focus:ring-1 focus:ring-accent/30"
           />
         </label>
       </div>
@@ -133,7 +133,7 @@ export function NewRepositoryForm({ onDone }: { onDone: () => void }) {
             disabled={initRepository.isPending}
             onChange={(event) => setParent(event.target.value)}
             placeholder="Choose parent folder on disk"
-            className="mt-1 flex h-9 w-full rounded-md border border-border/70 bg-canvas/60 px-3 font-mono text-xs outline-none transition-all placeholder:text-fg-muted/60 focus:border-accent focus:bg-canvas focus:ring-1 focus:ring-accent/30"
+            className="mt-1 flex h-9 w-full rounded-md border border-border/70 bg-canvas/60 px-3 font-mono text-xs outline-none transition-all placeholder:text-fg-muted focus:border-accent focus:bg-canvas focus:ring-1 focus:ring-accent/30"
           />
         </label>
         <Button disabled={initRepository.isPending} onClick={() => void pickParent()}>

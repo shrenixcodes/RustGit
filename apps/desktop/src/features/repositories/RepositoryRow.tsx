@@ -55,9 +55,9 @@ export function RepositoryRow({ entry, active, onOpen, onRemove, onTogglePin }: 
           )}
         </div>
         <div className="flex items-center gap-2 mt-0.5">
-          <span className="truncate font-mono text-xs text-fg-muted/80">{entry.path}</span>
+          <span className="truncate font-mono text-xs text-fg-muted">{entry.path}</span>
           {entry.lastOpenedAt !== null && (
-            <span className="hidden sm:inline font-mono text-2xs text-fg-muted/60 shrink-0">
+            <span className="hidden sm:inline font-mono text-2xs text-fg-muted shrink-0">
               · opened {formatRelative(entry.lastOpenedAt)}
             </span>
           )}

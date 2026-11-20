@@ -224,7 +224,7 @@ function RevisionField({ label, value, names, onChange }: { label: string; value
           onKeyDown={(event) => {
             if (event.key === "Enter") commit();
           }}
-          className="h-full w-full bg-transparent font-mono text-xs text-fg outline-none placeholder:text-fg-muted/60"
+          className="h-full w-full bg-transparent font-mono text-xs text-fg outline-none placeholder:text-fg-muted"
         />
       </div>
     </label>

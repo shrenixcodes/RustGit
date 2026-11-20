@@ -82,7 +82,7 @@ function OperationsView() {
           return (
             <li key={record.id} className="py-2 hover:bg-hover/40 px-2 rounded-lg transition-colors">
               <div className="flex items-center gap-3">
-                <time dateTime={new Date(record.startedAt).toISOString()} className="w-16 shrink-0 tabular-nums text-2xs text-fg-muted/80">
+                <time dateTime={new Date(record.startedAt).toISOString()} className="w-16 shrink-0 tabular-nums text-2xs text-fg-muted">
                   {TIME_FORMAT.format(record.startedAt)}
                 </time>
 
@@ -179,7 +179,7 @@ function CommandsView() {
         return (
           <li key={record.sequence} className="py-2 hover:bg-hover/40 px-2 rounded-lg transition-colors group">
             <div className="flex items-center gap-3">
-              <time dateTime={new Date(record.startedAt).toISOString()} className="w-16 shrink-0 tabular-nums text-2xs text-fg-muted/80">
+              <time dateTime={new Date(record.startedAt).toISOString()} className="w-16 shrink-0 tabular-nums text-2xs text-fg-muted">
                 {TIME_FORMAT.format(record.startedAt)}
               </time>
 

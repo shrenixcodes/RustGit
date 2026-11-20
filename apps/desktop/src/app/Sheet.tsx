@@ -128,7 +128,7 @@ export function Sheet() {
         </div>
 
         <div className="absolute top-3 right-4 z-10 flex items-center gap-2">
-          <span className="hidden sm:inline-flex items-center gap-1 font-mono text-2xs text-fg-muted/70">
+          <span className="hidden sm:inline-flex items-center gap-1 font-mono text-2xs text-fg-muted">
             <kbd className="rounded border border-border/70 bg-canvas/80 px-1 text-2xs">Esc</kbd>
           </span>
           <IconButton label="Close" onClick={() => setSheet(null)}>

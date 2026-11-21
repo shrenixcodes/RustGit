@@ -64,6 +64,24 @@ describe("layoutCommits", () => {
     expect(rows[2]?.incoming.map((line) => line.lane)).toEqual([0]);
   });
 
+  it("keeps a branch tip newer than HEAD off HEAD's lane", () => {
+    // fix branches off main (HEAD) and is newer, so it is listed first.
+    const { rows } = layoutCommits([c("fix", "main"), c("main", "base"), c("base")], initialLayoutState("main"));
+    expect(lanes(rows)).toEqual({ fix: 1, main: 0, base: 0 });
+    // Nothing is drawn in HEAD's lane above HEAD except fix's edge joining it.
+    expect(rows[0]?.passing).toEqual([]);
+    expect(rows[0]?.outgoing.map((line) => line.lane)).toEqual([0]);
+    expect(rows[1]?.incoming.map((line) => line.lane)).toEqual([0]);
+    expect(rows[1]?.color).toBe(0);
+  });
+
+  it("draws no line above HEAD when no commit joins its lane", () => {
+    const { rows } = layoutCommits([c("other", "root"), c("main", "root"), c("root")], initialLayoutState("main"));
+    expect(lanes(rows)).toEqual({ other: 1, main: 0, root: 0 });
+    expect(rows[0]?.passing).toEqual([]);
+    expect(rows[1]?.incoming).toEqual([]);
+  });
+
   it("handles octopus merges", () => {
     const { rows } = layoutCommits(
       [c("o", "a", "b", "d"), c("a", "r"), c("b", "r"), c("d", "r"), c("r")],
@@ -103,7 +121,8 @@ describe("layoutCommits", () => {
   it("does not mutate the previous state", () => {
     const start = initialLayoutState("a");
     const { state } = layoutCommits([c("a", "b")], start);
-    expect(start.lanes).toEqual([]);
+    expect(start.lanes).toEqual(["a"]);
+    expect(start.headPending).toBe(true);
     expect(state.lanes).toEqual(["b"]);
   });
 

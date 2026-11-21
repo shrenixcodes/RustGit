@@ -48,13 +48,25 @@ export interface LayoutState {
   /** Commits on the first-parent chain of `headOid`, which keep color 0. */
   headChain: Set<string>;
   nextColor: number;
+  /**
+   * Lane 0 is held for HEAD from the start so newer branch tips (unmerged
+   * branches, the loose end's siblings) never sit on HEAD's line. Until a
+   * commit's edge actually enters it, the held lane draws nothing.
+   */
+  headPending: boolean;
 }
 
 /** Number of distinct lane colors (`--rg-lane-0` … `--rg-lane-5`); 0 is reserved for HEAD's line. */
 export const LANE_COLORS = 6;
 
 export function initialLayoutState(headOid: string | null): LayoutState {
-  return { lanes: [], colors: [], headChain: new Set(headOid === null ? [] : [headOid]), nextColor: 1 };
+  return {
+    lanes: headOid === null ? [] : [headOid],
+    colors: headOid === null ? [] : [0],
+    headChain: new Set(headOid === null ? [] : [headOid]),
+    nextColor: 1,
+    headPending: headOid !== null,
+  };
 }
 
 function copyState(state: LayoutState): LayoutState {
@@ -63,6 +75,7 @@ function copyState(state: LayoutState): LayoutState {
     colors: [...state.colors],
     headChain: new Set(state.headChain),
     nextColor: state.nextColor,
+    headPending: state.headPending,
   };
 }
 
@@ -101,6 +114,8 @@ export function layoutCommits(
   for (const commit of commits) {
     const before: Array<string | null> = [...state.lanes];
     const beforeColors: number[] = [...state.colors];
+    // The held HEAD lane has no edge above HEAD unless a commit joined it.
+    const heldLane: number = state.headPending ? 0 : -1;
 
     // The commit's lane: the first lane that expects it, or a new one (a branch tip).
     let lane: number = state.lanes.indexOf(commit.oid);
@@ -119,7 +134,7 @@ export function layoutCommits(
     // Children in other lanes converge here; those lanes end at this row.
     const incoming: LaneLine[] = [];
     before.forEach((expected, index) => {
-      if (expected === commit.oid) {
+      if (expected === commit.oid && index !== heldLane) {
         incoming.push({ lane: index, color: beforeColors[index] ?? 0 });
         if (index !== lane) {
           state.lanes[index] = null;
@@ -129,15 +144,21 @@ export function layoutCommits(
 
     // First parent continues in this lane; other parents join or open lanes.
     const outgoing: LaneLine[] = [];
+    if (lane === heldLane) {
+      state.headPending = false;
+    }
     const [firstParent, ...otherParents] = commit.parents;
     if (firstParent === undefined) {
       state.lanes[lane] = null;
     } else {
       const existing: number = state.lanes.indexOf(firstParent);
-      if (existing >= 0 && existing !== lane) {
+      // HEAD's first-parent line keeps its lane; other lines converge into it at the parent.
+      const keepLane: boolean = state.headChain.has(commit.oid) && lane < existing;
+      if (existing >= 0 && existing !== lane && !keepLane) {
         // Another lane already waits for this parent: join it and free ours.
         state.lanes[lane] = null;
         outgoing.push({ lane: existing, color: state.colors[existing] ?? 0 });
+        if (existing === heldLane) state.headPending = false;
       } else {
         state.lanes[lane] = firstParent;
         outgoing.push({ lane, color });
@@ -147,12 +168,13 @@ export function layoutCommits(
       const existing: number = state.lanes.indexOf(parent);
       const target: number = existing >= 0 ? existing : allocateLane(state, parent, lane);
       outgoing.push({ lane: target, color: state.colors[target] ?? 0 });
+      if (target === heldLane) state.headPending = false;
     }
 
     // Lanes that neither end nor start here pass straight through.
     const passing: LaneLine[] = [];
     before.forEach((expected, index) => {
-      if (expected !== null && expected !== commit.oid && state.lanes[index] === expected) {
+      if (expected !== null && expected !== commit.oid && state.lanes[index] === expected && index !== heldLane) {
         passing.push({ lane: index, color: beforeColors[index] ?? 0 });
       }
     });

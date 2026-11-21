@@ -81,6 +81,14 @@ impl Layout {
         }
     }
 
+    /// Whether `directory` is the working tree root. Event paths normally
+    /// carry the canonical prefix that was watched, so the filesystem is only
+    /// asked to canonicalize a directory that could be the root by name.
+    fn is_root(&self, directory: &Path) -> bool {
+        directory == self.root
+            || (directory.file_name() == self.root.file_name() && canonical(directory) == self.root)
+    }
+
     /// Scope for a changed path, or `None` for paths that never matter
     /// (objects, logs, lock files).
     fn classify(&self, path: &Path) -> Option<ChangeScope> {
@@ -362,9 +370,8 @@ fn spawn_debouncer(
                             }
                             pending.insert(scope);
                         }
-                        let top_level: bool = path
-                            .parent()
-                            .is_some_and(|parent| canonical(parent) == layout.root);
+                        let top_level: bool =
+                            path.parent().is_some_and(|parent| layout.is_root(parent));
                         if top_level && path.is_dir() && !matches!(event.kind, EventKind::Remove(_))
                         {
                             watch_new_top_level_dir(&watcher, &git, &layout, path);
@@ -442,5 +449,13 @@ mod tests {
         );
         assert_eq!(layout.classify(Path::new("/repo/.git/index.lock")), None);
         assert_eq!(layout.classify(Path::new("/elsewhere/file")), None);
+    }
+
+    #[test]
+    fn recognises_the_root_without_touching_unrelated_directories() {
+        let layout: Layout = layout();
+        assert!(layout.is_root(Path::new("/repo")));
+        assert!(!layout.is_root(Path::new("/repo/src")));
+        assert!(!layout.is_root(Path::new("/elsewhere/repo")));
     }
 }

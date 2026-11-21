@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
@@ -77,8 +77,8 @@ impl InProgress {
 /// Detects an in-progress merge, rebase, cherry-pick or revert from the
 /// state files in the (per-worktree) Git directory.
 pub fn in_progress(git: &GitExecutor, root: &Path) -> GitResult<InProgress> {
-    let git_dir: String = git.run_text(root, ["rev-parse", "--absolute-git-dir"])?;
-    let git_dir: &Path = Path::new(git_dir.trim());
+    let git_dir: PathBuf = git_dir_of(git, root)?;
+    let git_dir: &Path = &git_dir;
     Ok(
         if git_dir.join("rebase-merge").is_dir() || git_dir.join("rebase-apply").is_dir() {
             InProgress::Rebasing
@@ -92,6 +92,30 @@ pub fn in_progress(git: &GitExecutor, root: &Path) -> GitResult<InProgress> {
             InProgress::None
         },
     )
+}
+
+/// The per-worktree Git directory of the working tree rooted at `root`.
+///
+/// Reads `<root>/.git` directly (a directory, or a `gitdir:` file for linked
+/// worktrees and submodules) because status is refreshed often and spawning
+/// Git costs about as much as the status read itself. Any other layout is
+/// resolved by `git rev-parse`.
+fn git_dir_of(git: &GitExecutor, root: &Path) -> GitResult<PathBuf> {
+    let dot_git: PathBuf = root.join(".git");
+    if dot_git.is_dir() {
+        return Ok(dot_git);
+    }
+    if let Ok(contents) = std::fs::read_to_string(&dot_git)
+        && let Some(target) = contents.strip_prefix("gitdir:")
+    {
+        let target: &Path = Path::new(target.trim());
+        let resolved: PathBuf = root.join(target);
+        if resolved.is_dir() {
+            return Ok(resolved);
+        }
+    }
+    let git_dir: String = git.run_text(root, ["rev-parse", "--absolute-git-dir"])?;
+    Ok(PathBuf::from(git_dir.trim()))
 }
 
 /// Reads the working tree status with `git status --porcelain=v2 -z`.

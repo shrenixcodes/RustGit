@@ -11,7 +11,7 @@ use rustgit_git_engine::stash::{
 use rustgit_git_engine::worktree::{
     AddWorktree, add_worktree, list_worktrees, prune_worktrees, remove_worktree,
 };
-use rustgit_git_engine::{ChangeKind, GitError};
+use rustgit_git_engine::{ChangeKind, GitError, InProgress, read_status};
 use support::TestRepo;
 
 #[test]
@@ -183,4 +183,39 @@ fn worktree_lifecycle() {
         list_worktrees(&repo.git, &repo.root()).expect("list").len(),
         2
     );
+}
+
+#[test]
+fn status_detects_a_merge_in_progress_inside_a_linked_worktree() {
+    let repo: TestRepo = TestRepo::new();
+    repo.commit_file("a.txt", "base\n", "initial");
+    repo.git_ok(&["branch", "other"]);
+    repo.commit_file("a.txt", "main\n", "main change");
+    let worktree: PathBuf = repo.dir.path().join("wt-other");
+    add_worktree(
+        &repo.git,
+        &repo.root(),
+        &AddWorktree {
+            branch: Some("other"),
+            ..AddWorktree::at(&worktree)
+        },
+    )
+    .expect("add worktree");
+    assert!(
+        worktree.join(".git").is_file(),
+        "linked worktree uses a .git file"
+    );
+
+    std::fs::write(worktree.join("a.txt"), "other\n").expect("edit");
+    support::run_git(&repo.git, &worktree, &["commit", "-am", "other change"]);
+    let merge = repo
+        .git
+        .run_unchecked(&worktree, ["merge", "main"], None)
+        .expect("run merge");
+    assert!(!merge.status.success(), "merge should conflict");
+
+    let status = read_status(&repo.git, &worktree).expect("status");
+    assert_eq!(status.in_progress, InProgress::Merging);
+    let main_status = read_status(&repo.git, &repo.root()).expect("main status");
+    assert_eq!(main_status.in_progress, InProgress::None);
 }

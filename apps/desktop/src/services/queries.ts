@@ -284,11 +284,13 @@ export function useCommitContext(repositoryId: number): UseQueryResult<CommitCon
   return useQuery({ queryKey: queryKeys.commitContext(repositoryId), queryFn: () => ipc.commitContext(repositoryId) });
 }
 
-/** Everything that depends on the index or working tree, after a staging change. */
+/**
+ * Everything that depends on the index or working tree, after a staging change.
+ * Commit context (identity, HEAD, in-progress operation) is not among them.
+ */
 function invalidateWorkingState(client: QueryClient, repositoryId: number): void {
   void client.invalidateQueries({ queryKey: queryKeys.diffs(repositoryId) });
   void client.invalidateQueries({ queryKey: queryKeys.totals(repositoryId) });
-  void client.invalidateQueries({ queryKey: queryKeys.commitContext(repositoryId) });
 }
 
 export type StagingRequest =
@@ -386,7 +388,10 @@ export function useCreateCommit(
       void client.invalidateQueries({ queryKey: queryKeys.logAll(repositoryId) });
       void client.invalidateQueries({ queryKey: queryKeys.refs(repositoryId) });
     },
-    onSettled: () => invalidateWorkingState(client, repositoryId),
+    onSettled: () => {
+      invalidateWorkingState(client, repositoryId);
+      void client.invalidateQueries({ queryKey: queryKeys.commitContext(repositoryId) });
+    },
   });
 }
 

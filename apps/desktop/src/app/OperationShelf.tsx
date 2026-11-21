@@ -7,7 +7,6 @@ import { cancelOperation } from "../services/network";
 import { runningCount, useActivity, type OperationRecord } from "../stores/activity";
 import { describeProgress, runningOperations, useOperations, type NetworkOperation } from "../stores/operations";
 import { usePreferences } from "../stores/preferences";
-import { useWorkspace } from "../stores/workspace";
 
 /**
  * The operation center's persistent, compact form: what is running, what
@@ -18,7 +17,6 @@ export function OperationShelf() {
   const unseenFailures: number = useActivity((state) => state.unseenFailures);
   const activityOpen: boolean = usePreferences((state) => state.activityOpen);
   const setActivityOpen = usePreferences((state) => state.setActivityOpen);
-  const activeRepositoryId: number | null = useWorkspace((state) => state.activeRepositoryId);
   const networkOperations = useOperations((state) => state.operations);
   const network: NetworkOperation[] = runningOperations(networkOperations, null);
   const running: number = runningCount(operations);
@@ -61,14 +59,6 @@ export function OperationShelf() {
       )}
 
       <span className="flex-1" />
-
-      {activeRepositoryId !== null && (
-        <div className="hidden sm:flex items-center gap-2 font-mono text-2xs text-fg-muted pr-2">
-          <span>UTF-8</span>
-          <span>·</span>
-          <span>Git Engine</span>
-        </div>
-      )}
 
       {unseenFailures > 0 && (
         <span className="flex items-center gap-1.5 rounded-full border border-danger/40 bg-danger/15 px-2.5 py-0.5 text-2xs text-danger font-semibold">

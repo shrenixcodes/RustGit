@@ -502,3 +502,16 @@ fn commit_failures_are_reported_with_stderr() {
         "index kept"
     );
 }
+
+#[test]
+fn commit_context_reports_the_configured_signing_format() {
+    let repo: TestRepo = TestRepo::new();
+    repo.git_ok(&["config", "commit.gpgSign", "yes"]);
+    repo.git_ok(&["config", "gpg.format", "ssh"]);
+    let context = commit_context(&repo.git, &repo.root()).expect("context");
+    assert_eq!(context.signing, SigningMode::Ssh);
+
+    repo.git_ok(&["config", "commit.gpgSign", "0"]);
+    let context = commit_context(&repo.git, &repo.root()).expect("context");
+    assert_eq!(context.signing, SigningMode::Off);
+}

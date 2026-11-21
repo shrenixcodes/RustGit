@@ -1,10 +1,9 @@
 import { useMemo, useState } from "react";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import { Download, FolderGit2, FolderOpen, FolderPlus, Search, type LucideIcon } from "lucide-react";
+import { Download, FolderOpen, FolderPlus, Search, type LucideIcon } from "lucide-react";
 import { Button } from "../../components/Button";
 import { ErrorNotice } from "../../components/ErrorNotice";
 import { Mark } from "../../components/Mark";
-import { PageHeader } from "../../components/PageHeader";
 import { useGithubStatus } from "../../services/github";
 import { toIpcError, type IpcError } from "../../services/ipc";
 import {
@@ -113,44 +112,39 @@ export function RepositoriesView() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <PageHeader title="Repositories" visible />
+      <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-4 px-6 sm:px-8 pt-4 sm:pt-6 pb-6">
+        <header className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-3">
+          <div className="flex items-baseline gap-2.5">
+            <h1 className="text-xl font-semibold tracking-tight text-fg">Repositories</h1>
+            {(repositories.data?.length ?? 0) > 0 && (
+              <span className="font-mono text-xs tabular-nums text-fg-muted">{repositories.data?.length}</span>
+            )}
+          </div>
+          {(repositories.data?.length ?? 0) > 0 && (
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                aria-pressed={creating}
+                onClick={() => { setCloning(false); setCreating((prev) => !prev); }}
+                className={creating ? "border-accent text-accent bg-accent/15" : ""}
+              >
+                <FolderPlus aria-hidden className="size-3.5" /> Create…
+              </Button>
+              <Button
+                aria-pressed={cloning}
+                onClick={() => { setCreating(false); setCloning((prev) => !prev); }}
+                className={cloning ? "border-accent text-accent bg-accent/15" : ""}
+              >
+                <Download aria-hidden className="size-3.5" /> Clone…
+              </Button>
+              <Button variant="primary" onClick={handleAdd}>
+                <FolderOpen aria-hidden className="size-3.5" /> Add existing…
+              </Button>
+            </div>
+          )}
+        </header>
 
-      <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-4 px-6 sm:px-8 pb-6">
-        {/* Action Header Card — Shown only when repositories exist */}
         {(repositories.data?.length ?? 0) > 0 && (
           <>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-border/80 bg-elevated/40 p-4 shadow-sm backdrop-blur-xs">
-              <div>
-                <div className="flex items-center gap-2">
-                  <FolderGit2 className="size-4 text-accent" />
-                  <h3 className="font-semibold text-sm text-fg">Repositories Registry</h3>
-                  <span className="rounded-full bg-elevated border border-border px-2 py-0.5 font-mono text-2xs text-fg-muted">
-                    {repositories.data?.length ?? 0} total
-                  </span>
-                </div>
-                <p className="mt-1 text-xs text-fg-muted">
-                  Add local repositories, clone remote repositories, or initialize new Git projects.
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  onClick={() => { setCloning(false); setCreating((prev) => !prev); }}
-                  className={creating ? "border-accent text-accent bg-accent/15" : ""}
-                >
-                  <FolderPlus aria-hidden className="size-3.5 text-accent" /> Create…
-                </Button>
-                <Button
-                  onClick={() => { setCreating(false); setCloning((prev) => !prev); }}
-                  className={cloning ? "border-accent text-accent bg-accent/15" : ""}
-                >
-                  <Download aria-hidden className="size-3.5" /> Clone…
-                </Button>
-                <Button variant="primary" onClick={handleAdd}>
-                  <FolderOpen aria-hidden className="size-3.5" /> Add existing…
-                </Button>
-              </div>
-            </div>
-
             <label className="flex h-10 items-center gap-2.5 rounded-lg border border-border/70 bg-canvas/60 px-3 transition-all focus-within:border-accent focus-within:bg-canvas focus-within:ring-1 focus-within:ring-accent/30">
               <Search aria-hidden className="size-3.5 text-fg-muted" />
               <span className="sr-only">Search repositories</span>
@@ -304,7 +298,7 @@ export function RepositoriesView() {
         )}
 
         {visible.length > 0 && (
-          <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border/80 bg-elevated/30 shadow-sm backdrop-blur-xs">
+          <div className="min-h-0 overflow-y-auto rounded-xl border border-border/80 bg-elevated/30 shadow-sm">
             <ul className="divide-y divide-divider/60">
               {visible.map((entry: RepositoryEntry) => (
                 <RepositoryRow

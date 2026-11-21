@@ -58,7 +58,8 @@ export const usePreferences = create<PreferencesState>()(
   persist(
     (set) => ({
       personality: "quiet",
-      motion: "full",
+      // Follow the OS reduce-motion setting until the user picks otherwise.
+      motion: "system",
       zoom: "thread",
       pullMode: "ff_only",
       activityOpen: false,
@@ -101,7 +102,7 @@ export const usePreferences = create<PreferencesState>()(
         return {
           ...current,
           personality: stored.personality === "deep" ? "deep" : "quiet",
-          motion: stored.motion === "reduce" ? "reduce" : stored.motion === "system" ? "system" : "full",
+          motion: stored.motion === "reduce" ? "reduce" : stored.motion === "full" ? "full" : "system",
           zoom: stored.zoom === "map" ? "map" : "thread",
           pullMode: stored.pullMode === "merge" || stored.pullMode === "rebase" ? stored.pullMode : "ff_only",
           activityOpen: stored.activityOpen === true,

@@ -53,6 +53,12 @@ describe("preferences", () => {
     expect(root.dataset.motion).toBe("full");
   });
 
+  it("follows the system motion setting unless one was chosen", async () => {
+    localStorage.setItem("rustgit.preferences", JSON.stringify({ state: {}, version: 3 }));
+    await usePreferences.persist.rehydrate();
+    expect(usePreferences.getState().motion).toBe("system");
+  });
+
   it("persists and restores the full motion setting", async () => {
     usePreferences.getState().setMotion("full");
     const stored = JSON.parse(localStorage.getItem("rustgit.preferences") ?? "{}") as {

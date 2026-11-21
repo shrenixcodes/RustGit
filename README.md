@@ -4,9 +4,10 @@
 
 A lightweight, cross-platform Git desktop client built with Rust and Tauri.
 
-> **Status: 0.1.0, first release.** Installers for Windows, macOS and Linux
-> are on the [releases page](https://github.com/shrenixcodes/RustGit/releases).
-> They are not code-signed yet, so your OS will warn on first launch.
+> **Status: 0.3.1.** Installers for Windows, macOS and Linux are on the
+> [releases page](https://github.com/shrenixcodes/RustGit/releases). They are
+> not code-signed yet, so your OS will warn on first launch. RustGit checks
+> the releases page for newer versions and can download and run the installer.
 
 ## Features
 
@@ -24,8 +25,15 @@ A lightweight, cross-platform Git desktop client built with Rust and Tauri.
 - **Compare:** commits on each side and changed files between any two
   branches, tags or commits.
 - **Sync:** fetch, pull (fast-forward, merge or rebase), push and publish,
-  with Git's own progress and cancel; clone. Authentication goes through
-  Git's credential helper; RustGit never stores passwords or tokens.
+  with Git's own progress and cancel; clone. Git authentication goes
+  through Git's credential helper; RustGit never stores Git passwords.
+- **GitHub:** sign in with the device flow or a personal access token, or
+  reuse a token from the GitHub CLI, GitHub Desktop or Git Credential
+  Manager. Pick one of your repositories to clone, or create a repository on
+  GitHub and publish a local one to it. On Windows and macOS the token is
+  kept in the system credential store (Credential Manager, Keychain).
+- **New repositories:** create one with an optional README, `.gitignore`
+  template and license.
 - **Remotes, stash and worktrees:** manage all three from the app.
 - **Everywhere:** command palette (`Ctrl/Cmd+K`), full keyboard shortcuts
   (`?`), dark and light themes, live updates when files change on disk, and
@@ -34,8 +42,7 @@ A lightweight, cross-platform Git desktop client built with Rust and Tauri.
 RustGit drives the Git CLI with explicit arguments (no shell). Credentials
 in URLs are redacted from errors and from the command log.
 
-Not yet supported: GitHub sign-in and pull requests, interactive rebase,
-submodules, Git LFS.
+Not yet supported: pull requests, interactive rebase, submodules, Git LFS.
 
 ## Technology
 

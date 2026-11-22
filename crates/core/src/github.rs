@@ -131,21 +131,33 @@ impl Http for UreqHttp {
         token: &str,
         body: Option<&str>,
     ) -> Result<(u16, String), GithubError> {
-        let authorization: String = format!("Bearer {token}");
+        // An empty token means an anonymous request (e.g. the public release
+        // check). Sending `Authorization: Bearer ` with nothing after it makes
+        // GitHub answer 401, so the header is only added when there is a token.
+        let authorization: Option<String> =
+            (!token.trim().is_empty()).then(|| format!("Bearer {}", token.trim()));
         let response = match (method, body) {
-            ("POST", Some(body)) => self
-                .agent
-                .post(url)
-                .header("Authorization", &authorization)
-                .header("Accept", "application/vnd.github+json")
-                .header("Content-Type", "application/json")
-                .send(body),
-            _ => self
-                .agent
-                .get(url)
-                .header("Authorization", &authorization)
-                .header("Accept", "application/vnd.github+json")
-                .call(),
+            ("POST", Some(body)) => {
+                let mut request = self
+                    .agent
+                    .post(url)
+                    .header("Accept", "application/vnd.github+json")
+                    .header("Content-Type", "application/json");
+                if let Some(authorization) = &authorization {
+                    request = request.header("Authorization", authorization);
+                }
+                request.send(body)
+            }
+            _ => {
+                let mut request = self
+                    .agent
+                    .get(url)
+                    .header("Accept", "application/vnd.github+json");
+                if let Some(authorization) = &authorization {
+                    request = request.header("Authorization", authorization);
+                }
+                request.call()
+            }
         }
         .map_err(|error| GithubError::Network(error.to_string()))?;
         read_body(response)

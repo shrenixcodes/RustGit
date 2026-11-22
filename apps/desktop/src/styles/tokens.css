@@ -64,13 +64,14 @@
   --rg-diff-del-bg: rgb(235 127 122 / 0.12);
   --rg-diff-del-marker: rgb(235 127 122 / 0.3);
 
-  /* Lineage lanes: lane 0 is the current branch's first-parent line. */
+  /* Lineage lanes: lane 0 is the current branch's first-parent line. Clay
+   * and red come last so side branches rarely share HEAD's clay marker. */
   --rg-lane-0: #baa5d8;
   --rg-lane-1: #e6bd67;
   --rg-lane-2: #65c48b;
-  --rg-lane-3: #eb7f7a;
-  --rg-lane-4: #8bbaf5;
-  --rg-lane-5: #df92c9;
+  --rg-lane-3: #8bbaf5;
+  --rg-lane-4: #df92c9;
+  --rg-lane-5: #eb7f7a;
 }
 
 /* Deep workspace: darker charcoal surfaces for history and investigation. */
@@ -104,9 +105,9 @@
   --rg-lane-0: #baa5d8;
   --rg-lane-1: #e6bd67;
   --rg-lane-2: #65c48b;
-  --rg-lane-3: #eb7f7a;
-  --rg-lane-4: #8bbaf5;
-  --rg-lane-5: #df92c9;
+  --rg-lane-3: #8bbaf5;
+  --rg-lane-4: #df92c9;
+  --rg-lane-5: #eb7f7a;
 }
 
 :root[data-theme="light"] {
@@ -162,11 +163,11 @@
   --rg-diff-del-marker: rgb(179 56 44 / 0.22);
 
   --rg-lane-0: #2c593f;
-  --rg-lane-1: #b8432a;
-  --rg-lane-2: #4a4d7a;
-  --rg-lane-3: #8a5814;
-  --rg-lane-4: #355375;
-  --rg-lane-5: #6d4263;
+  --rg-lane-1: #4a4d7a;
+  --rg-lane-2: #8a5814;
+  --rg-lane-3: #355375;
+  --rg-lane-4: #6d4263;
+  --rg-lane-5: #b8432a;
 }
 
 /* Workspace personalities (spacing). Quiet is the default. */

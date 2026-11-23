@@ -4,7 +4,7 @@
 
 A lightweight, cross-platform Git desktop client built with Rust and Tauri.
 
-> **Status: 0.3.2.** Installers for Windows, macOS and Linux are on the
+> **Status: 0.3.4.** Installers for Windows, macOS and Linux are on the
 > [releases page](https://github.com/shrenixcodes/RustGit/releases). They are
 > not code-signed yet, so your OS will warn on first launch. RustGit checks
 > the releases page for newer versions and can download and run the installer.

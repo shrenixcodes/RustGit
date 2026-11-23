@@ -40,10 +40,17 @@ describe("invalidateForChange", () => {
     ]);
   });
 
-  it("refreshes refs and remotes for config changes", () => {
+  it("refreshes commit identity, refs and remotes for config changes", () => {
     expect(invalidatedKeys(["config"])).toEqual([
+      ["repositories", 4, "commit-context"],
       ["repositories", 4, "refs"],
       ["repositories", 4, "remotes"],
     ]);
+  });
+
+  it("refreshes commit context only once when HEAD and config change together", () => {
+    expect(invalidatedKeys(["head", "config"]).filter(
+      (key) => JSON.stringify(key) === JSON.stringify(["repositories", 4, "commit-context"]),
+    )).toHaveLength(1);
   });
 });

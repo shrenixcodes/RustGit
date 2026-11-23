@@ -14,7 +14,7 @@ export function invalidateForChange(client: QueryClient, event: RepositoryChange
     void client.invalidateQueries({ queryKey: queryKeys.diffs(id) });
     void client.invalidateQueries({ queryKey: queryKeys.totals(id) });
   }
-  if (scopes.has("head")) {
+  if (scopes.has("head") || scopes.has("config")) {
     void client.invalidateQueries({ queryKey: queryKeys.commitContext(id) });
   }
   if (scopes.has("refs") || scopes.has("head")) {

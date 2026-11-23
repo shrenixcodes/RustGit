@@ -131,6 +131,7 @@ impl Http for UreqHttp {
         token: &str,
         body: Option<&str>,
     ) -> Result<(u16, String), GithubError> {
+        let token = token.trim();
         let response = match (method, body) {
             ("POST", Some(body)) => {
                 let mut request = self
@@ -534,7 +535,7 @@ mod tests {
         use std::io::{Read, Write};
         use std::net::TcpListener;
 
-        for token in ["", "test-token"] {
+        for token in ["", "  ", "test-token", "  test-token  "] {
             let listener = TcpListener::bind("127.0.0.1:0").expect("bind listener");
             let address = listener.local_addr().expect("listener address");
             let server = std::thread::spawn(move || {
@@ -554,9 +555,9 @@ mod tests {
             let request = server.join().expect("server").to_ascii_lowercase();
             assert_eq!(
                 request.contains("authorization: bearer test-token"),
-                !token.is_empty()
+                !token.trim().is_empty()
             );
-            if token.is_empty() {
+            if token.trim().is_empty() {
                 assert!(!request.contains("authorization:"));
             }
         }

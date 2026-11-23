@@ -74,7 +74,7 @@ pub struct GithubRepository {
 pub trait Http: Send + Sync {
     /// `POST` with a form body; returns the response body whatever the status.
     fn post_form(&self, url: &str, form: &[(&str, &str)]) -> Result<String, GithubError>;
-    /// Authenticated request; returns `(status, body)`.
+    /// API request; an empty token sends no authorization header. Returns `(status, body)`.
     fn api(
         &self,
         method: &str,
@@ -131,21 +131,28 @@ impl Http for UreqHttp {
         token: &str,
         body: Option<&str>,
     ) -> Result<(u16, String), GithubError> {
-        let authorization: String = format!("Bearer {token}");
         let response = match (method, body) {
-            ("POST", Some(body)) => self
-                .agent
-                .post(url)
-                .header("Authorization", &authorization)
-                .header("Accept", "application/vnd.github+json")
-                .header("Content-Type", "application/json")
-                .send(body),
-            _ => self
-                .agent
-                .get(url)
-                .header("Authorization", &authorization)
-                .header("Accept", "application/vnd.github+json")
-                .call(),
+            ("POST", Some(body)) => {
+                let mut request = self
+                    .agent
+                    .post(url)
+                    .header("Accept", "application/vnd.github+json")
+                    .header("Content-Type", "application/json");
+                if !token.is_empty() {
+                    request = request.header("Authorization", format!("Bearer {token}"));
+                }
+                request.send(body)
+            }
+            _ => {
+                let mut request = self
+                    .agent
+                    .get(url)
+                    .header("Accept", "application/vnd.github+json");
+                if !token.is_empty() {
+                    request = request.header("Authorization", format!("Bearer {token}"));
+                }
+                request.call()
+            }
         }
         .map_err(|error| GithubError::Network(error.to_string()))?;
         read_body(response)
@@ -521,6 +528,39 @@ mod tests {
     use std::collections::VecDeque;
 
     use super::*;
+
+    #[test]
+    fn api_sends_authorization_only_when_a_token_is_present() {
+        use std::io::{Read, Write};
+        use std::net::TcpListener;
+
+        for token in ["", "test-token"] {
+            let listener = TcpListener::bind("127.0.0.1:0").expect("bind listener");
+            let address = listener.local_addr().expect("listener address");
+            let server = std::thread::spawn(move || {
+                let (mut stream, _) = listener.accept().expect("accept request");
+                let mut request = [0; 4096];
+                let size = stream.read(&mut request).expect("read request");
+                stream
+                    .write_all(
+                        b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}",
+                    )
+                    .expect("write response");
+                String::from_utf8(request[..size].to_vec()).expect("UTF-8 request")
+            });
+            UreqHttp::default()
+                .api("GET", &format!("http://{address}/"), token, None)
+                .expect("request");
+            let request = server.join().expect("server").to_ascii_lowercase();
+            assert_eq!(
+                request.contains("authorization: bearer test-token"),
+                !token.is_empty()
+            );
+            if token.is_empty() {
+                assert!(!request.contains("authorization:"));
+            }
+        }
+    }
 
     struct Scripted {
         replies: std::sync::Mutex<VecDeque<String>>,

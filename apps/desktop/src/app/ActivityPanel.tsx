@@ -199,7 +199,7 @@ function CommandsView() {
                 type="button"
                 onClick={() => copyCommand(record.sequence, cmdStr)}
                 title={isCopied ? "Copied command" : "Copy command"}
-                className="opacity-0 group-hover:opacity-100 rounded p-1 text-fg-muted hover:bg-hover hover:text-fg transition-opacity"
+                className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 rounded p-1 text-fg-muted hover:bg-hover hover:text-fg transition-opacity"
               >
                 {isCopied ? <Check className="size-3 text-success" /> : <Copy className="size-3" />}
               </button>

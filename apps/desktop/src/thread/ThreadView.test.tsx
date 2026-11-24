@@ -150,6 +150,19 @@ describe("the thread", () => {
     await waitFor(() => expect(useWorkspace.getState().focus).toBe(commitNode(OID("dd44"))));
   });
 
+  it("opens the next commit fresh instead of reusing the previous fold's state", async () => {
+    renderWithClient(<ThreadView repositoryId={1} />);
+    await userEvent.click(await screen.findByRole("treeitem", { name: /^Add feature/ }));
+    const first: HTMLElement = await screen.findByRole("group", { name: `Commit ${OID("cc33").slice(0, 7)} unfolded` });
+    await within(first).findByText("Why it changed.");
+    await userEvent.click(within(first).getByTitle("src/lib.rs"));
+    expect(within(first).getByTitle("src/lib.rs").getAttribute("aria-expanded")).toBe("true");
+    await userEvent.click(screen.getByRole("treeitem", { name: /^Fix main/ }));
+    const second: HTMLElement = await screen.findByRole("group", { name: `Commit ${OID("bb22").slice(0, 7)} unfolded` });
+    await within(second).findByText("Why it changed.");
+    expect(within(second).getByTitle("src/lib.rs").getAttribute("aria-expanded")).toBe("false");
+  });
+
   it("moves along the thread with the keyboard and folds with Escape", async () => {
     renderWithClient(<ThreadView repositoryId={1} />);
     const tree: HTMLElement = await screen.findByRole("tree", { name: "Thread" });

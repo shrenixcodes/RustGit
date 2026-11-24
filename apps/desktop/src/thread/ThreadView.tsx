@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { ChevronRight } from "lucide-react";
 import { OpenNode } from "../components/Mark";
 import { useLogPages, useRefs, useRepositoryStatus, type LogFilters } from "../services/queries";
@@ -27,6 +27,8 @@ const MAP_PREFETCH = 3_000;
 const LANE = laneWidthFor(0);
 /** Content starts at the same x in every row, after the graph column. */
 const CONTENT_LEFT = 72;
+/** Height of a commit fold before its content has been measured. */
+const DEFAULT_COMMIT_FOLD_HEIGHT = 360;
 
 type ThreadRowModel =
   | { kind: "now"; id: NodeId }
@@ -129,7 +131,14 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
 
   // Unfolding geometry.
   const [viewportHint, setViewportHint] = useState<number>(800);
-  const [measuredCommitHeight, setMeasuredCommitHeight] = useState<number>(360);
+  // Measured per node, so another commit's height never applies to the one being opened.
+  const [measured, setMeasured] = useState<{ node: NodeId | null; height: number }>({ node: null, height: DEFAULT_COMMIT_FOLD_HEIGHT });
+  const measuredCommitHeight: number = measured.node === unfolded ? measured.height : DEFAULT_COMMIT_FOLD_HEIGHT;
+  const onCommitFoldHeight = useCallback(
+    (height: number): void =>
+      setMeasured((current) => (current.node === unfolded && current.height === height ? current : { node: unfolded, height })),
+    [unfolded],
+  );
   const unfoldedIndex: number = unfolded === null ? -1 : (indexById.get(unfolded) ?? -1);
   const unfoldedRow: ThreadRowModel | undefined = rows[unfoldedIndex];
   const unfoldHeight: number =
@@ -327,6 +336,8 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
 
           {unfoldedRow !== undefined && unfolding !== null && (
             <div
+              // A new node gets a fresh fold: its own state, and the unfold animation.
+              key={unfoldedRow.id}
               role="group"
               aria-label={unfoldedRow.kind === "now" ? "Uncommitted changes" : `Commit ${unfoldedRow.commit.oid.slice(0, 7)} unfolded`}
               style={{ position: "absolute", top: (unfolding.after + 1) * rowHeight, height: unfolding.height, left: 0, right: 0 }}
@@ -354,7 +365,7 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
                   currentBranch={currentBranch}
                   height={unfolding.height}
                   onGoTo={goTo}
-                  onHeightChange={setMeasuredCommitHeight}
+                  onHeightChange={onCommitFoldHeight}
                 />
               )}
             </div>

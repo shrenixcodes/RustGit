@@ -64,6 +64,15 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
   const composer: CommitComposer = useCommitComposer(repositoryId, status);
   const container = useRef<HTMLDivElement>(null);
   const summaryInput = useRef<HTMLInputElement>(null);
+  // "c" may be pressed far down the thread, where the summary row is not
+  // mounted yet: focus it once the scroll back to the top has rendered it.
+  const focusSummaryPending = useRef<boolean>(false);
+  useEffect(() => {
+    if (focusSummaryPending.current && summaryInput.current !== null) {
+      focusSummaryPending.current = false;
+      summaryInput.current.focus();
+    }
+  });
 
   const [debounced, setDebounced] = useState<string>(search.trim());
   useEffect(() => {
@@ -256,7 +265,8 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
         break;
       case "c":
         setFocus(LOOSE_END);
-        summaryInput.current?.focus();
+        if (summaryInput.current !== null) summaryInput.current.focus();
+        else focusSummaryPending.current = true;
         break;
       default:
         return;

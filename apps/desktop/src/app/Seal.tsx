@@ -167,7 +167,7 @@ export function Seal() {
                 }
               }}
               placeholder="Search commits"
-              title="Search commits by message or ID"
+              title="Search commits by message or ID. Narrow with author:name, since:YYYY-MM-DD, until:YYYY-MM-DD or branch:name"
               className="h-5 min-w-0 flex-1 bg-transparent font-sans text-xs text-fg outline-none placeholder:text-fg-muted"
             />
             {search === "" ? (

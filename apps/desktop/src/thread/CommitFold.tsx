@@ -25,12 +25,14 @@ interface CommitFoldProps {
   head: HeadState | undefined;
   currentBranch: string | null;
   height: number;
+  /** Left padding that clears the graph lanes running through the fold. */
+  inset: number;
   onGoTo: (oid: string) => void;
   onHeightChange?: (height: number) => void;
 }
 
 /** A commit unfolded in place: everything about it, under its own row. */
-export function CommitFold({ repositoryId, oid, refs, head, currentBranch, height, onGoTo, onHeightChange }: CommitFoldProps) {
+export function CommitFold({ repositoryId, oid, refs, head, currentBranch, height, inset, onGoTo, onHeightChange }: CommitFoldProps) {
   const details = useCommitDetails(repositoryId, oid);
   const operation = useBranchOperation(repositoryId);
   const [openFiles, setOpenFiles] = useState<ReadonlySet<string>>(new Set());
@@ -71,7 +73,7 @@ export function CommitFold({ repositoryId, oid, refs, head, currentBranch, heigh
   };
 
   return (
-    <div style={{ height }} className="overflow-y-auto pr-4 sm:pr-6 pb-5 pl-8 sm:pl-10">
+    <div style={{ height, paddingLeft: inset }} className="overflow-y-auto pr-4 sm:pr-6 pb-5">
       {details.isPending && <p className="py-4 text-xs font-mono text-fg-muted">Reading commit…</p>}
       {details.isError && <ErrorNotice title="Could not read commit" error={details.error} />}
       {details.data !== undefined && (

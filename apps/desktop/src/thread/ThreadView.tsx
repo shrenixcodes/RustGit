@@ -355,6 +355,7 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
                   currentBranch={currentBranch}
                   dirty={dirty}
                   height={unfolding.height}
+                  inset={Math.max(CONTENT_LEFT, graphWidth + 4)}
                 />
               ) : (
                 <CommitFold
@@ -364,6 +365,7 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
                   head={head}
                   currentBranch={currentBranch}
                   height={unfolding.height}
+                  inset={Math.max(40, graphWidth + 4)}
                   onGoTo={goTo}
                   onHeightChange={onCommitFoldHeight}
                 />

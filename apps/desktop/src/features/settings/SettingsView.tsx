@@ -40,6 +40,8 @@ export function SettingsView() {
   const setPersonality = usePreferences((state) => state.setPersonality);
   const motion: MotionPreference = usePreferences((state) => state.motion);
   const setMotion = usePreferences((state) => state.setMotion);
+  const autoFetch: boolean = usePreferences((state) => state.autoFetch);
+  const setAutoFetch = usePreferences((state) => state.setAutoFetch);
   const [copiedExec, setCopiedExec] = useState(false);
 
   const copyExecPath = (path: string) => {
@@ -119,6 +121,21 @@ export function SettingsView() {
                 </span>
               )}
             </h3>
+
+            <Setting
+              label="Background fetch"
+              description="Fetch the open repository's remotes every 5 minutes while RustGit is visible. It never asks for credentials; a failed fetch is only noted in Activity."
+            >
+              <label className="flex items-center gap-2 text-xs text-fg-secondary cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={autoFetch}
+                  onChange={(event) => setAutoFetch(event.target.checked)}
+                  className="rounded border-border text-accent focus:ring-accent"
+                />
+                <span>Fetch automatically</span>
+              </label>
+            </Setting>
 
             <Setting label="Git" description="RustGit runs the Git executable found on PATH.">
               {gitInfo.isPending && <p className="text-xs text-fg-muted font-mono">Detecting Git…</p>}

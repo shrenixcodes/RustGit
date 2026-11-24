@@ -38,7 +38,10 @@ export interface PreferencesState {
   zoom: Zoom;
   pullMode: PullPreference;
   activityOpen: boolean;
+  /** Fetch the open repository's remotes in the background every few minutes. */
+  autoFetch: boolean;
   sizes: Record<PanelId, number>;
+  setAutoFetch: (autoFetch: boolean) => void;
   setPersonality: (personality: Personality) => void;
   togglePersonality: () => void;
   setMotion: (motion: MotionPreference) => void;
@@ -63,7 +66,9 @@ export const usePreferences = create<PreferencesState>()(
       zoom: "thread",
       pullMode: "ff_only",
       activityOpen: false,
+      autoFetch: true,
       sizes: { activity: PANEL_LIMITS.activity.initial },
+      setAutoFetch: (autoFetch: boolean) => set({ autoFetch }),
       setPersonality: (personality: Personality) => set({ personality }),
       togglePersonality: () => set((state) => ({ personality: state.personality === "quiet" ? "deep" : "quiet" })),
       setMotion: (motion: MotionPreference) => set({ motion }),
@@ -91,6 +96,7 @@ export const usePreferences = create<PreferencesState>()(
         zoom: state.zoom,
         pullMode: state.pullMode,
         activityOpen: state.activityOpen,
+        autoFetch: state.autoFetch,
         sizes: state.sizes,
       }),
       // Stored values are validated so corrupted or outdated data cannot break the layout.
@@ -106,6 +112,8 @@ export const usePreferences = create<PreferencesState>()(
           zoom: stored.zoom === "map" ? "map" : "thread",
           pullMode: stored.pullMode === "merge" || stored.pullMode === "rebase" ? stored.pullMode : "ff_only",
           activityOpen: stored.activityOpen === true,
+          // On unless turned off (older stored preferences have no value).
+          autoFetch: stored.autoFetch !== false,
           sizes: {
             activity:
               typeof activity === "number" && Number.isFinite(activity)

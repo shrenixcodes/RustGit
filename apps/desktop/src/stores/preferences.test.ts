@@ -53,6 +53,15 @@ describe("preferences", () => {
     expect(root.dataset.motion).toBe("full");
   });
 
+  it("fetches automatically unless it was turned off", async () => {
+    localStorage.setItem("rustgit.preferences", JSON.stringify({ state: {}, version: 3 }));
+    await usePreferences.persist.rehydrate();
+    expect(usePreferences.getState().autoFetch).toBe(true);
+    localStorage.setItem("rustgit.preferences", JSON.stringify({ state: { autoFetch: false }, version: 3 }));
+    await usePreferences.persist.rehydrate();
+    expect(usePreferences.getState().autoFetch).toBe(false);
+  });
+
   it("follows the system motion setting unless one was chosen", async () => {
     localStorage.setItem("rustgit.preferences", JSON.stringify({ state: {}, version: 3 }));
     await usePreferences.persist.rehydrate();

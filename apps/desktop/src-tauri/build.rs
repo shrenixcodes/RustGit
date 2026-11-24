@@ -70,6 +70,7 @@ const COMMANDS: &[&str] = &[
     "github_sign_out",
     "github_list_repositories",
     "github_create_repository",
+    "open_github_page",
 ];
 
 fn main() {

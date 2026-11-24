@@ -22,6 +22,7 @@
     "allow-set-theme",
     "allow-check-for-update",
     "allow-install-update",
+    "allow-open-github-page",
     "allow-list-repositories",
     "allow-add-repository",
     "allow-init-repository",

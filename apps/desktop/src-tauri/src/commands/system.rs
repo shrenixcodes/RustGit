@@ -56,10 +56,57 @@ pub async fn check_for_update(state: State<'_, AppState>) -> CommandResult<Updat
     .await
 }
 
+/// Opens a github.com page (device sign-in, a release) in the default browser.
+/// Anything else is refused, so the webview cannot launch arbitrary programs.
 #[tauri::command]
-pub async fn install_update(download_url: String, asset_name: String) -> CommandResult<()> {
+pub fn open_github_page(url: String) -> CommandResult<()> {
+    let safe: bool = url.starts_with("https://github.com/")
+        && !url
+            .chars()
+            .any(|c: char| c.is_whitespace() || c.is_control() || c == '"');
+    if !safe {
+        return Err(CommandError::new(
+            ErrorKind::InvalidRequest,
+            "only github.com pages can be opened",
+        ));
+    }
+    #[cfg(target_os = "windows")]
+    let mut command = {
+        let mut command = std::process::Command::new("rundll32");
+        command.args(["url.dll,FileProtocolHandler", url.as_str()]);
+        command
+    };
+    #[cfg(target_os = "macos")]
+    let mut command = {
+        let mut command = std::process::Command::new("open");
+        command.arg(&url);
+        command
+    };
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    let mut command = {
+        let mut command = std::process::Command::new("xdg-open");
+        command.arg(&url);
+        command
+    };
+    command
+        .spawn()
+        .map(|_| ())
+        .map_err(|error: std::io::Error| {
+            CommandError::new(
+                ErrorKind::Internal,
+                format!("could not open the browser: {error}"),
+            )
+        })
+}
+
+#[tauri::command]
+pub async fn install_update(
+    download_url: String,
+    asset_name: String,
+    asset_digest: Option<String>,
+) -> CommandResult<()> {
     blocking(move || {
-        apply_update(&download_url, &asset_name)
+        apply_update(&download_url, &asset_name, asset_digest.as_deref())
             .map_err(|e| CommandError::new(ErrorKind::Internal, e.to_string()))
     })
     .await

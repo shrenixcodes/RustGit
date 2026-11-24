@@ -78,6 +78,7 @@ pub fn run() {
             commands::system::set_theme,
             commands::system::check_for_update,
             commands::system::install_update,
+            commands::system::open_github_page,
             commands::repositories::list_repositories,
             commands::repositories::add_repository,
             commands::repositories::init_repository,

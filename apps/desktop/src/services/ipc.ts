@@ -271,6 +271,8 @@ export const ipc = {
 
   // System & Updater
   checkForUpdate: (): Promise<UpdateCheckResult> => call("check_for_update"),
-  installUpdate: (downloadUrl: string, assetName: string): Promise<void> =>
-    call("install_update", { downloadUrl, assetName }),
+  installUpdate: (downloadUrl: string, assetName: string, assetDigest: string | null): Promise<void> =>
+    call("install_update", { downloadUrl, assetName, assetDigest }),
+  /** Opens a github.com page in the default browser; other addresses are refused. */
+  openGithubPage: (url: string): Promise<void> => call("open_github_page", { url }),
 } as const;

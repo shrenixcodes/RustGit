@@ -140,8 +140,32 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
   const fileRows: number[] = useMemo(() => rows.flatMap((row, index) => (row.kind === "file" ? [index] : [])), [rows]);
   const { start, end, totalHeight, ensureVisible } = useVirtualRows(container, rows.length, DIFF_ROW, 16);
 
-  // Line selections refer to line indices of a specific diff: drop them when diffs change.
-  useEffect(() => setSelection(new Map()), [rows]);
+  // Line selections refer to line indices of a specific diff: drop the ones
+  // whose diff was re-read (or is no longer shown). Layout changes keep them.
+  const diffVersions: string = requests
+    .flatMap((request) => request.sides.map((side) => `${request.path}\u0000${side}`))
+    .map((key, index) => `${key}\u0000${results[index]?.dataUpdatedAt ?? 0}`)
+    .join("\u0001");
+  const seenVersions = useRef<string>(diffVersions);
+  useEffect(() => {
+    if (seenVersions.current === diffVersions) return;
+    const current: Set<string> = new Set(diffVersions.split("\u0001"));
+    const previous: Set<string> = new Set(seenVersions.current.split("\u0001"));
+    seenVersions.current = diffVersions;
+    const unchanged: Set<string> = new Set();
+    for (const entry of current) {
+      if (previous.has(entry)) unchanged.add(entry.slice(0, entry.lastIndexOf("\u0000")));
+    }
+    setSelection((selected) => {
+      const kept: Map<string, ReadonlySet<number>> = new Map();
+      for (const [key, lines] of selected) {
+        if (unchanged.has(key.slice(0, key.lastIndexOf("\u0000")))) kept.set(key, lines);
+      }
+      return kept.size === selected.size ? selected : kept;
+    });
+  }, [diffVersions]);
+  /** Last line clicked, the anchor for Shift-click range selection. */
+  const anchor = useRef<{ key: string; lineIndex: number } | null>(null);
 
   const diffFor = (path: string, side: WorkingDiffSide): FileDiff | undefined =>
     diffsByPath.get(path)?.diffs.find((diff) => diff.side === side);
@@ -164,13 +188,20 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
 
   const hunkKey = (path: string, side: WorkingDiffSide, hunkIndex: number): string => `${path}\u0000${side}\u0000${hunkIndex}`;
 
-  const toggleLine = (path: string, side: WorkingDiffSide, hunkIndex: number, lineIndex: number): void => {
+  const toggleLine = (path: string, side: WorkingDiffSide, hunkIndex: number, lineIndex: number, extend: boolean = false): void => {
     if (!lineSelectable(path, side)) return;
     const key: string = hunkKey(path, side, hunkIndex);
+    const from = anchor.current;
+    const lines = diffFor(path, side)?.hunks[hunkIndex]?.lines ?? [];
+    anchor.current = { key, lineIndex };
     setSelection((current) => {
       const next: Map<string, ReadonlySet<number>> = new Map(current);
       const set: Set<number> = new Set(next.get(key) ?? []);
-      if (set.has(lineIndex)) set.delete(lineIndex);
+      if (extend && from !== null && from.key === key) {
+        // Shift-click selects every changed line between the anchor and this one.
+        const [low, high] = from.lineIndex <= lineIndex ? [from.lineIndex, lineIndex] : [lineIndex, from.lineIndex];
+        for (let index = low; index <= high; index += 1) if (lines[index] !== undefined && lines[index]?.kind !== "context") set.add(index);
+      } else if (set.has(lineIndex)) set.delete(lineIndex);
       else set.add(lineIndex);
       if (set.size === 0) next.delete(key);
       else next.set(key, set);
@@ -277,6 +308,7 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
       case "Escape":
         if (selection.size === 0) return; // let the thread fold the loose end
         setSelection(new Map());
+        anchor.current = null;
         break;
       default:
         return;
@@ -583,7 +615,7 @@ interface StreamRowViewProps {
   onToggleExpanded: (path: string) => void;
   onToggleStage: (file: FileStatus) => void;
   onDiscardFile: (file: FileStatus) => void;
-  onToggleLine: (path: string, side: WorkingDiffSide, hunkIndex: number, lineIndex: number) => void;
+  onToggleLine: (path: string, side: WorkingDiffSide, hunkIndex: number, lineIndex: number, extend: boolean) => void;
   onHunk: (path: string, side: WorkingDiffSide, hunkIndex: number, action: HunkAction) => void;
 }
 
@@ -651,7 +683,7 @@ function StreamRowView(props: StreamRowViewProps): ReactNode {
         refLine={canvas}
         selected={chosen?.has(canvas.lineIndex) === true}
         selectable={selectable && canvas.line.kind !== "context"}
-        onToggle={() => props.onToggleLine(path, canvas.side, canvas.hunkIndex, canvas.lineIndex)}
+        onToggle={(extend) => props.onToggleLine(path, canvas.side, canvas.hunkIndex, canvas.lineIndex, extend)}
       />
     );
   }
@@ -661,14 +693,14 @@ function StreamRowView(props: StreamRowViewProps): ReactNode {
         refLine={canvas.left}
         selected={canvas.left !== null && chosen?.has(canvas.left.lineIndex) === true}
         selectable={canvas.left !== null && canvas.left.line.kind !== "context" && selectable}
-        onToggle={() => canvas.left !== null && props.onToggleLine(path, canvas.side, canvas.hunkIndex, canvas.left.lineIndex)}
+        onToggle={(extend) => canvas.left !== null && props.onToggleLine(path, canvas.side, canvas.hunkIndex, canvas.left.lineIndex, extend)}
         side="old"
       />
       <SplitHalf
         refLine={canvas.right}
         selected={canvas.right !== null && canvas.right.line.kind !== "context" && chosen?.has(canvas.right.lineIndex) === true}
         selectable={canvas.right !== null && canvas.right.line.kind !== "context" && selectable}
-        onToggle={() => canvas.right !== null && props.onToggleLine(path, canvas.side, canvas.hunkIndex, canvas.right.lineIndex)}
+        onToggle={(extend) => canvas.right !== null && props.onToggleLine(path, canvas.side, canvas.hunkIndex, canvas.right.lineIndex, extend)}
         side="new"
       />
     </div>

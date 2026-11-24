@@ -129,6 +129,20 @@ describe("the thread", () => {
     );
   });
 
+  it("selects a range of lines with Shift-click and keeps it across diff layouts", async () => {
+    useWorkspace.setState({ unfolded: LOOSE_END });
+    renderWithClient(<ThreadView repositoryId={1} />);
+    const fold: HTMLElement = await screen.findByRole("group", { name: "Uncommitted changes" });
+    await within(fold).findByText("@@ -1 +1 @@ unstaged src/lib.rs");
+    // Lines of the not-staged diff follow the two lines of the staged one.
+    const lines = (): HTMLElement[] => [...fold.querySelectorAll<HTMLElement>("div[aria-selected]:not([role])")];
+    fireEvent.click(lines()[2] as HTMLElement);
+    fireEvent.click(lines()[3] as HTMLElement, { shiftKey: true });
+    expect(within(fold).getByRole("button", { name: "Stage 2 lines" })).toBeTruthy();
+    await userEvent.click(within(fold).getByRole("radio", { name: "Split" }));
+    expect(within(fold).getByRole("button", { name: "Stage 2 lines" })).toBeTruthy();
+  });
+
   it("commits from the loose end's own row, with the description from its fold", async () => {
     useWorkspace.setState({ unfolded: LOOSE_END });
     renderWithClient(<ThreadView repositoryId={1} />);

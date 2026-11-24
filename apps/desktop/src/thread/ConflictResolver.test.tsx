@@ -26,6 +26,7 @@ const versions: ConflictVersions = {
 
 let conflicted: boolean;
 let resolveKeepsConflict: boolean;
+let served: ConflictVersions;
 
 function status(): StatusSnapshot {
   const files: FileStatus[] = [{ path: "src/lib.rs", originalPath: null, staged: null, unstaged: "unmerged", conflicted }];
@@ -40,6 +41,7 @@ beforeEach(() => {
   useWorkspace.setState({ activeRepositoryId: 1, activeRepositoryPath: "D:/x", focus: LOOSE_END, unfolded: LOOSE_END, selectedChange: null });
   conflicted = true;
   resolveKeepsConflict = false;
+  served = versions;
   invokeMock.mockImplementation(async (command: string) => {
     switch (command) {
       case "repository_status":
@@ -53,7 +55,7 @@ beforeEach(() => {
       case "commit_context":
         return { authorName: "Ada", authorEmail: "a@x", signing: "off", head: null, inProgress: "merging" };
       case "conflict_versions":
-        return versions;
+        return served;
       case "resolve_conflict":
         if (!resolveKeepsConflict) conflicted = false;
         return status();
@@ -129,6 +131,18 @@ describe("conflict resolution", () => {
     );
     await userEvent.click(within(fold).getByRole("button", { name: "Take ours for the whole file" }));
     await waitFor(() => expect(invokeMock).toHaveBeenCalledWith("resolve_conflict", { id: 1, path: "src/lib.rs", content: null, take: "ours" }));
+  });
+
+  it("keeps a deletion by taking the side that removed the file", async () => {
+    served = { ...versions, ours: null };
+    const fold: HTMLElement = await openResolver();
+    await userEvent.click(within(fold).getByRole("button", { name: "Take ours: delete the file" }));
+    await waitFor(() => expect(invokeMock).toHaveBeenCalledWith("resolve_conflict", { id: 1, path: "src/lib.rs", content: null, take: "ours" }));
+  });
+
+  it("offers no skip during a merge, which has no steps", async () => {
+    const fold: HTMLElement = await openResolver();
+    expect(within(fold).queryByRole("button", { name: "Skip this commit…" })).toBeNull();
   });
 
   it("aborts the merge only after confirmation", async () => {

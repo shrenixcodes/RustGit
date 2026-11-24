@@ -254,6 +254,14 @@ pub async fn continue_operation(
 }
 
 #[tauri::command]
+pub async fn skip_operation(
+    state: State<'_, AppState>,
+    id: i64,
+) -> CommandResult<IntegrationResult> {
+    write(&state, id, rustgit_git_engine::skip_operation).await
+}
+
+#[tauri::command]
 pub async fn abort_operation(state: State<'_, AppState>, id: i64) -> CommandResult<StatusSnapshot> {
     write(&state, id, rustgit_git_engine::abort_operation).await
 }

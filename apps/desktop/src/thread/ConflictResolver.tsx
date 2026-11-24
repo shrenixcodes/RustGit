@@ -132,7 +132,7 @@ function Resolver({
   // Any change to the result clears an earlier "still conflicted" answer.
   useEffect(() => setStillConflicted(false), [result]);
 
-  const submit = (request: ConflictResolutionRequest): void => {
+  const submit = (request: ConflictResolutionRequest, onSettled?: () => void): void => {
     setStillConflicted(false);
     resolve.mutate(request, {
       onSuccess: (status: StatusSnapshot) => {
@@ -141,6 +141,7 @@ function Resolver({
         if (entry?.conflicted === true) setStillConflicted(true);
         else onResolved();
       },
+      onSettled: () => onSettled?.(),
     });
   };
 
@@ -181,11 +182,12 @@ function Resolver({
         </p>
         {ROLE_HINT[inProgress] !== undefined && <p className="text-xs text-fg-muted">{ROLE_HINT[inProgress]}</p>}
         <div className="flex flex-wrap items-center gap-2 pt-1">
-          <Button variant="ghost" disabled={resolve.isPending || versions.ours === null} onClick={() => submit({ path, take: "ours" })}>
-            Take ours for the whole file
+          {/* A side without the file deleted it: taking that side removes the file. */}
+          <Button variant="ghost" disabled={resolve.isPending} onClick={() => submit({ path, take: "ours" })}>
+            {versions.ours === null ? "Take ours: delete the file" : "Take ours for the whole file"}
           </Button>
-          <Button variant="ghost" disabled={resolve.isPending || versions.theirs === null} onClick={() => submit({ path, take: "theirs" })}>
-            Take theirs for the whole file
+          <Button variant="ghost" disabled={resolve.isPending} onClick={() => submit({ path, take: "theirs" })}>
+            {versions.theirs === null ? "Take theirs: delete the file" : "Take theirs for the whole file"}
           </Button>
           <span className="flex-1" />
           {!versions.binary && <SegmentedControl label="Conflict view" options={VIEWS} value={view} onChange={setView} />}

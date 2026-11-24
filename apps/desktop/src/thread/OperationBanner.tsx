@@ -23,6 +23,7 @@ export function OperationBanner({ repositoryId, status }: { repositoryId: number
   const [confirmAbort, setConfirmAbort] = useState<boolean>(false);
   const [outcome, setOutcome] = useState<BranchOutcome | null>(null);
   const [aborted, setAborted] = useState<boolean>(false);
+  const [confirmSkip, setConfirmSkip] = useState<boolean>(false);
   if (status.inProgress === "none" && outcome === null && !aborted) return null;
 
   const name: string = status.inProgress === "none" ? "operation" : NAMES[status.inProgress];
@@ -55,6 +56,16 @@ export function OperationBanner({ repositoryId, status }: { repositoryId: number
           >
             Continue the {name}
           </Button>
+          {status.inProgress !== "merging" && (
+            <Button
+              variant="secondary"
+              disabled={operation.isPending}
+              title="Leave this commit out and go on with the next one"
+              onClick={() => setConfirmSkip(true)}
+            >
+              Skip this commit…
+            </Button>
+          )}
           <Button variant="danger" disabled={operation.isPending} onClick={() => setConfirmAbort(true)}>
             Abort…
           </Button>
@@ -66,6 +77,26 @@ export function OperationBanner({ repositoryId, status }: { repositoryId: number
         <p role="status" className="text-sm text-success">
           Aborted. The branch and working tree are back to where they were before.
         </p>
+      )}
+      {confirmSkip && (
+        <ConfirmDialog
+          title="Skip this commit?"
+          confirmLabel="Skip commit"
+          destructive
+          busy={operation.isPending}
+          onCancel={() => setConfirmSkip(false)}
+          onConfirm={() => {
+            setOutcome(null);
+            setAborted(false);
+            operation.mutate({ kind: "skip" }, { onSuccess: setOutcome, onSettled: () => setConfirmSkip(false) });
+          }}
+        >
+          <p>
+            Git leaves the commit being replayed out of the {name} and moves on to the next one. Use this when resolving
+            the conflicts left nothing to commit, or when the change is not wanted. Changes made for this commit so far are
+            discarded.
+          </p>
+        </ConfirmDialog>
       )}
       {confirmAbort && (
         <ConfirmDialog

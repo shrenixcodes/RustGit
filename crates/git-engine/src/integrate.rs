@@ -230,6 +230,30 @@ pub fn continue_operation(git: &GitExecutor, root: &Path) -> GitResult<Integrati
     run_integration(git, root, args)
 }
 
+/// Skips the current step of an in-progress rebase, cherry-pick or revert,
+/// for example when resolving its conflicts left nothing to commit. A merge
+/// has no steps to skip.
+pub fn skip_operation(git: &GitExecutor, root: &Path) -> GitResult<IntegrationResult> {
+    let command: &str = match in_progress(git, root)? {
+        InProgress::None => {
+            return Err(GitError::InvalidRequest(
+                "no operation is in progress".to_owned(),
+            ));
+        }
+        InProgress::Merging => {
+            return Err(GitError::InvalidRequest(
+                "a merge cannot skip a step; continue or abort it".to_owned(),
+            ));
+        }
+        InProgress::Rebasing => "rebase",
+        InProgress::CherryPicking => "cherry-pick",
+        InProgress::Reverting => "revert",
+    };
+    let mut args: Vec<String> = owned(&NO_EDITOR);
+    args.extend(owned(&[command, "--skip"]));
+    run_integration(git, root, args)
+}
+
 /// Aborts the in-progress operation and restores the pre-operation state.
 pub fn abort_operation(git: &GitExecutor, root: &Path) -> GitResult<StatusSnapshot> {
     let command: &str = match in_progress(git, root)? {
@@ -386,6 +410,8 @@ pub fn resolve_conflict(
             "'{path}' has no conflict to resolve"
         )));
     }
+    // Removing a file with `git rm` already records the resolution.
+    let mut needs_add: bool = true;
     match (content, take) {
         (Some(content), None) => {
             let target = root.join(path);
@@ -393,15 +419,32 @@ pub fn resolve_conflict(
             std::fs::write(target, content)?
         }
         (None, Some(side)) => {
-            let flag: &str = match side {
-                ConflictSide::Ours => "--ours",
-                ConflictSide::Theirs => "--theirs",
+            let (flag, stage): (&str, &str) = match side {
+                ConflictSide::Ours => ("--ours", "2"),
+                ConflictSide::Theirs => ("--theirs", "3"),
             };
-            git.run(
-                root,
-                ["--literal-pathspecs", "checkout", flag, "--", path],
-                None,
-            )?;
+            // Each line is "<mode> <oid> <stage>\t<path>". A side without a
+            // stage deleted the file, so taking it means removing the file.
+            let side_exists: bool = unmerged.lines().any(|line: &str| {
+                line.split('\t')
+                    .next()
+                    .and_then(|meta: &str| meta.split(' ').nth(2))
+                    == Some(stage)
+            });
+            if side_exists {
+                git.run(
+                    root,
+                    ["--literal-pathspecs", "checkout", flag, "--", path],
+                    None,
+                )?;
+            } else {
+                git.run(
+                    root,
+                    ["--literal-pathspecs", "rm", "--quiet", "--", path],
+                    None,
+                )?;
+                needs_add = false;
+            }
         }
         _ => {
             return Err(GitError::InvalidRequest(
@@ -409,7 +452,9 @@ pub fn resolve_conflict(
             ));
         }
     }
-    git.run(root, ["--literal-pathspecs", "add", "--", path], None)?;
+    if needs_add {
+        git.run(root, ["--literal-pathspecs", "add", "--", path], None)?;
+    }
     let remaining: String = git.run_text(
         root,
         ["--literal-pathspecs", "ls-files", "--unmerged", "--", path],

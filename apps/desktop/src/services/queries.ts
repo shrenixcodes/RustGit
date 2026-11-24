@@ -455,6 +455,7 @@ export type BranchRequest =
   | { kind: "cherry_pick"; oid: string }
   | { kind: "revert"; oid: string }
   | { kind: "continue" }
+  | { kind: "skip" }
   | { kind: "abort" };
 
 export function describeBranchRequest(request: BranchRequest): string {
@@ -479,6 +480,8 @@ export function describeBranchRequest(request: BranchRequest): string {
       return `Revert ${request.oid.slice(0, 7)}`;
     case "continue":
       return "Continue operation";
+    case "skip":
+      return "Skip the current step";
     case "abort":
       return "Abort operation";
   }
@@ -520,6 +523,8 @@ export function useBranchOperation(repositoryId: number): UseMutationResult<Bran
           return { kind: "integration", result: await ipc.revertCommit(repositoryId, request.oid) };
         case "continue":
           return { kind: "integration", result: await ipc.continueOperation(repositoryId) };
+        case "skip":
+          return { kind: "integration", result: await ipc.skipOperation(repositoryId) };
         case "abort":
           return { kind: "status", status: await ipc.abortOperation(repositoryId) };
       }

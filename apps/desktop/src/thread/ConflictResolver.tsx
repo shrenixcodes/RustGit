@@ -156,7 +156,7 @@ function Resolver({
       const previous: BlockResolution | undefined = current.get(index);
       // "Edit" starts from what the block currently resolves to.
       const custom: string =
-        choice === "custom" ? (previous === undefined ? segment.ours + segment.theirs : resolveBlock(segment, previous)) : (previous?.custom ?? "");
+        choice === "custom" ? resolveBlock(segment, previous ?? { choice: "both", custom: "" }) : (previous?.custom ?? "");
       next.set(index, { choice, custom });
       return next;
     });
@@ -265,10 +265,7 @@ function Resolver({
           destructive
           busy={resolve.isPending}
           onCancel={() => setConfirmMarkers(null)}
-          onConfirm={() => {
-            submit({ path, content: confirmMarkers });
-            setConfirmMarkers(null);
-          }}
+          onConfirm={() => submit({ path, content: confirmMarkers }, () => setConfirmMarkers(null))}
         >
           <p>
             Git will accept the file as written, markers included, and they will be committed. Choose a side for each

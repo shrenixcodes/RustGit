@@ -7,7 +7,8 @@ import { ErrorNotice } from "../../components/ErrorNotice";
 import { Input } from "../../components/Input";
 import { PageHeader } from "../../components/PageHeader";
 import { useRepositoryStatus } from "../../services/queries";
-import { useStashDetails, useStashes, useStashOperation, type StashOutcome } from "../../services/repositoryQueries";
+import { useStashDetails, useStashes, useStashFileDiff, useStashOperation, type StashOutcome } from "../../services/repositoryQueries";
+import { ReadOnlyDiff } from "../../thread/CommitFold";
 import type { StashEntry, StashFile } from "../../services/types";
 import { useWorkspace } from "../../stores/workspace";
 
@@ -224,6 +225,8 @@ function StashList({ repositoryId }: { repositoryId: number }) {
 
 function StashFiles({ repositoryId, oid }: { repositoryId: number; oid: string }) {
   const details = useStashDetails(repositoryId, oid);
+  // One file's diff at a time, read only when asked for.
+  const [openPath, setOpenPath] = useState<string | null>(null);
   if (details.isPending) return <p className="pl-4 text-xs text-fg-muted">Reading the stash…</p>;
   if (details.isError) return <ErrorNotice title="Could not read the stash" error={details.error} />;
   return (
@@ -232,18 +235,36 @@ function StashFiles({ repositoryId, oid }: { repositoryId: number; oid: string }
         {details.data.files.length} file{details.data.files.length === 1 ? "" : "s"} in stash:
       </div>
       <ul aria-label="Files in the stash" className="space-y-1 rounded-lg border border-border/60 bg-canvas/60 p-2.5">
-        {details.data.files.map((file: StashFile) => (
-          <li key={file.path} className="flex items-center gap-2.5 py-0.5">
-            <FileCode className="size-3 text-fg-muted" />
-            <span className={`w-16 shrink-0 text-2xs font-semibold ${file.untracked ? "text-moss" : "text-accent"}`}>
-              {file.untracked ? "untracked" : file.kind}
-            </span>
-            <span data-selectable className="min-w-0 truncate text-fg-secondary">
-              {file.path}
-            </span>
-          </li>
-        ))}
+        {details.data.files.map((file: StashFile) => {
+          const open: boolean = openPath === file.path;
+          const Chevron = open ? ChevronDown : ChevronRight;
+          return (
+            <li key={file.path} className="py-0.5">
+              <button
+                type="button"
+                aria-expanded={open}
+                onClick={() => setOpenPath(open ? null : file.path)}
+                title={open ? "Hide the diff" : "Show the diff"}
+                className="flex w-full items-center gap-2.5 rounded text-left hover:bg-hover"
+              >
+                <Chevron aria-hidden className="size-3 shrink-0 text-fg-muted" />
+                <FileCode aria-hidden className="size-3 shrink-0 text-fg-muted" />
+                <span className={`w-16 shrink-0 text-2xs font-semibold ${file.untracked ? "text-moss" : "text-accent"}`}>
+                  {file.untracked ? "untracked" : file.kind}
+                </span>
+                <span data-selectable className="min-w-0 truncate text-fg-secondary">
+                  {file.path}
+                </span>
+              </button>
+              {open && <StashFileDiff repositoryId={repositoryId} oid={oid} path={file.path} />}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
+}
+
+function StashFileDiff({ repositoryId, oid, path }: { repositoryId: number; oid: string; path: string }) {
+  return <ReadOnlyDiff diff={useStashFileDiff(repositoryId, oid, path, 3)} />;
 }

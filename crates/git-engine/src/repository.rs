@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
+use crate::commit::ensure_identity;
 use crate::error::{GitError, GitResult};
 use crate::executor::GitExecutor;
 
@@ -108,6 +109,9 @@ pub fn license_text(spdx: &str, year: u32, author: &str) -> Option<String> {
         "bsd-3-clause" | "bsd" => Some(format!(
             "Copyright (c) {year}, {author}\nAll rights reserved.\n\nRedistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:\n\n1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.\n2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.\n3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.\n\nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES ARE DISCLAIMED.\n"
         )),
+        "gpl-3.0" | "gpl-3.0-or-later" | "gpl" => Some(format!(
+            "Copyright (C) {year} {author}\n\nThis program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.\n\nThis program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.\n\nYou should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.\n"
+        )),
         "unlicense" => Some(
             "This is free and unencumbered software released into the public domain.\n\nAnyone is free to copy, modify, publish, use, compile, sell, or distribute this software, either in source code form or as a compiled binary, for any purpose, commercial or non-commercial, and by any means.\n".to_owned()
         ),
@@ -121,7 +125,26 @@ pub fn init_with_options(
     path: &Path,
     options: &InitOptions,
 ) -> GitResult<RepositoryLocation> {
+    let wants_files: bool = options.readme
+        || options
+            .gitignore_template
+            .as_deref()
+            .and_then(gitignore_text)
+            .is_some()
+        || options
+            .license_template
+            .as_deref()
+            .is_some_and(|template: &str| license_text(template, 0, "").is_some());
+    let existed: bool = path.exists();
     std::fs::create_dir_all(path)?;
+    // Starter files are committed, which needs an identity: check before
+    // creating anything, so a missing one never leaves a half-made repository.
+    if wants_files && let Err(error) = ensure_identity(git, path) {
+        if !existed {
+            let _ = std::fs::remove_dir(path);
+        }
+        return Err(error);
+    }
     let branch = options.initial_branch.as_deref().unwrap_or("main");
     let branch_arg: String = format!("--initial-branch={branch}");
     git.run(path, ["init", branch_arg.as_str()], None)?;
@@ -184,10 +207,10 @@ pub fn init_with_options(
     }
 
     if !created_files.is_empty() {
-        for file in &created_files {
-            let _ = git.run(path, ["add", *file], None);
-        }
-        let _ = git.run(path, ["commit", "-m", "Initial commit"], None);
+        let mut args: Vec<&str> = vec!["--literal-pathspecs", "add", "--"];
+        args.extend(created_files.iter().copied());
+        git.run(path, args, None)?;
+        git.run(path, ["commit", "-m", "Initial commit"], None)?;
     }
 
     discover(git, path)

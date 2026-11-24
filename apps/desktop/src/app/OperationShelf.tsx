@@ -21,7 +21,10 @@ export function OperationShelf() {
   const network: NetworkOperation[] = runningOperations(networkOperations, null);
   const running: number = runningCount(operations);
   const current: OperationRecord | undefined = operations.find((record) => record.outcome === "running");
-  const last: OperationRecord | undefined = operations.find((record) => record.outcome !== "running");
+  // A failed automatic fetch stays in the Activity panel but does not take over the shelf.
+  const last: OperationRecord | undefined = operations.find(
+    (record) => record.outcome !== "running" && !(record.background && record.outcome === "failed"),
+  );
 
   return (
     <footer

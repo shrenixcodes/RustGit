@@ -530,7 +530,7 @@ background and reports through `operation-progress` and
 
 | Command | Arguments | Cancellable |
 | ------- | --------- | ----------- |
-| `start_fetch` | `{ id, remote: string \| null, prune: boolean }` (`null` = all remotes) | yes |
+| `start_fetch` | `{ id, remote: string \| null, prune: boolean, background?: boolean }` (`null` = all remotes; `background` never prompts for credentials) | yes |
 | `start_pull` | `{ id, mode: "ff_only" \| "merge" \| "rebase" }` | fetch phase only (afterwards `cancel_operation` returns `false`) |
 | `start_push` | `{ id, remote: string \| null, branch: string \| null, setUpstream: boolean, forceWithLease: boolean }` | no |
 | `start_delete_remote_branch` | `{ id, remote, branch }` | no |

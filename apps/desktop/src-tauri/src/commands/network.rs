@@ -86,6 +86,7 @@ fn start_repository_operation(
     id: i64,
     kind: OperationKind,
     token: CancelToken,
+    interactive: bool,
     work: OperationWork,
 ) -> OperationStarted {
     let operation_id: String = state.operations.start(token.clone());
@@ -93,7 +94,11 @@ fn start_repository_operation(
     tauri::async_runtime::spawn(async move {
         let state: State<'_, AppState> = app.state::<AppState>();
         let read_guard = state.locks.read(id).await;
-        let git: GitExecutor = state.git.clone();
+        let git: GitExecutor = if interactive {
+            state.git.clone()
+        } else {
+            state.git.without_prompts()
+        };
         let database: Arc<Database> = Arc::clone(&state.database);
         let emitter: AppHandle = app.clone();
         let progress_id: String = task_id.clone();
@@ -169,13 +174,16 @@ pub fn start_fetch(
     id: i64,
     remote: Option<String>,
     prune: bool,
+    background: Option<bool>,
 ) -> OperationStarted {
+    // Background fetches never ask for credentials: they fail quietly instead.
     start_repository_operation(
         app,
         &state,
         id,
         OperationKind::Fetch,
         CancelToken::default(),
+        background != Some(true),
         Box::new(move |git, root, token, report| {
             remote::fetch(git, root, remote.as_deref(), prune, token, report)
         }),
@@ -269,6 +277,7 @@ pub fn start_push(
         id,
         OperationKind::Push,
         CancelToken::uncancellable(),
+        true,
         Box::new(move |git, root, _token, report| {
             remote::push(
                 git,
@@ -299,6 +308,7 @@ pub fn start_delete_remote_branch(
         id,
         OperationKind::DeleteRemoteBranch,
         CancelToken::uncancellable(),
+        true,
         Box::new(move |git, root, _token, report| {
             remote::delete_remote_branch(git, root, &remote, &branch, report)
         }),

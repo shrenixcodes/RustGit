@@ -100,6 +100,26 @@ impl GitExecutor {
         self
     }
 
+    /// Returns a copy for unattended work (background fetches): no prompt
+    /// helper is offered and Git Credential Manager is told not to open its
+    /// own windows, so missing credentials fail instead of interrupting the
+    /// user. Command history stays shared with `self`.
+    #[must_use]
+    pub fn without_prompts(&self) -> Self {
+        const PROMPT_VARIABLES: [&str; 3] = ["GIT_ASKPASS", "SSH_ASKPASS", "SSH_ASKPASS_REQUIRE"];
+        let mut variables: Vec<(OsString, OsString)> = self
+            .extra_env
+            .iter()
+            .filter(|(name, _)| !PROMPT_VARIABLES.iter().any(|prompt| name == prompt))
+            .cloned()
+            .collect();
+        variables.push(("GCM_INTERACTIVE".into(), "never".into()));
+        Self {
+            extra_env: Arc::new(variables),
+            ..self.clone()
+        }
+    }
+
     /// Creates an executor for the given Git binary (`git` resolves through `PATH`).
     pub fn new(git_path: impl Into<PathBuf>) -> Self {
         Self {
@@ -471,3 +491,22 @@ fn hide_console_window(command: &mut Command) {
 
 #[cfg(not(windows))]
 fn hide_console_window(_command: &mut Command) {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn without_prompts_drops_the_prompt_helper_only() {
+        let git: GitExecutor = GitExecutor::new("git").with_env(vec![
+            ("GIT_ASKPASS".into(), "helper".into()),
+            ("SSH_ASKPASS".into(), "helper".into()),
+            ("SSH_ASKPASS_REQUIRE".into(), "force".into()),
+            ("RUSTGIT_ASKPASS_ADDR".into(), "127.0.0.1:1".into()),
+        ]);
+        let quiet: GitExecutor = git.without_prompts();
+        let names: Vec<&OsString> = quiet.extra_env.iter().map(|(name, _)| name).collect();
+        assert_eq!(names, ["RUSTGIT_ASKPASS_ADDR", "GCM_INTERACTIVE"]);
+        assert!(Arc::ptr_eq(&quiet.history, &git.history));
+    }
+}

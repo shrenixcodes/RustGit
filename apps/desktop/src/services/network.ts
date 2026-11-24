@@ -28,12 +28,14 @@ export interface StartOptions {
   label: string;
   repositoryId: number | null;
   start: () => Promise<OperationStarted>;
+  /** Started by RustGit rather than the user; failures are not flagged. */
+  background?: boolean;
 }
 
 /** Starts an operation and registers it; rejects with the start error (also logged). */
-export async function startOperation({ kind, label, repositoryId, start }: StartOptions): Promise<string> {
+export async function startOperation({ kind, label, repositoryId, start, background = false }: StartOptions): Promise<string> {
   const activityId: number = nextActivityId++;
-  useActivity.getState().started(activityId, label, repositoryId);
+  useActivity.getState().started(activityId, label, repositoryId, Date.now(), background);
   let started: OperationStarted;
   try {
     started = await start();
@@ -143,12 +145,13 @@ export const PULL_LABEL: Record<PullMode, string> = {
 /** Operation starters for one repository; each resolves with the operation id. */
 export function networkActions(repositoryId: number) {
   return {
-    fetch: (remote: string | null, prune = true): Promise<string> =>
+    fetch: (remote: string | null, prune = true, background = false): Promise<string> =>
       startOperation({
         kind: "fetch",
-        label: remote === null ? "Fetch all remotes" : `Fetch ${remote}`,
+        label: background ? "Fetch all remotes (automatic)" : remote === null ? "Fetch all remotes" : `Fetch ${remote}`,
         repositoryId,
-        start: () => ipc.startFetch(repositoryId, remote, prune),
+        background,
+        start: () => ipc.startFetch(repositoryId, remote, prune, background),
       }),
     pull: (mode: PullMode): Promise<string> =>
       startOperation({ kind: "pull", label: PULL_LABEL[mode], repositoryId, start: () => ipc.startPull(repositoryId, mode) }),
@@ -201,11 +204,11 @@ export function useAutoFetch(repositoryId: number | null): void {
       );
       if (isBusy) return;
 
+      // Background: no credential prompts, and a failure (offline, signed out)
+      // is logged in Activity without raising the failure badge.
       networkActions(repositoryId)
-        .fetch(null)
-        .catch(() => {
-          // Silently ignore background auto-fetch errors (e.g. offline, auth required)
-        });
+        .fetch(null, true, true)
+        .catch(() => {});
     };
 
     const interval = window.setInterval(maybeFetch, AUTO_FETCH_INTERVAL_MS);

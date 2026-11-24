@@ -125,9 +125,16 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
           return;
         }
         const entry = diffsByPath.get(file.path);
-        if (entry === undefined || entry.loading) out.push({ kind: "message", path: file.path, text: "Reading the diff…" });
-        else if (entry.error !== null) out.push({ kind: "message", path: file.path, text: `Could not read the diff: ${entry.error}` });
-        else for (const row of buildCanvasRows(entry.diffs, layout)) out.push({ kind: "diff", path: file.path, row });
+        if (entry === undefined || entry.loading) {
+          out.push({ kind: "message", path: file.path, text: "Reading the diff…" });
+          return;
+        }
+        // A side that failed to load does not hide the side that did.
+        for (const row of buildCanvasRows(entry.diffs, layout)) out.push({ kind: "diff", path: file.path, row });
+        if (entry.error !== null) {
+          const what: string = entry.diffs.length > 0 ? "the other side of the diff" : "the diff";
+          out.push({ kind: "message", path: file.path, text: `Could not read ${what}: ${entry.error}` });
+        }
       });
     }
     return out;
@@ -480,7 +487,7 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
           </Button>
           <Button
             variant="ghost"
-            disabled={!allExpanded && files.length > EXPAND_ALL_LIMIT}
+            disabled={files.length === 0 || (!allExpanded && files.length > EXPAND_ALL_LIMIT)}
             title={files.length > EXPAND_ALL_LIMIT ? `Expanding all is limited to ${EXPAND_ALL_LIMIT} files` : undefined}
             onClick={() => setExpanded(allExpanded ? new Set() : new Set(files.map((file) => file.path)))}
             className="h-7 text-xs"

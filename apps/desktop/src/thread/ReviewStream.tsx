@@ -33,8 +33,8 @@ const LAYOUTS: readonly SegmentOption<DiffLayout>[] = [
 ];
 /** Diff rows are indented under their file, which hangs off the thread. */
 const DIFF_INDENT = 40;
-/** Left edge of diff text in unified rows: thread indent, marker, two line-number columns and the sign. */
-const UNIFIED_GUTTER = 72 + DIFF_INDENT + 4 + 40 + 40 + 16 + 24;
+/** Extra width of a unified diff row outside the thread inset and line text. */
+const UNIFIED_COLS_WIDTH = DIFF_INDENT + 4 + 40 + 40 + 16 + 24;
 /** Width of one split half outside its text: marker, line number and padding. */
 const SPLIT_GUTTER = 4 + 40 + 16;
 /** Expanding every file is offered only up to this many (each costs a diff request). */
@@ -66,6 +66,9 @@ interface ReviewStreamProps {
   status: StatusSnapshot;
   composer: CommitComposer;
   height: number;
+  inset?: number;
+  headLaneX?: number;
+  linked?: boolean;
 }
 
 /**
@@ -73,7 +76,15 @@ interface ReviewStreamProps {
  * node, with its staged and not-staged diffs inline when expanded. All
  * staging goes through the backend; results replace the cached status.
  */
-export function ReviewStream({ repositoryId, status, composer, height }: ReviewStreamProps) {
+export function ReviewStream({
+  repositoryId,
+  status,
+  composer,
+  height,
+  inset = 72,
+  headLaneX = 14,
+  linked = false,
+}: ReviewStreamProps) {
   const staging = useStaging(repositoryId);
   const selected: string | null = useWorkspace((state) => state.selectedChange?.path ?? null);
   const selectChange = useWorkspace((state) => state.selectChange);
@@ -152,8 +163,9 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
   // horizontally with their row background and file rows stay in view.
   let longest = 0;
   for (const entry of diffsByPath.values()) longest = Math.max(longest, longestLine(entry.diffs, 4));
+  const unifiedGutter: number = inset + UNIFIED_COLS_WIDTH;
   const canvasWidth: string =
-    layout === "unified" ? `calc(${UNIFIED_GUTTER}px + ${longest}ch)` : `calc(${72 + DIFF_INDENT}px + 2 * (${SPLIT_GUTTER}px + ${longest}ch))`;
+    layout === "unified" ? `calc(${unifiedGutter}px + ${longest}ch)` : `calc(${inset + DIFF_INDENT}px + 2 * (${SPLIT_GUTTER}px + ${longest}ch))`;
 
   const hunkRows: number[] = useMemo(
     () => rows.flatMap((row, index) => (row.kind === "diff" && row.row.kind === "hunk" ? [index] : [])),
@@ -347,15 +359,15 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
 
   return (
     <div style={{ height }} className="flex flex-col">
-      <OperationBanner repositoryId={repositoryId} status={status} />
+      <OperationBanner repositoryId={repositoryId} status={status} inset={inset} />
       {resolving !== null ? (
         <div className="min-h-0 flex-1">
-          <ConflictResolver repositoryId={repositoryId} path={resolving} status={status} height="100%" onBack={() => setResolving(null)} />
+          <ConflictResolver repositoryId={repositoryId} path={resolving} status={status} height="100%" inset={inset} onBack={() => setResolving(null)} />
         </div>
       ) : (
       <>
       {/* Elevated Commit Composer Console */}
-      <div className="flex shrink-0 gap-6 py-3 pr-5 pl-[72px]">
+      <div style={{ paddingLeft: inset }} className="flex shrink-0 gap-6 py-3 pr-5">
         <div className="min-w-0 max-w-4xl flex-1 rounded-xl border border-border/80 bg-elevated/50 p-4 shadow-sm backdrop-blur-xs space-y-3">
           <div className="flex items-center justify-between pb-1 border-b border-border/60">
             <div className="flex items-center gap-2">
@@ -471,7 +483,7 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
       </div>
 
       {/* Changes Review Toolbar */}
-      <div className="flex flex-wrap shrink-0 items-center justify-between gap-2 pr-5 pb-2.5 pl-[72px]">
+      <div style={{ paddingLeft: inset }} className="flex flex-wrap shrink-0 items-center justify-between gap-2 pr-5 pb-2.5">
         <div className="flex min-w-[200px] flex-1 items-center gap-2">
           <label className="flex h-7.5 w-full max-w-xs items-center gap-2 rounded-lg border border-border/80 bg-canvas/70 px-2.5 transition-all focus-within:border-accent focus-within:bg-canvas focus-within:ring-1 focus-within:ring-accent/30 shadow-2xs">
             <Search className="size-3 text-fg-muted shrink-0" />
@@ -539,7 +551,7 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
       </div>
 
       {staging.error !== null && (
-        <div className="shrink-0 pr-5 pb-2 pl-[72px]">
+        <div style={{ paddingLeft: inset }} className="shrink-0 pr-5 pb-2">
           {staging.error.kind === "stale_diff" ? (
             <p role="alert" className="text-xs text-clay-text font-medium">
               The file changed since this diff was read. The diff has been refreshed and nothing was applied.
@@ -565,7 +577,7 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
         style={{ tabSize: 4, lineHeight: `${DIFF_ROW}px` }}
       >
         {files.length === 0 ? (
-          <p className="py-6 pl-[72px] font-sans text-xs text-fg-muted">
+          <p style={{ paddingLeft: inset }} className="py-6 font-sans text-xs text-fg-muted">
             {status.files.length === 0 ? "No changes. The working tree is clean." : `No changed files match “${filter}”.`}
           </p>
         ) : (
@@ -583,6 +595,9 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
                   id={`stream-row-${index}`}
                   row={row}
                   style={style}
+                  inset={inset}
+                  headLaneX={headLaneX}
+                  linked={linked}
                   active={index === activeFileRow}
                   activeHunk={hunkRows[activeHunk] === index}
                   layout={layout}
@@ -645,6 +660,9 @@ interface StreamRowViewProps {
   id: string;
   row: StreamRow;
   style: React.CSSProperties;
+  inset: number;
+  headLaneX: number;
+  linked: boolean;
   active: boolean;
   activeHunk: boolean;
   layout: DiffLayout;
@@ -663,10 +681,10 @@ interface StreamRowViewProps {
 }
 
 function StreamRowView(props: StreamRowViewProps): ReactNode {
-  const { id, row, style, active } = props;
+  const { id, row, style, inset, active } = props;
   if (row.kind === "group") {
     return (
-      <div style={style} className="flex items-end pb-0.5 pl-[72px]">
+      <div style={{ ...style, paddingLeft: inset }} className="flex items-end pb-0.5">
         <span className={`rg-tag font-semibold tracking-wider uppercase text-2xs ${row.group === "conflicts" ? "text-danger" : "text-fg-muted"}`}>
           {row.group} ({row.count})
         </span>
@@ -675,7 +693,7 @@ function StreamRowView(props: StreamRowViewProps): ReactNode {
   }
   if (row.kind === "message") {
     return (
-      <div style={{ ...style, paddingLeft: 72 + DIFF_INDENT }} className="font-sans text-xs text-fg-muted italic">
+      <div style={{ ...style, paddingLeft: inset + DIFF_INDENT }} className="font-sans text-xs text-fg-muted italic">
         {row.text}
       </div>
     );
@@ -683,7 +701,7 @@ function StreamRowView(props: StreamRowViewProps): ReactNode {
   if (row.kind === "file") return <FileRow {...props} file={row.file} expanded={row.expanded} position={row.position} setSize={row.setSize} id={id} active={active} />;
 
   const { path, row: canvas } = row;
-  const indent: number = 72 + DIFF_INDENT;
+  const indent: number = inset + DIFF_INDENT;
   if (canvas.kind === "section") {
     return (
       <div style={{ ...style, paddingLeft: indent }} className="flex items-center gap-3">
@@ -753,6 +771,9 @@ function StreamRowView(props: StreamRowViewProps): ReactNode {
 function FileRow({
   id,
   style,
+  inset,
+  headLaneX,
+  linked,
   file,
   expanded,
   position,
@@ -772,6 +793,7 @@ function FileRow({
   const changed: boolean = file.unstaged !== null && !file.conflicted;
   const partiallyStaged = isPartiallyStaged(file);
   const Chevron = expanded ? ChevronDown : ChevronRight;
+  const stemWidth: number = Math.max(0, inset - headLaneX - 8);
 
   return (
     <div
@@ -788,20 +810,26 @@ function FileRow({
         if (file.conflicted) onResolve(file);
         else onToggleExpanded(file.path);
       }}
-      style={style}
-      className={`group flex cursor-default items-center gap-2 pr-5 font-sans transition-colors ${
+      style={{ ...style, paddingLeft: inset }}
+      className={`group relative flex cursor-default items-center gap-2 pr-5 font-sans transition-colors ${
         active ? "bg-selection-strong font-medium" : "hover:bg-hover/80"
       }`}
     >
-      {/* The file hangs off the thread: a short branch from the lane. */}
-      <span aria-hidden className="ml-[20px] h-px w-[20px] shrink-0 bg-border-control/60" />
+      {/* The file hangs off the thread: a horizontal connector from the dashed HEAD lane to this row. */}
+      {linked && stemWidth >= 6 && (
+        <span
+          aria-hidden
+          style={{ left: headLaneX, width: stemWidth }}
+          className="pointer-events-none absolute top-1/2 h-px -translate-y-1/2 bg-border-control/50"
+        />
+      )}
 
       {file.conflicted ? (
-        <span aria-hidden className="w-[36px] text-center font-mono text-xs text-danger font-bold">
+        <span aria-hidden className="w-5 shrink-0 text-center font-mono text-xs text-danger font-bold">
           !
         </span>
       ) : (
-        <span className="flex w-[36px] shrink-0 items-center justify-center">
+        <span className="flex w-5 shrink-0 items-center justify-center">
           <button
             type="button"
             tabIndex={-1}

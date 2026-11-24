@@ -44,6 +44,7 @@ interface ConflictResolverProps {
   path: string;
   status: StatusSnapshot;
   height: number | string;
+  inset?: number;
   onBack: () => void;
 }
 
@@ -53,7 +54,7 @@ interface ConflictResolverProps {
  * file counts as resolved only when Git's status says it is no longer
  * conflicted.
  */
-export function ConflictResolver({ repositoryId, path, status, height, onBack }: ConflictResolverProps) {
+export function ConflictResolver({ repositoryId, path, status, height, inset = 72, onBack }: ConflictResolverProps) {
   const versions = useConflictVersions(repositoryId, path);
   return (
     <div
@@ -68,16 +69,20 @@ export function ConflictResolver({ repositoryId, path, status, height, onBack }:
         }
       }}
     >
-      <div className="flex shrink-0 items-center gap-3 py-2 pr-5 pl-[72px]">
+      <div style={{ paddingLeft: inset }} className="flex shrink-0 items-center gap-3 py-2 pr-5">
         <Button variant="ghost" onClick={onBack}>
           <ArrowLeft aria-hidden className="size-3.5" /> Changes
         </Button>
         <span className="truncate font-mono text-sm text-fg">{path}</span>
         <span className="font-mono text-xs text-danger">conflicted</span>
       </div>
-      {versions.isPending && <p className="py-3 pl-[72px] text-sm text-fg-muted">Reading the conflict…</p>}
+      {versions.isPending && (
+        <p style={{ paddingLeft: inset }} className="py-3 text-sm text-fg-muted">
+          Reading the conflict…
+        </p>
+      )}
       {versions.isError && (
-        <div className="pr-5 pl-[72px]">
+        <div style={{ paddingLeft: inset }} className="pr-5">
           <ErrorNotice title="Could not read the conflict" error={versions.error} />
         </div>
       )}
@@ -89,6 +94,7 @@ export function ConflictResolver({ repositoryId, path, status, height, onBack }:
           path={path}
           versions={versions.data}
           inProgress={status.inProgress}
+          inset={inset}
           onResolved={onBack}
         />
       )}
@@ -108,12 +114,14 @@ function Resolver({
   path,
   versions,
   inProgress,
+  inset = 72,
   onResolved,
 }: {
   repositoryId: number;
   path: string;
   versions: ConflictVersions;
   inProgress: InProgress;
+  inset?: number;
   onResolved: () => void;
 }) {
   const resolve = useResolveConflict(repositoryId);
@@ -166,7 +174,7 @@ function Resolver({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="shrink-0 space-y-1 pr-5 pb-2 pl-[72px]">
+      <div style={{ paddingLeft: inset }} className="shrink-0 space-y-1 pr-5 pb-2">
         <p className="flex flex-wrap items-baseline gap-x-4 gap-y-1 font-mono text-xs">
           <span>
             <span className="text-fg-muted">ours</span> <span className="text-accent">{versions.oursLabel}</span>
@@ -195,13 +203,13 @@ function Resolver({
       </div>
 
       {versions.binary ? (
-        <p className="pr-5 pl-[72px] text-sm text-fg-muted">
+        <p style={{ paddingLeft: inset }} className="pr-5 text-sm text-fg-muted">
           This is a binary file: its versions cannot be merged line by line. Take ours or theirs for the whole file.
         </p>
       ) : view === "versions" ? (
-        <Versions versions={versions} />
+        <Versions versions={versions} inset={inset} />
       ) : (
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-5 pb-4 pl-[72px]">
+        <div style={{ paddingLeft: inset }} className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-5 pb-4">
           {manual === null ? (
             <Blocks segments={segments} resolutions={resolutions} onChoose={choose} onEdit={editBlock} />
           ) : (
@@ -239,7 +247,7 @@ function Resolver({
         </div>
       )}
 
-      <div className="flex shrink-0 flex-wrap items-center gap-3 border-t border-divider py-2.5 pr-5 pl-[72px]">
+      <div style={{ paddingLeft: inset }} className="flex shrink-0 flex-wrap items-center gap-3 border-t border-divider py-2.5 pr-5">
         <Button variant="primary" disabled={resolve.isPending || versions.binary} onClick={markResolved}>
           <Check aria-hidden className="size-3.5" /> Mark resolved
         </Button>
@@ -385,7 +393,7 @@ function Code({ text, muted = false }: { text: string; muted?: boolean }) {
   );
 }
 
-function Versions({ versions }: { versions: ConflictVersions }) {
+function Versions({ versions, inset }: { versions: ConflictVersions; inset: number }) {
   const column = (title: string, label: string, text: string | null, tone: string): ReactNode => (
     <div className="flex min-h-0 min-w-0 flex-col">
       <p className="mb-1 shrink-0 font-mono text-2xs">
@@ -401,7 +409,7 @@ function Versions({ versions }: { versions: ConflictVersions }) {
     </div>
   );
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-3 gap-3 pr-5 pb-3 pl-[72px]">
+    <div style={{ paddingLeft: inset }} className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto pr-5 pb-3 md:grid-cols-3 md:overflow-hidden">
       {column("base", "common ancestor", versions.base, "text-fg-muted")}
       {column("ours", versions.oursLabel, versions.ours, "text-accent")}
       {column("theirs", versions.theirsLabel, versions.theirs, "text-indigo-text")}

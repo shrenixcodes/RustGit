@@ -18,7 +18,15 @@ const NAMES: Record<Exclude<InProgress, "none">, string> = {
  * Shown at the loose end while Git is in the middle of a merge, rebase,
  * cherry-pick or revert: how many conflicts are left, and the two ways out.
  */
-export function OperationBanner({ repositoryId, status }: { repositoryId: number; status: StatusSnapshot }) {
+export function OperationBanner({
+  repositoryId,
+  status,
+  inset = 72,
+}: {
+  repositoryId: number;
+  status: StatusSnapshot;
+  inset?: number;
+}) {
   const operation = useBranchOperation(repositoryId);
   const [confirmAbort, setConfirmAbort] = useState<boolean>(false);
   const [outcome, setOutcome] = useState<BranchOutcome | null>(null);
@@ -36,7 +44,12 @@ export function OperationBanner({ repositoryId, status }: { repositoryId: number
   const conflicts: number = countChanges(status.files).conflicted;
 
   return (
-    <div role="region" aria-label={`${name} in progress`} className="shrink-0 space-y-2 border-b border-divider py-2.5 pr-5 pl-[72px]">
+    <div
+      role="region"
+      aria-label={`${name} in progress`}
+      style={{ paddingLeft: inset }}
+      className="shrink-0 space-y-2 border-b border-divider py-2.5 pr-5"
+    >
       {status.inProgress !== "none" && (
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-sm">

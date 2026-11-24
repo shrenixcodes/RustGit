@@ -192,6 +192,23 @@ describe("the thread", () => {
     await waitFor(() => expect(useWorkspace.getState().focus).toBe(commitNode(OID("dd44"))));
   });
 
+  it("continues graph lanes smoothly as SVG lines inside unfolded commit and review folds", async () => {
+    useWorkspace.setState({ unfolded: commitNode(OID("cc33")) });
+    renderWithClient(<ThreadView repositoryId={1} />);
+    const fold: HTMLElement = await screen.findByRole("group", { name: `Commit ${OID("cc33").slice(0, 7)} unfolded` });
+    const laneSvg = fold.querySelector("svg[data-fold-lanes]");
+    expect(laneSvg).not.toBeNull();
+    // Same SVG coordinate space and continuous lanes across the fold.
+    const lines = [...laneSvg!.querySelectorAll("line")];
+    expect(lines.length).toBeGreaterThanOrEqual(2);
+    for (const line of lines) {
+      expect(line.getAttribute("y1")).toBe("0");
+      expect(line.getAttribute("y2")).toBe("100%");
+    }
+    const contentDiv = fold.querySelector("[style*='padding-left']");
+    expect(contentDiv?.getAttribute("style")).toContain("padding-left: 72px");
+  });
+
   it("opens the next commit fresh instead of reusing the previous fold's state", async () => {
     renderWithClient(<ThreadView repositoryId={1} />);
     await userEvent.click(await screen.findByRole("treeitem", { name: /^Add feature/ }));

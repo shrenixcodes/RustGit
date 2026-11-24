@@ -364,7 +364,7 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
               className="rg-fold-anim border-y border-divider bg-surface"
             >
               {/* The thread keeps running past the fold: every lane that passes this point, in its colour. */}
-              <FoldLanes row={unfoldedRow} headLane={headLane} />
+              <FoldLanes row={unfoldedRow} headLane={headLane} linked={headIndex > 0 && !searching} />
               {unfoldedRow.kind === "now" ? (
                 <ReviewStream repositoryId={repositoryId} status={status} composer={composer} height={unfolding.height} />
               ) : unfoldedRow.id.startsWith("m:") ? (
@@ -409,9 +409,11 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
 }
 
 /** Lanes that continue through an unfolded region (the dashed link for the loose end). */
-function FoldLanes({ row, headLane }: { row: ThreadRowModel; headLane: number }) {
+function FoldLanes({ row, headLane, linked }: { row: ThreadRowModel; headLane: number; linked: boolean }) {
   const x = (lane: number): number => 6 + lane * LANE + LANE / 2;
   if (row.kind === "now") {
+    // Without a HEAD commit below (a new repository) there is nothing to link to.
+    if (!linked) return null;
     return <span aria-hidden className="absolute top-0 bottom-0 border-l border-dashed border-accent" style={{ left: x(headLane) }} />;
   }
   const lanes: Array<{ lane: number; color: number }> = [...(row.graph?.outgoing ?? []), ...(row.graph?.passing ?? [])].filter(
@@ -476,7 +478,7 @@ function NowRow({ id, top, height, lane, graphWidth, linked, focused, unfolded, 
       }`}
     >
       <svg aria-hidden width={Math.max(graphWidth, CONTENT_LEFT - 12)} height={height} className="shrink-0" style={{ display: "block" }}>
-        {(linked || dirty) && (
+        {linked && (
           <line x1={cx} y1={height / 2 + 6} x2={cx} y2={height} stroke="var(--rg-accent)" strokeWidth={1.25} strokeDasharray="2 3" />
         )}
         <OpenNode cx={cx} cy={height / 2} r={6} stroke="var(--rg-clay)" width={1.6} />

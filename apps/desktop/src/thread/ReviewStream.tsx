@@ -335,6 +335,10 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
                 if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
                   event.preventDefault();
                   composer.submit();
+                } else if (event.key === "Escape") {
+                  // Same as the summary field: leave the field, keep the fold open.
+                  event.preventDefault();
+                  event.currentTarget.closest<HTMLElement>('[role="tree"]')?.focus();
                 }
               }}
               rows={2}

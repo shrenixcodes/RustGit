@@ -129,6 +129,16 @@ describe("the thread", () => {
     );
   });
 
+  it("leaves the description field on Escape without folding the loose end", async () => {
+    useWorkspace.setState({ unfolded: LOOSE_END });
+    renderWithClient(<ThreadView repositoryId={1} />);
+    const description: HTMLElement = await screen.findByPlaceholderText("Description (optional)");
+    description.focus();
+    fireEvent.keyDown(description, { key: "Escape" });
+    expect(useWorkspace.getState().unfolded).toBe(LOOSE_END);
+    expect(document.activeElement).toBe(screen.getByRole("tree", { name: "Thread" }));
+  });
+
   it("commits from the loose end's own row, with the description from its fold", async () => {
     useWorkspace.setState({ unfolded: LOOSE_END });
     renderWithClient(<ThreadView repositoryId={1} />);

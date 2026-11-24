@@ -111,17 +111,24 @@ export function RepositoriesView() {
       : repositories.data?.find((entry: RepositoryEntry) => entry.id === failure.repositoryId);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-4 px-6 sm:px-8 pt-4 sm:pt-6 pb-6">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <div className="mx-auto flex min-h-0 w-full max-w-[960px] flex-1 flex-col gap-4 px-6 sm:px-8 pt-6 sm:pt-10 pb-8">
         <header className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-3">
-          <div className="flex items-baseline gap-2.5">
-            <h1 className="text-xl font-semibold tracking-tight text-fg">Repositories</h1>
+          <div>
+            <div className="flex items-baseline gap-2.5">
+              <h1 className="text-xl font-semibold tracking-tight text-fg">Repositories</h1>
+              {(repositories.data?.length ?? 0) > 0 && (
+                <span className="font-mono text-xs tabular-nums text-fg-muted">{repositories.data?.length}</span>
+              )}
+            </div>
             {(repositories.data?.length ?? 0) > 0 && (
-              <span className="font-mono text-xs tabular-nums text-fg-muted">{repositories.data?.length}</span>
+              <p className="mt-0.5 text-xs text-fg-muted">
+                Choose a tracked workspace to open its thread, or add another below.
+              </p>
             )}
           </div>
           {(repositories.data?.length ?? 0) > 0 && (
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
               <Button
                 aria-pressed={creating}
                 onClick={() => { setCloning(false); setCreating((prev) => !prev); }}

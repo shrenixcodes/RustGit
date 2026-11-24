@@ -51,7 +51,7 @@ export function OperationBanner({
       className="shrink-0 space-y-2 border-b border-divider py-2.5 pr-5"
     >
       {status.inProgress !== "none" && (
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex max-w-[1040px] flex-wrap items-center gap-3">
           <p className="text-sm">
             <span className="font-medium text-warning">A {name} is in progress.</span>{" "}
             <span className="text-fg-secondary">

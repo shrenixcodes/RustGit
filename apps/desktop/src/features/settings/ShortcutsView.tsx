@@ -24,10 +24,10 @@ export function ShortcutsView() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center justify-between px-6 sm:px-8 pt-4 sm:pt-6 pb-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-6 sm:px-8 pt-4 sm:pt-6 pb-2">
         {/* The row already has the page padding; PageHeader would add its own. */}
         <h1 className="text-xl font-semibold tracking-tight text-fg">Keyboard shortcuts</h1>
-        <div className="w-56">
+        <div className="w-full sm:w-56">
           <Input
             icon={<Search className="size-3.5" />}
             value={filter}

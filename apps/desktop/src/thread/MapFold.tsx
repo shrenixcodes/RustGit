@@ -100,8 +100,8 @@ export function MapFold({ repositoryId, oid, refs, currentBranch, dirty, height,
   const tags: RefEntry[] = refs.filter((ref) => ref.kind === "tag");
 
   return (
-    <div style={{ height, paddingLeft: inset }} className="overflow-y-auto pr-5 pb-3">
-      <div className="space-y-3 pt-2">
+    <div style={{ height, paddingLeft: inset }} className="overflow-y-auto pr-4 sm:pr-6 pb-4">
+      <div className="w-full max-w-[1040px] space-y-3 pt-3">
         {locals.map((ref) => {
           const current: boolean = ref.shortName === currentBranch;
           return (

@@ -120,9 +120,10 @@ export function SyncControls({ repositoryId, branch }: { repositoryId: number; b
         title={`Fetch all remotes and prune deleted remote branches (${lastFetched})`}
       >
         {busy("fetch") ? <LoaderCircle aria-hidden className="size-3 motion-safe:animate-spin" /> : <RefreshCcw aria-hidden className="size-3" />}
-        <span className="hidden sm:inline">fetch</span>
+        <span className="hidden lg:inline">fetch</span>
+        <span className="sr-only lg:hidden">fetch</span>
       </button>
-      <span className="hidden xl:inline px-2 font-sans text-xs text-fg-muted border-r border-divider/60" title="The ahead and behind counts only change after a fetch">
+      <span className="hidden 2xl:inline px-2 font-sans text-xs text-fg-muted border-r border-divider/60" title="The ahead and behind counts only change after a fetch">
         {lastFetched}
       </span>
 
@@ -135,7 +136,8 @@ export function SyncControls({ repositoryId, branch }: { repositoryId: number; b
           title={hasUpstream ? `${PULL_LABEL[pullMode]} from ${branch.upstream}` : "The branch has no upstream to pull from"}
         >
           {busy("pull") ? <LoaderCircle aria-hidden className="size-3 motion-safe:animate-spin" /> : <ArrowDown aria-hidden className="size-3" />}
-          <span className="hidden sm:inline">pull</span>
+          <span className="hidden lg:inline">pull</span>
+          <span className="sr-only lg:hidden">pull</span>
           {branch.behind > 0 && (
             <span className="rounded-full bg-clay/20 border border-clay/30 px-1.5 text-2xs font-bold text-clay-text">
               {branch.behind}
@@ -161,7 +163,8 @@ export function SyncControls({ repositoryId, branch }: { repositoryId: number; b
             title={`Push ${branch.head ?? ""} to ${branch.upstream ?? ""}`}
           >
             {busy("push") ? <LoaderCircle aria-hidden className="size-3 motion-safe:animate-spin" /> : <ArrowUp aria-hidden className="size-3" />}
-            <span className="hidden sm:inline">push</span>
+            <span className="hidden lg:inline">push</span>
+            <span className="sr-only lg:hidden">push</span>
             {branch.ahead > 0 && (
               <span className="rounded-full bg-accent/20 border border-accent/30 px-1.5 text-2xs font-bold text-accent">
                 {branch.ahead}
@@ -177,7 +180,8 @@ export function SyncControls({ repositoryId, branch }: { repositoryId: number; b
             title={`Push ${branch.head ?? ""} to ${list[0].name} and track it`}
           >
             {busy("push") ? <LoaderCircle aria-hidden className="size-3 motion-safe:animate-spin" /> : <ArrowUp aria-hidden className="size-3" />}
-            <span className="hidden sm:inline">publish</span>
+            <span className="hidden lg:inline">publish</span>
+            <span className="sr-only lg:hidden">publish</span>
           </button>
         ) : (
           <Menu
@@ -188,7 +192,8 @@ export function SyncControls({ repositoryId, branch }: { repositoryId: number; b
             trigger={
               <>
                 <ArrowUp aria-hidden className="size-3" />
-                <span className="hidden sm:inline">publish</span>
+                <span className="hidden lg:inline">publish</span>
+                <span className="sr-only lg:hidden">publish</span>
               </>
             }
           />

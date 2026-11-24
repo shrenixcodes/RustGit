@@ -77,7 +77,7 @@ export function CommitFold({ repositoryId, oid, refs, head, currentBranch, heigh
       {details.isPending && <p className="py-4 text-xs font-mono text-fg-muted">Reading commit…</p>}
       {details.isError && <ErrorNotice title="Could not read commit" error={details.error} />}
       {details.data !== undefined && (
-        <div ref={contentRef} className="space-y-4 pt-3.5 w-full">
+        <div ref={contentRef} className="w-full max-w-[1040px] space-y-4 pt-3.5">
           {/* Header pill: SHA, Copy, Badges */}
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/70 bg-elevated/50 px-3 py-2 shadow-2xs">
             <div className="flex items-center gap-2 min-w-0">

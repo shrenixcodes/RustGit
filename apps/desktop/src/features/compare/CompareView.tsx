@@ -85,8 +85,8 @@ function Compare({ repositoryId }: { repositoryId: number }) {
   };
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-8">
-      <div className="space-y-5">
+    <div className="min-h-0 flex-1 overflow-y-auto px-6 sm:px-8 pb-8">
+      <div className="w-full max-w-[960px] space-y-5">
         {/* Revision Selector Card */}
         <div className="rounded-xl border border-border/80 bg-elevated/40 p-4 shadow-2xs">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-3">

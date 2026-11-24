@@ -722,7 +722,7 @@ const CommitRow = memo(function CommitRow({ id, top, height, row, graphWidth, gr
         {map && row.hidden > 0 && <span className="shrink-0 font-mono text-2xs text-fg-muted">· {row.hidden} commit{row.hidden === 1 ? "" : "s"} below folded</span>}
       </span>
       {!map && (
-        <span className="hidden md:inline-block w-28 lg:w-32 shrink-0 truncate text-xs text-fg-muted font-sans" title={commit.authorEmail}>
+        <span className="hidden md:inline-block w-28 lg:w-36 xl:w-44 shrink-0 truncate text-xs text-fg-muted font-sans" title={commit.authorEmail}>
           {commit.authorName}
         </span>
       )}

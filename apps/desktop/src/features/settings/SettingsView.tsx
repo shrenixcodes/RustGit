@@ -55,8 +55,8 @@ export function SettingsView() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <PageHeader title="Settings" visible />
-      <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-8">
-        <div className="space-y-4">
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 sm:px-8 pb-8">
+        <div className="w-full max-w-[960px] space-y-4">
           {/* Appearance Section */}
           <div className="rounded-xl border border-border/80 bg-elevated/40 p-5 shadow-2xs space-y-5">
             <h3 className="font-semibold text-xs text-fg flex items-center gap-2">

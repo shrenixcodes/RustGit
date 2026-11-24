@@ -367,8 +367,8 @@ export function ReviewStream({
       ) : (
       <>
       {/* Elevated Commit Composer Console */}
-      <div style={{ paddingLeft: inset }} className="flex shrink-0 gap-6 py-3 pr-5">
-        <div className="min-w-0 max-w-4xl flex-1 rounded-xl border border-border/80 bg-elevated/50 p-4 shadow-sm backdrop-blur-xs space-y-3">
+      <div style={{ paddingLeft: inset }} className="flex shrink-0 gap-6 py-3 pr-4 sm:pr-6">
+        <div className="min-w-0 max-w-[1040px] flex-1 rounded-xl border border-border/80 bg-elevated/50 p-4 shadow-sm backdrop-blur-xs space-y-3">
           <div className="flex items-center justify-between pb-1 border-b border-border/60">
             <div className="flex items-center gap-2">
               <FileCheck className="size-3.5 text-accent" />
@@ -395,7 +395,7 @@ export function ReviewStream({
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2 text-2xs text-fg-muted">
+            <div className="hidden sm:flex items-center gap-2 text-2xs text-fg-muted">
               <span className="font-sans">Press</span>
               <kbd className="rounded border border-border/70 bg-canvas/80 px-1 py-0.5 font-mono text-fg-secondary">
                 {formatShortcut("Mod+Enter")}
@@ -483,70 +483,72 @@ export function ReviewStream({
       </div>
 
       {/* Changes Review Toolbar */}
-      <div style={{ paddingLeft: inset }} className="flex flex-wrap shrink-0 items-center justify-between gap-2 pr-5 pb-2.5">
-        <div className="flex min-w-[200px] flex-1 items-center gap-2">
-          <label className="flex h-7.5 w-full max-w-xs items-center gap-2 rounded-lg border border-border/80 bg-canvas/70 px-2.5 transition-all focus-within:border-accent focus-within:bg-canvas focus-within:ring-1 focus-within:ring-accent/30 shadow-2xs">
-            <Search className="size-3 text-fg-muted shrink-0" />
-            <span className="sr-only">Filter changed files</span>
-            <input
-              type="search"
-              value={filter}
-              onChange={(event) => setFilter(event.target.value)}
-              placeholder="Filter changed files…"
-              className="h-full min-w-0 flex-1 bg-transparent font-sans text-xs text-fg outline-none placeholder:text-fg-muted"
-            />
-            {filter !== "" && (
-              <button type="button" onClick={() => setFilter("")} className="text-fg-muted hover:text-fg text-xs" title="Clear filter">
-                ×
-              </button>
-            )}
-          </label>
+      <div style={{ paddingLeft: inset }} className="shrink-0 pr-4 sm:pr-6 pb-2.5">
+        <div className="flex max-w-[1040px] flex-wrap items-center justify-between gap-2">
+          <div className="flex min-w-[200px] flex-1 items-center gap-2">
+            <label className="flex h-7.5 w-full max-w-xs items-center gap-2 rounded-lg border border-border/80 bg-canvas/70 px-2.5 transition-all focus-within:border-accent focus-within:bg-canvas focus-within:ring-1 focus-within:ring-accent/30 shadow-2xs">
+              <Search className="size-3 text-fg-muted shrink-0" />
+              <span className="sr-only">Filter changed files</span>
+              <input
+                type="search"
+                value={filter}
+                onChange={(event) => setFilter(event.target.value)}
+                placeholder="Filter changed files…"
+                className="h-full min-w-0 flex-1 bg-transparent font-sans text-xs text-fg outline-none placeholder:text-fg-muted"
+              />
+              {filter !== "" && (
+                <button type="button" onClick={() => setFilter("")} className="text-fg-muted hover:text-fg text-xs" title="Clear filter">
+                  ×
+                </button>
+              )}
+            </label>
 
-          <div className="hidden lg:flex items-center gap-1.5 font-mono text-2xs text-fg-muted pl-1">
-            <span className="rounded bg-elevated border border-border px-1.5 py-0.5">
-              {files.length} file{files.length === 1 ? "" : "s"}
-            </span>
+            <div className="hidden lg:flex items-center gap-1.5 font-mono text-2xs text-fg-muted pl-1">
+              <span className="rounded bg-elevated border border-border px-1.5 py-0.5">
+                {files.length} file{files.length === 1 ? "" : "s"}
+              </span>
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="secondary"
-            disabled={!anyUnstaged || staging.isPending}
-            onClick={() => staging.mutate({ kind: "stage_all" })}
-            className="h-7 text-xs font-medium"
-            title="Stage all modified and untracked files"
-          >
-            Stage all{unstagedCount > 0 ? ` (${unstagedCount})` : ""}
-          </Button>
-          <Button
-            variant="secondary"
-            disabled={!anyStaged || staging.isPending}
-            onClick={() => staging.mutate({ kind: "unstage_all" })}
-            className="h-7 text-xs font-medium"
-            title="Unstage all staged changes"
-          >
-            Unstage all{composer.stagedFiles > 0 ? ` (${composer.stagedFiles})` : ""}
-          </Button>
-          <Button
-            variant="ghost"
-            disabled={files.length === 0 || (!allExpanded && files.length > EXPAND_ALL_LIMIT)}
-            title={files.length > EXPAND_ALL_LIMIT ? `Expanding all is limited to ${EXPAND_ALL_LIMIT} files` : undefined}
-            onClick={() => setExpanded(allExpanded ? new Set() : new Set(files.map((file) => file.path)))}
-            className="h-7 text-xs"
-          >
-            {allExpanded ? "Fold all" : "Expand all"}
-          </Button>
-          <label className="flex items-center gap-1.5 font-mono text-2xs text-fg-muted cursor-pointer select-none" title="Hunks of a whitespace-ignoring diff cannot be staged">
-            <input
-              type="checkbox"
-              checked={ignoreWhitespace}
-              onChange={(event) => setIgnoreWhitespace(event.target.checked)}
-              className="rounded border-border text-accent focus:ring-accent"
-            />
-            <span>ignore whitespace</span>
-          </label>
-          <SegmentedControl label="Diff layout" options={LAYOUTS} value={layout} onChange={setLayout} />
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="secondary"
+              disabled={!anyUnstaged || staging.isPending}
+              onClick={() => staging.mutate({ kind: "stage_all" })}
+              className="h-7 text-xs font-medium"
+              title="Stage all modified and untracked files"
+            >
+              Stage all{unstagedCount > 0 ? ` (${unstagedCount})` : ""}
+            </Button>
+            <Button
+              variant="secondary"
+              disabled={!anyStaged || staging.isPending}
+              onClick={() => staging.mutate({ kind: "unstage_all" })}
+              className="h-7 text-xs font-medium"
+              title="Unstage all staged changes"
+            >
+              Unstage all{composer.stagedFiles > 0 ? ` (${composer.stagedFiles})` : ""}
+            </Button>
+            <Button
+              variant="ghost"
+              disabled={files.length === 0 || (!allExpanded && files.length > EXPAND_ALL_LIMIT)}
+              title={files.length > EXPAND_ALL_LIMIT ? `Expanding all is limited to ${EXPAND_ALL_LIMIT} files` : undefined}
+              onClick={() => setExpanded(allExpanded ? new Set() : new Set(files.map((file) => file.path)))}
+              className="h-7 text-xs"
+            >
+              {allExpanded ? "Fold all" : "Expand all"}
+            </Button>
+            <label className="flex items-center gap-1.5 font-mono text-2xs text-fg-muted cursor-pointer select-none" title="Hunks of a whitespace-ignoring diff cannot be staged">
+              <input
+                type="checkbox"
+                checked={ignoreWhitespace}
+                onChange={(event) => setIgnoreWhitespace(event.target.checked)}
+                className="rounded border-border text-accent focus:ring-accent"
+              />
+              <span>ignore whitespace</span>
+            </label>
+            <SegmentedControl label="Diff layout" options={LAYOUTS} value={layout} onChange={setLayout} />
+          </div>
         </div>
       </div>
 

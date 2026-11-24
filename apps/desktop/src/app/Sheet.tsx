@@ -114,11 +114,11 @@ export function Sheet() {
         if (pressedBackdrop.current && event.target === event.currentTarget) setSheet(null);
         pressedBackdrop.current = false;
       }}
-      className="m-auto flex h-[min(740px,calc(100vh-64px))] w-[min(832px,calc(100vw-64px))] flex-col rounded-2xl border border-border/80 bg-bg p-0 text-fg shadow-popover backdrop:bg-overlay backdrop:backdrop-blur-sm"
+      className="m-auto flex h-[min(780px,calc(100vh-48px))] w-[min(920px,calc(100vw-48px))] flex-col overflow-hidden rounded-2xl border border-border/80 bg-bg p-0 text-fg shadow-popover backdrop:bg-overlay backdrop:backdrop-blur-sm"
     >
       {/* Top Modal Navigation Header */}
-      <div className="relative flex shrink-0 items-center justify-between border-b border-divider/80 bg-elevated/50 px-5 py-3 backdrop-blur-md">
-        <div className="flex items-center gap-1.5 overflow-x-auto pr-16 select-none scrollbar-none">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-divider/80 bg-elevated/50 px-5 py-3 backdrop-blur-md">
+        <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto select-none scrollbar-none">
           {TABS.map((tab) => {
             if (tab.requiresRepo && activeRepositoryId === null) return null;
             const active = sheet === tab.id;
@@ -128,7 +128,7 @@ export function Sheet() {
                 key={tab.id}
                 type="button"
                 onClick={() => setSheet(tab.id)}
-                className={`flex h-7.5 items-center gap-1.5 rounded-lg px-3 font-sans text-xs font-semibold transition-all duration-150 focus-visible:-outline-offset-2 active:scale-95 ${
+                className={`flex h-7.5 shrink-0 items-center gap-1.5 rounded-lg px-3 font-sans text-xs font-semibold transition-all duration-150 focus-visible:-outline-offset-2 active:scale-95 ${
                   active
                     ? "bg-canvas text-fg shadow-xs border border-border/80"
                     : "text-fg-muted hover:bg-hover hover:text-fg"
@@ -141,7 +141,7 @@ export function Sheet() {
           })}
         </div>
 
-        <div className="absolute top-3 right-4 z-10 flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <span className="hidden sm:inline-flex items-center gap-1 font-mono text-2xs text-fg-muted">
             <kbd className="rounded border border-border/70 bg-canvas/80 px-1 text-2xs">Esc</kbd>
           </span>

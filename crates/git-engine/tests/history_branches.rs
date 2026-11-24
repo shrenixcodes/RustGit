@@ -416,3 +416,23 @@ fn reverting_a_merge_commit_uses_the_mainline() {
     assert_eq!(reverted.outcome, IntegrationOutcome::Completed);
     assert!(!repo.root().join("feature.txt").exists());
 }
+
+#[test]
+fn log_lists_the_commits_of_a_range() {
+    let repo: TestRepo = diverged_repo(false);
+    let page = log_page(
+        &repo.git,
+        &repo.root(),
+        &LogQuery {
+            revisions: Some(vec!["main..feature".to_owned()]),
+            ..query(10)
+        },
+    )
+    .expect("range log");
+    let summaries: Vec<&str> = page
+        .commits
+        .iter()
+        .map(|commit| commit.summary.as_str())
+        .collect();
+    assert_eq!(summaries, ["feature change"]);
+}

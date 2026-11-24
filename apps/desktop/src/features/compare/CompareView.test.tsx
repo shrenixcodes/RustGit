@@ -59,6 +59,17 @@ describe("CompareView", () => {
     expect(useUi.getState().compare).toEqual({ base: "topic", head: "main" });
   });
 
+  it("swaps with a revision that was typed but not yet committed", async () => {
+    renderWithClient(<CompareView />);
+    await screen.findByText(/commits in topic/);
+    const [base] = screen.getAllByPlaceholderText("branch, tag or commit") as HTMLInputElement[];
+    await userEvent.clear(base as HTMLInputElement);
+    await userEvent.type(base as HTMLInputElement, "v1.0");
+    // The click blurs the field (committing "v1.0") and then swaps.
+    await userEvent.click(screen.getByRole("button", { name: "Swap base and head" }));
+    expect(useUi.getState().compare).toEqual({ base: "topic", head: "v1.0" });
+  });
+
   it("loads a file's diff when unfolded", async () => {
     renderWithClient(<CompareView />);
     await userEvent.click(await screen.findByRole("button", { name: /a\.ts/ }));

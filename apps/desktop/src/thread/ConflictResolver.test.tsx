@@ -36,7 +36,7 @@ beforeEach(() => {
   localStorage.clear();
   window.innerWidth = 1440;
   usePreferences.setState({ zoom: "thread" });
-  useUi.setState({ search: "", commitDrafts: {} });
+  useUi.setState({ search: "", commitDrafts: {}, reviewLayout: "unified", reviewIgnoreWhitespace: false });
   useWorkspace.setState({ activeRepositoryId: 1, activeRepositoryPath: "D:/x", focus: LOOSE_END, unfolded: LOOSE_END, selectedChange: null });
   conflicted = true;
   resolveKeepsConflict = false;

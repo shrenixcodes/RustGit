@@ -51,7 +51,7 @@ beforeEach(() => {
   localStorage.clear();
   window.innerWidth = 1440;
   usePreferences.setState({ zoom: "thread", personality: "quiet" });
-  useUi.setState({ search: "", commitDrafts: {} });
+  useUi.setState({ search: "", commitDrafts: {}, reviewLayout: "unified", reviewIgnoreWhitespace: false });
   useWorkspace.setState({ activeRepositoryId: 1, activeRepositoryPath: "D:/x", focus: LOOSE_END, unfolded: null, selectedChange: null });
   files = [file("src/lib.rs", "modified", "modified"), file("notes.md", null, "untracked")];
   branchError = null;

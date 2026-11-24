@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { CommitContext, CommitDetails, FileDiff, FileStatus, LogCommit, RefList, StatusSnapshot } from "../services/types";
 
@@ -207,6 +207,16 @@ describe("the map", () => {
     await userEvent.click(within(await screen.findByRole("dialog", { name: "Merge feature into main?" })).getByRole("button", { name: "Merge" }));
     await waitFor(() => expect(invokeMock).toHaveBeenCalledWith("merge_branch", { id: 1, source: "feature", strategy: "default" }));
     expect(await within(fold).findByText(/Fast-forwarded/)).toBeTruthy();
+  });
+
+  it("keeps a commit open when switching to the thread", async () => {
+    useWorkspace.setState({ unfolded: mapNode(OID("cc33")), focus: mapNode(OID("cc33")) });
+    renderWithClient(<ThreadView repositoryId={1} />);
+    await screen.findByRole("group", { name: `Commit ${OID("cc33").slice(0, 7)} unfolded` });
+    act(() => usePreferences.getState().setZoom("thread"));
+    await waitFor(() => expect(useWorkspace.getState().unfolded).toBe(commitNode(OID("cc33"))));
+    expect(useWorkspace.getState().focus).toBe(commitNode(OID("cc33")));
+    expect(await screen.findByText("Why it changed.")).toBeTruthy();
   });
 
   it("lists the files a switch would overwrite and changes nothing", async () => {

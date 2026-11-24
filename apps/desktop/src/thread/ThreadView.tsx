@@ -165,10 +165,20 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
   const { start, end, totalHeight, viewport, ensureVisible } = useThreadWindow(container, rows.length, rowHeight, unfolding);
   useEffect(() => setViewportHint(viewport), [viewport]);
 
-  // Fold away a node that no longer exists (e.g. after switching zoom).
+  // After switching zoom, keep the same commit open when the other view shows
+  // it too; otherwise fold away a node that no longer exists.
   useEffect(() => {
-    if (unfolded !== null && unfoldedIndex < 0 && rows.length > 1) unfold(null);
-  }, [unfolded, unfoldedIndex, rows.length, unfold]);
+    if (unfolded === null || unfoldedIndex >= 0 || rows.length <= 1) return;
+    const oid: string | null = oidOf(unfolded);
+    const counterpart: NodeId | null = oid === null ? null : unfolded.startsWith("m:") ? commitNode(oid) : mapNode(oid);
+    unfold(counterpart !== null && indexById.has(counterpart) ? counterpart : null);
+  }, [unfolded, unfoldedIndex, rows.length, indexById, unfold]);
+  useEffect(() => {
+    if (focus === null || indexById.has(focus) || rows.length <= 1) return;
+    const oid: string | null = oidOf(focus);
+    const counterpart: NodeId | null = oid === null ? null : focus.startsWith("m:") ? commitNode(oid) : mapNode(oid);
+    if (counterpart !== null && indexById.has(counterpart)) setFocus(counterpart);
+  }, [focus, indexById, rows.length, setFocus]);
 
   // Keep the focused node in view only when focus or unfold target changes (not on every scroll tick).
   const lastFocus = useRef<NodeId | null>(null);

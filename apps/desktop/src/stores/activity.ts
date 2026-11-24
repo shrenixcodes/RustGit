@@ -18,6 +18,8 @@ export interface OperationRecord {
   finishedAt: number | null;
   outcome: OperationOutcome;
   error: { kind: ErrorKind; message: string } | null;
+  /** Started by RustGit itself (auto-fetch): its failures are logged but not flagged. */
+  background: boolean;
 }
 
 export const ACTIVITY_CAPACITY = 200;
@@ -26,7 +28,7 @@ interface ActivityState {
   operations: OperationRecord[];
   /** Failures recorded since the activity panel was last opened. */
   unseenFailures: number;
-  started: (id: number, label: string, repositoryId: number | null, at?: number) => void;
+  started: (id: number, label: string, repositoryId: number | null, at?: number, background?: boolean) => void;
   finished: (id: number, error: { kind: ErrorKind; message: string } | null, at?: number) => void;
   markSeen: () => void;
   clear: () => void;
@@ -35,7 +37,7 @@ interface ActivityState {
 export const useActivity = create<ActivityState>()((set) => ({
   operations: [],
   unseenFailures: 0,
-  started: (id, label, repositoryId, at = Date.now()) =>
+  started: (id, label, repositoryId, at = Date.now(), background = false) =>
     set((state) => {
       const record: OperationRecord = {
         id,
@@ -45,6 +47,7 @@ export const useActivity = create<ActivityState>()((set) => ({
         finishedAt: null,
         outcome: "running",
         error: null,
+        background,
       };
       return { operations: [record, ...state.operations].slice(0, ACTIVITY_CAPACITY) };
     }),
@@ -55,7 +58,7 @@ export const useActivity = create<ActivityState>()((set) => ({
         if (record.id !== id || record.outcome !== "running") {
           return record;
         }
-        failed = error !== null;
+        failed = error !== null && !record.background;
         return { ...record, finishedAt: at, outcome: error === null ? "succeeded" : "failed", error };
       });
       return { operations, unseenFailures: state.unseenFailures + (failed ? 1 : 0) };

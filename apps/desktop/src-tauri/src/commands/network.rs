@@ -11,8 +11,11 @@ use rustgit_core::{
     CommandResult, Database, OperationFinished, OperationKind, OperationOutcome, OperationProgress,
     OperationStarted, ProgressCounts, ProgressThrottle,
 };
-use rustgit_git_engine::remote::{self, Progress, PullMode, PushRequest, Remote};
-use rustgit_git_engine::{CancelToken, GitExecutor, GitResult, RepositoryLocation};
+use rustgit_git_engine::remote::{self, Progress, PullFetch, PullMode, PushRequest, Remote};
+use rustgit_git_engine::{
+    CancelToken, GitError, GitExecutor, GitResult, InProgress, IntegrationOutcome,
+    IntegrationResult, RepositoryLocation,
+};
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use super::changes::{read, repository_root, write};
@@ -70,38 +73,32 @@ pub async fn remove_remote(
     .await
 }
 
-/// How a repository operation locks its repository.
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum LockMode {
-    /// Updates refs only (fetch, push): reads continue, mutations wait.
-    Read,
-    /// Changes the working tree (pull).
-    Write,
-}
-
 type OperationWork = Box<
     dyn FnOnce(&GitExecutor, &Path, &CancelToken, &mut dyn FnMut(Progress)) -> GitResult<()> + Send,
 >;
 
-/// Registers and starts a repository-scoped operation in the background.
+/// Registers and starts a repository-scoped operation in the background. These
+/// operations update refs only (fetch, push), so they hold the read lock:
+/// reads continue while mutations wait.
 fn start_repository_operation(
     app: AppHandle,
     state: &AppState,
     id: i64,
     kind: OperationKind,
-    lock: LockMode,
     token: CancelToken,
+    interactive: bool,
     work: OperationWork,
 ) -> OperationStarted {
     let operation_id: String = state.operations.start(token.clone());
     let task_id: String = operation_id.clone();
     tauri::async_runtime::spawn(async move {
         let state: State<'_, AppState> = app.state::<AppState>();
-        let (read_guard, write_guard) = match lock {
-            LockMode::Read => (Some(state.locks.read(id).await), None),
-            LockMode::Write => (None, Some(state.locks.write(id).await)),
+        let read_guard = state.locks.read(id).await;
+        let git: GitExecutor = if interactive {
+            state.git.clone()
+        } else {
+            state.git.without_prompts()
         };
-        let git: GitExecutor = state.git.clone();
         let database: Arc<Database> = Arc::clone(&state.database);
         let emitter: AppHandle = app.clone();
         let progress_id: String = task_id.clone();
@@ -111,7 +108,7 @@ fn start_repository_operation(
             Ok(work(&git, &root, &token, &mut report)?)
         })
         .await;
-        drop((read_guard, write_guard));
+        drop(read_guard);
         finish(&app, &state, &task_id, Some(id), result);
     });
     OperationStarted { operation_id }
@@ -177,20 +174,25 @@ pub fn start_fetch(
     id: i64,
     remote: Option<String>,
     prune: bool,
+    background: Option<bool>,
 ) -> OperationStarted {
+    // Background fetches never ask for credentials: they fail quietly instead.
     start_repository_operation(
         app,
         &state,
         id,
         OperationKind::Fetch,
-        LockMode::Read,
         CancelToken::default(),
+        background != Some(true),
         Box::new(move |git, root, token, report| {
             remote::fetch(git, root, remote.as_deref(), prune, token, report)
         }),
     )
 }
 
+/// Pulls in two phases: the fetch holds only the read lock, so status, diffs
+/// and history stay responsive during a slow download; the write lock is
+/// taken just for the fast-forward, merge or rebase.
 #[tauri::command]
 pub fn start_pull(
     app: AppHandle,
@@ -198,17 +200,65 @@ pub fn start_pull(
     id: i64,
     mode: PullMode,
 ) -> OperationStarted {
-    start_repository_operation(
-        app,
-        &state,
-        id,
-        OperationKind::Pull,
-        LockMode::Write,
-        CancelToken::default(),
-        Box::new(move |git, root, token, report| {
-            remote::pull(git, root, mode, token, report).map(|_| ())
-        }),
-    )
+    let token: CancelToken = CancelToken::default();
+    let operation_id: String = state.operations.start(token.clone());
+    let task_id: String = operation_id.clone();
+    tauri::async_runtime::spawn(async move {
+        let state: State<'_, AppState> = app.state::<AppState>();
+        let kind: OperationKind = OperationKind::Pull;
+        let database: Arc<Database> = Arc::clone(&state.database);
+
+        let read_guard = state.locks.read(id).await;
+        let git: GitExecutor = state.git.clone();
+        let fetch_token: CancelToken = token.clone();
+        let emitter: AppHandle = app.clone();
+        let progress_id: String = task_id.clone();
+        let fetched: CommandResult<(PathBuf, PullFetch)> = blocking(move || {
+            let root: PathBuf = repository_root(&database, id)?;
+            let mut report = progress_reporter(emitter, progress_id, Some(id), kind);
+            let fetched: PullFetch = remote::pull_fetch(&git, &root, &fetch_token, &mut report)?;
+            Ok((root, fetched))
+        })
+        .await;
+        drop(read_guard);
+
+        let result: CommandResult<()> = match fetched {
+            Err(error) => Err(error),
+            // From here on the working tree changes; cancelling is no longer possible.
+            Ok(_) if !token.commit() => Err(GitError::Cancelled.into()),
+            Ok((root, fetched)) => {
+                let write_guard = state.locks.write(id).await;
+                let git: GitExecutor = state.git.clone();
+                let integrated: CommandResult<()> = blocking(move || {
+                    let result: IntegrationResult =
+                        remote::pull_integrate(&git, &root, mode, &fetched)?;
+                    Ok(stopped_with_conflicts(&result)?)
+                })
+                .await;
+                drop(write_guard);
+                integrated
+            }
+        };
+        finish(&app, &state, &task_id, Some(id), result);
+    });
+    OperationStarted { operation_id }
+}
+
+/// A pull that stopped part-way leaves a merge or rebase in progress: report
+/// that as the outcome rather than a plain success.
+fn stopped_with_conflicts(result: &IntegrationResult) -> GitResult<()> {
+    if result.outcome != IntegrationOutcome::Conflicts {
+        return Ok(());
+    }
+    let operation: &str = match result.status.in_progress {
+        InProgress::Rebasing => "rebase",
+        _ => "merge",
+    };
+    let count: usize = result.conflicted.len();
+    Err(GitError::OperationInProgress(format!(
+        "{operation} with {count} conflicted file{} from this pull",
+        if count == 1 { "" } else { "s" }
+    )))
 }
 
 #[tauri::command]
@@ -226,8 +276,8 @@ pub fn start_push(
         &state,
         id,
         OperationKind::Push,
-        LockMode::Read,
         CancelToken::uncancellable(),
+        true,
         Box::new(move |git, root, _token, report| {
             remote::push(
                 git,
@@ -257,8 +307,8 @@ pub fn start_delete_remote_branch(
         &state,
         id,
         OperationKind::DeleteRemoteBranch,
-        LockMode::Read,
         CancelToken::uncancellable(),
+        true,
         Box::new(move |git, root, _token, report| {
             remote::delete_remote_branch(git, root, &remote, &branch, report)
         }),

@@ -34,7 +34,8 @@ describe("useAutoFetch", () => {
     expect(ipc.startFetch).not.toHaveBeenCalled();
 
     vi.advanceTimersByTime(AUTO_FETCH_INTERVAL_MS);
-    expect(ipc.startFetch).toHaveBeenCalledWith(42, null, true);
+    // Background: no credential prompts, and failures are not flagged.
+    expect(ipc.startFetch).toHaveBeenCalledWith(42, null, true, true);
   });
 
   it("skips auto-fetch when another sync operation is already running", () => {

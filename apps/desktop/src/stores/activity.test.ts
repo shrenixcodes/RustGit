@@ -24,6 +24,13 @@ describe("activity store", () => {
     expect(useActivity.getState().unseenFailures).toBe(0);
   });
 
+  it("logs background failures without flagging them", () => {
+    useActivity.getState().started(1, "Fetch all remotes (automatic)", 4, 1000, true);
+    useActivity.getState().finished(1, { kind: "authentication_failed", message: "no credentials" });
+    expect(useActivity.getState().operations[0]?.outcome).toBe("failed");
+    expect(useActivity.getState().unseenFailures).toBe(0);
+  });
+
   it("ignores a second finish for the same operation", () => {
     useActivity.getState().started(1, "Pin", null);
     useActivity.getState().finished(1, null);

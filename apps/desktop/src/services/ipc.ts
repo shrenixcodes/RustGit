@@ -215,8 +215,9 @@ export const ipc = {
     call("set_remote_url", { id, name, url, push }),
   removeRemote: (id: number, name: string): Promise<Remote[]> => call("remove_remote", { id, name }),
   /** remote null = all remotes. */
-  startFetch: (id: number, remote: string | null, prune: boolean): Promise<OperationStarted> =>
-    call("start_fetch", { id, remote, prune }),
+  /** `background` fetches never prompt for credentials; they fail instead. */
+  startFetch: (id: number, remote: string | null, prune: boolean, background: boolean = false): Promise<OperationStarted> =>
+    call("start_fetch", { id, remote, prune, background }),
   startPull: (id: number, mode: PullMode): Promise<OperationStarted> => call("start_pull", { id, mode }),
   /** forceWithLease rewrites remote history: confirm with the user first. */
   startPush: (args: {

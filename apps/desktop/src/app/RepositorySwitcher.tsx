@@ -61,6 +61,11 @@ export function SwitcherPopover({
   // Flat ordered list for keyboard navigation: pinned first, then others
   const flattened: RepositoryEntry[] = useMemo(() => [...pinnedList, ...otherList], [pinnedList, otherList]);
   const highlighted: RepositoryEntry | undefined = flattened[Math.min(highlight, Math.max(0, flattened.length - 1))];
+  // Arrow keys move the highlight; keep it inside the scrolled list.
+  const highlightedId: string | undefined = highlighted === undefined ? undefined : `${listId}-${highlighted.id}`;
+  useEffect(() => {
+    if (highlightedId !== undefined) document.getElementById(highlightedId)?.scrollIntoView?.({ block: "nearest" });
+  }, [highlightedId]);
 
   useEffect(() => {
     const onPointerDown = (event: PointerEvent): void => {

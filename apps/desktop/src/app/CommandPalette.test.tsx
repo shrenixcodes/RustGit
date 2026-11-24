@@ -59,6 +59,24 @@ describe("CommandPalette", () => {
     expect(useUi.getState().paletteOpen).toBe(false);
   });
 
+  it("keeps the highlighted command scrolled into view", async () => {
+    const scrolled: string[] = [];
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (this: Element) {
+      scrolled.push(this.textContent ?? "");
+    };
+    try {
+      renderWithClient(<CommandPalette />);
+      const dialog: HTMLElement = await screen.findByRole("dialog", { name: "Commands" });
+      within(dialog).getByRole("combobox").focus();
+      scrolled.length = 0;
+      await userEvent.keyboard("{ArrowDown}{ArrowDown}");
+      expect(scrolled).toHaveLength(2);
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
+  });
+
   it("offers repositories and branches by name", async () => {
     renderWithClient(<CommandPalette />);
     const dialog: HTMLElement = await screen.findByRole("dialog", { name: "Commands" });

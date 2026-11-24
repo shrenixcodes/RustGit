@@ -152,6 +152,11 @@ export function CommandPalette() {
       .map((entry) => entry.command);
   }, [commands, query]);
   const current: PaletteCommand | undefined = visible[Math.min(highlight, visible.length - 1)];
+  // Arrow keys move the highlight; keep it inside the scrolled list.
+  const currentId: string | undefined = current === undefined ? undefined : `${listId}-${current.id}`;
+  useEffect(() => {
+    if (currentId !== undefined) document.getElementById(currentId)?.scrollIntoView?.({ block: "nearest" });
+  }, [currentId]);
 
   const runCommand = (command: PaletteCommand): void => {
     close();

@@ -79,7 +79,8 @@ function useGlobalShortcuts(): void {
   };
 
   useShortcuts([
-    { shortcut: "Mod+K", run: () => setPaletteOpen(!paletteOpen), allowInInput: true },
+    // The palette is itself a dialog, and opens above any other.
+    { shortcut: "Mod+K", run: () => setPaletteOpen(!paletteOpen), allowInInput: true, allowInDialog: true },
     { shortcut: "Mod+P", run: () => setSwitcherOpen(!switcherOpen), allowInInput: true },
     { shortcut: "Mod+N", run: () => openSwitcher("create"), allowInInput: true },
     { shortcut: "Mod+O", run: () => openSwitcher("list"), allowInInput: true },

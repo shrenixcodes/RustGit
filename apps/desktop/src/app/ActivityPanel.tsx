@@ -93,7 +93,7 @@ function OperationsView() {
                     </span>
                   ) : record.outcome === "running" ? (
                     <span className="flex items-center gap-1 rounded bg-accent/15 border border-accent/25 px-1.5 py-0.2 font-mono text-2xs font-semibold text-accent">
-                      <LoaderCircle className="size-2.5 animate-spin" /> running
+                      <LoaderCircle className="size-2.5 motion-safe:animate-spin" /> running
                     </span>
                   ) : (
                     <span className="flex items-center gap-1 rounded bg-success/15 border border-success/25 px-1.5 py-0.2 font-mono text-2xs font-semibold text-success">

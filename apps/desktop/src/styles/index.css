@@ -135,6 +135,8 @@
     :root:not([data-motion="full"]) *::after,
     :root:not([data-motion="full"]) *::backdrop {
       animation-duration: 0.01ms !important;
+      /* One pass only: an infinite spinner at 0.01ms would repaint constantly. */
+      animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
@@ -144,6 +146,7 @@
   :root[data-motion="reduce"] *::after,
   :root[data-motion="reduce"] *::backdrop {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }

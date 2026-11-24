@@ -175,7 +175,7 @@ export function SettingsView() {
                     onClick={() => void updateCheck.refetch()}
                     className="h-7 text-xs"
                   >
-                    <RefreshCw className={`size-3 mr-1 ${updateCheck.isFetching ? "animate-spin" : ""}`} />
+                    <RefreshCw className={`size-3 mr-1 ${updateCheck.isFetching ? "motion-safe:animate-spin" : ""}`} />
                     {updateCheck.isFetching ? "Checking…" : "Check for updates"}
                   </Button>
                 </div>

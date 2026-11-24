@@ -46,6 +46,7 @@ function diff(side: "staged" | "unstaged", path: string): FileDiff {
 
 let files: FileStatus[];
 let branchError: unknown;
+let stagedDiffError: unknown;
 
 beforeEach(() => {
   localStorage.clear();
@@ -55,6 +56,7 @@ beforeEach(() => {
   useWorkspace.setState({ activeRepositoryId: 1, activeRepositoryPath: "D:/x", focus: LOOSE_END, unfolded: null, selectedChange: null });
   files = [file("src/lib.rs", "modified", "modified"), file("notes.md", null, "untracked")];
   branchError = null;
+  stagedDiffError = null;
   const context: CommitContext = { authorName: "Ada", authorEmail: "ada@example.invalid", signing: "off", head: { oid: OID("aa11"), summary: "Merge feature", message: "Merge feature\n", onUpstream: null }, inProgress: "none" };
   invokeMock.mockImplementation(async (command: string, args: Record<string, unknown>) => {
     const status: StatusSnapshot = { branch: { head: "main", oid: OID("aa11"), upstream: null, ahead: 0, behind: 0 }, files, inProgress: "none" };
@@ -70,6 +72,7 @@ beforeEach(() => {
         if (args.search !== null) return { commits: history.filter((c) => c.summary.toLowerCase().includes(String((args.search as { text: string }).text).toLowerCase())), hasMore: false };
         return args.skip === 0 ? { commits: history, hasMore: false } : { commits: [], hasMore: false };
       case "file_diff":
+        if (args.side === "staged" && stagedDiffError !== null) throw stagedDiffError;
         return diff(args.side as "staged" | "unstaged", String(args.path));
       case "change_totals":
         return { files: [], added: 1, deleted: 1 };
@@ -127,6 +130,29 @@ describe("the thread", () => {
     await waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith("apply_hunk", expect.objectContaining({ path: "src/lib.rs", action: "stage", hunkHeader: "@@ -1 +1 @@ unstaged src/lib.rs", contextLines: 3 })),
     );
+  });
+
+  it("selects a range of lines with Shift-click and keeps it across diff layouts", async () => {
+    useWorkspace.setState({ unfolded: LOOSE_END });
+    renderWithClient(<ThreadView repositoryId={1} />);
+    const fold: HTMLElement = await screen.findByRole("group", { name: "Uncommitted changes" });
+    await within(fold).findByText("@@ -1 +1 @@ unstaged src/lib.rs");
+    // Lines of the not-staged diff follow the two lines of the staged one.
+    const lines = (): HTMLElement[] => [...fold.querySelectorAll<HTMLElement>("div[aria-selected]:not([role])")];
+    fireEvent.click(lines()[2] as HTMLElement);
+    fireEvent.click(lines()[3] as HTMLElement, { shiftKey: true });
+    expect(within(fold).getByRole("button", { name: "Stage 2 lines" })).toBeTruthy();
+    await userEvent.click(within(fold).getByRole("radio", { name: "Split" }));
+    expect(within(fold).getByRole("button", { name: "Stage 2 lines" })).toBeTruthy();
+  });
+
+  it("still shows the side of a partly staged file that loaded when the other fails", async () => {
+    stagedDiffError = { kind: "internal", message: "index is locked" };
+    useWorkspace.setState({ unfolded: LOOSE_END });
+    renderWithClient(<ThreadView repositoryId={1} />);
+    const fold: HTMLElement = await screen.findByRole("group", { name: "Uncommitted changes" });
+    expect(await within(fold).findByText("@@ -1 +1 @@ unstaged src/lib.rs", undefined, { timeout: 5000 })).toBeTruthy();
+    expect(within(fold).getByText(/Could not read the other side of the diff: index is locked/)).toBeTruthy();
   });
 
   it("commits from the loose end's own row, with the description from its fold", async () => {

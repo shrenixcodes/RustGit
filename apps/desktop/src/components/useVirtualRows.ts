@@ -44,15 +44,23 @@ export function useVirtualRows(
 ): VirtualWindow {
   const [scrollTop, setScrollTop] = useState<number>(0);
   const [viewportHeight, setViewportHeight] = useState<number>(FALLBACK_VIEWPORT);
+  // The scroll container can be unmounted and recreated while the hook stays
+  // mounted (for example when the list is swapped for another view and back),
+  // so track the element itself rather than the ref object.
+  const [element, setElement] = useState<HTMLElement | null>(null);
 
   useLayoutEffect(() => {
-    const element: HTMLElement | null = container.current;
+    if (container.current !== element) setElement(container.current);
+  });
+
+  useLayoutEffect(() => {
     if (element === null) {
       return;
     }
     const measure = (): void => setViewportHeight(element.clientHeight > 0 ? element.clientHeight : FALLBACK_VIEWPORT);
     const onScroll = (): void => setScrollTop(element.scrollTop);
     measure();
+    onScroll();
     element.addEventListener("scroll", onScroll, { passive: true });
     const observer: ResizeObserver | null = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
     observer?.observe(element);
@@ -60,7 +68,7 @@ export function useVirtualRows(
       element.removeEventListener("scroll", onScroll);
       observer?.disconnect();
     };
-  }, [container]);
+  }, [element]);
 
   const ensureVisible = useCallback(
     (index: number): void => {

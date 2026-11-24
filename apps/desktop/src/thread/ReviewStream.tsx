@@ -20,7 +20,7 @@ import {
   stagingState,
   type NavigatorGroup,
 } from "../features/changes/changeLabels";
-import { buildCanvasRows, type CanvasRow, type DiffLayout } from "../features/changes/diffModel";
+import { buildCanvasRows, longestLine, type CanvasRow, type DiffLayout } from "../features/changes/diffModel";
 import { DIFF_ROW, HunkHeader, SplitHalf, UnifiedLine, type HunkAction } from "./diffParts";
 import { formatShortcut } from "../app/shortcuts";
 import { SUMMARY_GUIDE, type CommitComposer } from "./useCommitComposer";
@@ -32,6 +32,10 @@ const LAYOUTS: readonly SegmentOption<DiffLayout>[] = [
 ];
 /** Diff rows are indented under their file, which hangs off the thread. */
 const DIFF_INDENT = 40;
+/** Left edge of diff text in unified rows: thread indent, marker, two line-number columns and the sign. */
+const UNIFIED_GUTTER = 72 + DIFF_INDENT + 4 + 40 + 40 + 16 + 24;
+/** Width of one split half outside its text: marker, line number and padding. */
+const SPLIT_GUTTER = 4 + 40 + 16;
 /** Expanding every file is offered only up to this many (each costs a diff request). */
 export const EXPAND_ALL_LIMIT = 100;
 
@@ -125,13 +129,27 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
           return;
         }
         const entry = diffsByPath.get(file.path);
-        if (entry === undefined || entry.loading) out.push({ kind: "message", path: file.path, text: "Reading the diff…" });
-        else if (entry.error !== null) out.push({ kind: "message", path: file.path, text: `Could not read the diff: ${entry.error}` });
-        else for (const row of buildCanvasRows(entry.diffs, layout)) out.push({ kind: "diff", path: file.path, row });
+        if (entry === undefined || entry.loading) {
+          out.push({ kind: "message", path: file.path, text: "Reading the diff…" });
+          return;
+        }
+        // A side that failed to load does not hide the side that did.
+        for (const row of buildCanvasRows(entry.diffs, layout)) out.push({ kind: "diff", path: file.path, row });
+        if (entry.error !== null) {
+          const what: string = entry.diffs.length > 0 ? "the other side of the diff" : "the diff";
+          out.push({ kind: "message", path: file.path, text: `Could not read ${what}: ${entry.error}` });
+        }
       });
     }
     return out;
   }, [files, expanded, layout, results.map((r) => r.dataUpdatedAt).join(","), results.map((r) => r.status).join(",")]);
+
+  // The canvas is as wide as the longest shown line, so long lines scroll
+  // horizontally with their row background and file rows stay in view.
+  let longest = 0;
+  for (const entry of diffsByPath.values()) longest = Math.max(longest, longestLine(entry.diffs, 4));
+  const canvasWidth: string =
+    layout === "unified" ? `calc(${UNIFIED_GUTTER}px + ${longest}ch)` : `calc(${72 + DIFF_INDENT}px + 2 * (${SPLIT_GUTTER}px + ${longest}ch))`;
 
   const hunkRows: number[] = useMemo(
     () => rows.flatMap((row, index) => (row.kind === "diff" && row.row.kind === "hunk" ? [index] : [])),
@@ -140,8 +158,32 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
   const fileRows: number[] = useMemo(() => rows.flatMap((row, index) => (row.kind === "file" ? [index] : [])), [rows]);
   const { start, end, totalHeight, ensureVisible } = useVirtualRows(container, rows.length, DIFF_ROW, 16);
 
-  // Line selections refer to line indices of a specific diff: drop them when diffs change.
-  useEffect(() => setSelection(new Map()), [rows]);
+  // Line selections refer to line indices of a specific diff: drop the ones
+  // whose diff was re-read (or is no longer shown). Layout changes keep them.
+  const diffVersions: string = requests
+    .flatMap((request) => request.sides.map((side) => `${request.path}\u0000${side}`))
+    .map((key, index) => `${key}\u0000${results[index]?.dataUpdatedAt ?? 0}`)
+    .join("\u0001");
+  const seenVersions = useRef<string>(diffVersions);
+  useEffect(() => {
+    if (seenVersions.current === diffVersions) return;
+    const current: Set<string> = new Set(diffVersions.split("\u0001"));
+    const previous: Set<string> = new Set(seenVersions.current.split("\u0001"));
+    seenVersions.current = diffVersions;
+    const unchanged: Set<string> = new Set();
+    for (const entry of current) {
+      if (previous.has(entry)) unchanged.add(entry.slice(0, entry.lastIndexOf("\u0000")));
+    }
+    setSelection((selected) => {
+      const kept: Map<string, ReadonlySet<number>> = new Map();
+      for (const [key, lines] of selected) {
+        if (unchanged.has(key.slice(0, key.lastIndexOf("\u0000")))) kept.set(key, lines);
+      }
+      return kept.size === selected.size ? selected : kept;
+    });
+  }, [diffVersions]);
+  /** Last line clicked, the anchor for Shift-click range selection. */
+  const anchor = useRef<{ key: string; lineIndex: number } | null>(null);
 
   const diffFor = (path: string, side: WorkingDiffSide): FileDiff | undefined =>
     diffsByPath.get(path)?.diffs.find((diff) => diff.side === side);
@@ -164,13 +206,20 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
 
   const hunkKey = (path: string, side: WorkingDiffSide, hunkIndex: number): string => `${path}\u0000${side}\u0000${hunkIndex}`;
 
-  const toggleLine = (path: string, side: WorkingDiffSide, hunkIndex: number, lineIndex: number): void => {
+  const toggleLine = (path: string, side: WorkingDiffSide, hunkIndex: number, lineIndex: number, extend: boolean = false): void => {
     if (!lineSelectable(path, side)) return;
     const key: string = hunkKey(path, side, hunkIndex);
+    const from = anchor.current;
+    const lines = diffFor(path, side)?.hunks[hunkIndex]?.lines ?? [];
+    anchor.current = { key, lineIndex };
     setSelection((current) => {
       const next: Map<string, ReadonlySet<number>> = new Map(current);
       const set: Set<number> = new Set(next.get(key) ?? []);
-      if (set.has(lineIndex)) set.delete(lineIndex);
+      if (extend && from !== null && from.key === key) {
+        // Shift-click selects every changed line between the anchor and this one.
+        const [low, high] = from.lineIndex <= lineIndex ? [from.lineIndex, lineIndex] : [lineIndex, from.lineIndex];
+        for (let index = low; index <= high; index += 1) if (lines[index] !== undefined && lines[index]?.kind !== "context") set.add(index);
+      } else if (set.has(lineIndex)) set.delete(lineIndex);
       else set.add(lineIndex);
       if (set.size === 0) next.delete(key);
       else next.set(key, set);
@@ -277,6 +326,7 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
       case "Escape":
         if (selection.size === 0) return; // let the thread fold the loose end
         setSelection(new Map());
+        anchor.current = null;
         break;
       default:
         return;
@@ -448,7 +498,7 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
           </Button>
           <Button
             variant="ghost"
-            disabled={!allExpanded && files.length > EXPAND_ALL_LIMIT}
+            disabled={files.length === 0 || (!allExpanded && files.length > EXPAND_ALL_LIMIT)}
             title={files.length > EXPAND_ALL_LIMIT ? `Expanding all is limited to ${EXPAND_ALL_LIMIT} files` : undefined}
             onClick={() => setExpanded(allExpanded ? new Set() : new Set(files.map((file) => file.path)))}
             className="h-7 text-xs"
@@ -491,7 +541,7 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
         onFocus={() => {
           if (activeFileRow < 0) moveFile(0);
         }}
-        className="relative min-h-0 flex-1 overflow-auto font-mono text-xs outline-none focus-visible:shadow-[inset_0_0_0_1px_var(--rg-accent)]"
+        className="relative min-h-0 flex-1 overflow-auto font-mono text-xs outline-none [container-type:inline-size] focus-visible:shadow-[inset_0_0_0_1px_var(--rg-accent)]"
         style={{ tabSize: 4, lineHeight: `${DIFF_ROW}px` }}
       >
         {files.length === 0 ? (
@@ -499,13 +549,17 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
             {status.files.length === 0 ? "No changes. The working tree is clean." : `No changed files match “${filter}”.`}
           </p>
         ) : (
-          <div style={{ height: totalHeight, position: "relative" }}>
+          <div style={{ height: totalHeight, position: "relative", minWidth: "100%", width: canvasWidth }}>
             {rows.slice(start, end).map((row, offset) => {
               const index: number = start + offset;
-              const style = { position: "absolute" as const, top: index * DIFF_ROW, height: DIFF_ROW, left: 0, right: 0 };
+              // Diff lines span the canvas; file rows and notes stay pinned to the viewport.
+              const pinned: boolean = row.kind !== "diff" || row.row.kind === "section" || row.row.kind === "note";
+              const style: React.CSSProperties = pinned
+                ? { position: "sticky", left: 0, width: "100cqi", height: DIFF_ROW }
+                : { height: DIFF_ROW };
               return (
+                <div key={rowKey(row, index)} style={{ position: "absolute", top: index * DIFF_ROW, height: DIFF_ROW, left: 0, right: 0 }}>
                 <StreamRowView
-                  key={rowKey(row, index)}
                   id={`stream-row-${index}`}
                   row={row}
                   style={style}
@@ -528,6 +582,7 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
                     runHunk(path, side, hunkIndex, action);
                   }}
                 />
+                </div>
               );
             })}
           </div>
@@ -583,7 +638,7 @@ interface StreamRowViewProps {
   onToggleExpanded: (path: string) => void;
   onToggleStage: (file: FileStatus) => void;
   onDiscardFile: (file: FileStatus) => void;
-  onToggleLine: (path: string, side: WorkingDiffSide, hunkIndex: number, lineIndex: number) => void;
+  onToggleLine: (path: string, side: WorkingDiffSide, hunkIndex: number, lineIndex: number, extend: boolean) => void;
   onHunk: (path: string, side: WorkingDiffSide, hunkIndex: number, action: HunkAction) => void;
 }
 
@@ -651,7 +706,7 @@ function StreamRowView(props: StreamRowViewProps): ReactNode {
         refLine={canvas}
         selected={chosen?.has(canvas.lineIndex) === true}
         selectable={selectable && canvas.line.kind !== "context"}
-        onToggle={() => props.onToggleLine(path, canvas.side, canvas.hunkIndex, canvas.lineIndex)}
+        onToggle={(extend) => props.onToggleLine(path, canvas.side, canvas.hunkIndex, canvas.lineIndex, extend)}
       />
     );
   }
@@ -661,14 +716,14 @@ function StreamRowView(props: StreamRowViewProps): ReactNode {
         refLine={canvas.left}
         selected={canvas.left !== null && chosen?.has(canvas.left.lineIndex) === true}
         selectable={canvas.left !== null && canvas.left.line.kind !== "context" && selectable}
-        onToggle={() => canvas.left !== null && props.onToggleLine(path, canvas.side, canvas.hunkIndex, canvas.left.lineIndex)}
+        onToggle={(extend) => canvas.left !== null && props.onToggleLine(path, canvas.side, canvas.hunkIndex, canvas.left.lineIndex, extend)}
         side="old"
       />
       <SplitHalf
         refLine={canvas.right}
         selected={canvas.right !== null && canvas.right.line.kind !== "context" && chosen?.has(canvas.right.lineIndex) === true}
         selectable={canvas.right !== null && canvas.right.line.kind !== "context" && selectable}
-        onToggle={() => canvas.right !== null && props.onToggleLine(path, canvas.side, canvas.hunkIndex, canvas.right.lineIndex)}
+        onToggle={(extend) => canvas.right !== null && props.onToggleLine(path, canvas.side, canvas.hunkIndex, canvas.right.lineIndex, extend)}
         side="new"
       />
     </div>

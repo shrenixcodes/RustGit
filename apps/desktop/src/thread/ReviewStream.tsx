@@ -20,7 +20,7 @@ import {
   stagingState,
   type NavigatorGroup,
 } from "../features/changes/changeLabels";
-import { buildCanvasRows, type CanvasRow, type DiffLayout } from "../features/changes/diffModel";
+import { buildCanvasRows, longestLine, type CanvasRow, type DiffLayout } from "../features/changes/diffModel";
 import { DIFF_ROW, HunkHeader, SplitHalf, UnifiedLine, type HunkAction } from "./diffParts";
 import { formatShortcut } from "../app/shortcuts";
 import { SUMMARY_GUIDE, type CommitComposer } from "./useCommitComposer";
@@ -32,6 +32,10 @@ const LAYOUTS: readonly SegmentOption<DiffLayout>[] = [
 ];
 /** Diff rows are indented under their file, which hangs off the thread. */
 const DIFF_INDENT = 40;
+/** Left edge of diff text in unified rows: thread indent, marker, two line-number columns and the sign. */
+const UNIFIED_GUTTER = 72 + DIFF_INDENT + 4 + 40 + 40 + 16 + 24;
+/** Width of one split half outside its text: marker, line number and padding. */
+const SPLIT_GUTTER = 4 + 40 + 16;
 /** Expanding every file is offered only up to this many (each costs a diff request). */
 export const EXPAND_ALL_LIMIT = 100;
 
@@ -139,6 +143,13 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
     }
     return out;
   }, [files, expanded, layout, results.map((r) => r.dataUpdatedAt).join(","), results.map((r) => r.status).join(",")]);
+
+  // The canvas is as wide as the longest shown line, so long lines scroll
+  // horizontally with their row background and file rows stay in view.
+  let longest = 0;
+  for (const entry of diffsByPath.values()) longest = Math.max(longest, longestLine(entry.diffs, 4));
+  const canvasWidth: string =
+    layout === "unified" ? `calc(${UNIFIED_GUTTER}px + ${longest}ch)` : `calc(${72 + DIFF_INDENT}px + 2 * (${SPLIT_GUTTER}px + ${longest}ch))`;
 
   const hunkRows: number[] = useMemo(
     () => rows.flatMap((row, index) => (row.kind === "diff" && row.row.kind === "hunk" ? [index] : [])),
@@ -530,7 +541,7 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
         onFocus={() => {
           if (activeFileRow < 0) moveFile(0);
         }}
-        className="relative min-h-0 flex-1 overflow-auto font-mono text-xs outline-none focus-visible:shadow-[inset_0_0_0_1px_var(--rg-accent)]"
+        className="relative min-h-0 flex-1 overflow-auto font-mono text-xs outline-none [container-type:inline-size] focus-visible:shadow-[inset_0_0_0_1px_var(--rg-accent)]"
         style={{ tabSize: 4, lineHeight: `${DIFF_ROW}px` }}
       >
         {files.length === 0 ? (
@@ -538,13 +549,17 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
             {status.files.length === 0 ? "No changes. The working tree is clean." : `No changed files match “${filter}”.`}
           </p>
         ) : (
-          <div style={{ height: totalHeight, position: "relative" }}>
+          <div style={{ height: totalHeight, position: "relative", minWidth: "100%", width: canvasWidth }}>
             {rows.slice(start, end).map((row, offset) => {
               const index: number = start + offset;
-              const style = { position: "absolute" as const, top: index * DIFF_ROW, height: DIFF_ROW, left: 0, right: 0 };
+              // Diff lines span the canvas; file rows and notes stay pinned to the viewport.
+              const pinned: boolean = row.kind !== "diff" || row.row.kind === "section" || row.row.kind === "note";
+              const style: React.CSSProperties = pinned
+                ? { position: "sticky", left: 0, width: "100cqi", height: DIFF_ROW }
+                : { height: DIFF_ROW };
               return (
+                <div key={rowKey(row, index)} style={{ position: "absolute", top: index * DIFF_ROW, height: DIFF_ROW, left: 0, right: 0 }}>
                 <StreamRowView
-                  key={rowKey(row, index)}
                   id={`stream-row-${index}`}
                   row={row}
                   style={style}
@@ -567,6 +582,7 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
                     runHunk(path, side, hunkIndex, action);
                   }}
                 />
+                </div>
               );
             })}
           </div>

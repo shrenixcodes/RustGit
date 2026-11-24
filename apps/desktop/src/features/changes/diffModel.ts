@@ -136,9 +136,20 @@ export function buildCanvasRows(diffs: ReadonlyArray<FileDiff>, layout: DiffLayo
   return rows;
 }
 
-/** Longest line, in characters, for sizing the horizontally scrollable canvas. */
-export function longestLine(diffs: ReadonlyArray<FileDiff>): number {
+/**
+ * Longest line, in characters, for sizing the horizontally scrollable canvas.
+ * Tabs count as `tabSize` characters, matching how they are rendered.
+ */
+export function longestLine(diffs: ReadonlyArray<FileDiff>, tabSize: number = 1): number {
   let longest = 0;
-  for (const diff of diffs) for (const hunk of diff.hunks) for (const line of hunk.lines) longest = Math.max(longest, line.content.length);
+  for (const diff of diffs) {
+    for (const hunk of diff.hunks) {
+      for (const line of hunk.lines) {
+        let tabs = 0;
+        if (tabSize > 1) for (const char of line.content) if (char === "\t") tabs += 1;
+        longest = Math.max(longest, line.content.length + tabs * (tabSize - 1));
+      }
+    }
+  }
   return longest;
 }

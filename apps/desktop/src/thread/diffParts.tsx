@@ -40,16 +40,22 @@ interface HunkHeaderProps {
   onAction?: (action: HunkAction) => void;
 }
 
+/** Hunk header fill: the canvas, tinted with the selection colour when active. */
+function hunkBackground(active: boolean): string {
+  return active ? "linear-gradient(var(--rg-selection), var(--rg-selection)), var(--rg-canvas)" : "var(--rg-canvas)";
+}
+
 export function HunkHeader({ style, indent, header, side, active, selectedCount, disabled, onAction }: HunkHeaderProps) {
   const what: string = selectedCount > 0 ? `${selectedCount} line${selectedCount === 1 ? "" : "s"}` : "hunk";
   return (
     <div
-      style={{ ...style, paddingLeft: indent }}
-      className={`flex items-center gap-2 border-y border-border/40 bg-canvas/60 font-mono text-xs ${active ? "bg-selection" : ""}`}
+      className="flex items-center gap-2 border-y border-border/40 font-mono text-xs"
+      style={{ ...style, paddingLeft: indent, background: hunkBackground(active) }}
     >
       <span className="min-w-0 flex-1 truncate text-fg-muted font-medium">{header}</span>
       {onAction !== undefined && side !== "commit" && (
-        <span className="sticky right-0 flex shrink-0 items-center gap-1.5 bg-inherit pr-3 font-sans">
+        // Opaque, so header text scrolled underneath does not show through the buttons.
+        <span className="sticky right-0 flex shrink-0 items-center gap-1.5 pr-3 pl-2 font-sans" style={{ background: hunkBackground(active) }}>
           {side === "unstaged" ? (
             <>
               <HunkButton label={`Stage ${what}`} disabled={disabled} onClick={() => onAction("stage")} />
@@ -138,8 +144,9 @@ export function SplitHalf({ refLine, selected, selectable, onToggle, side }: Spl
     >
       <span aria-hidden className={`w-1 shrink-0 ${selected ? "bg-accent" : ""}`} />
       <span className="w-10 shrink-0 pr-2 text-right text-fg-muted select-none">{number ?? ""}</span>
-      <span className="truncate text-fg" title={line.content}>
+      <span data-selectable className="pr-4 text-fg">
         <LineContent refLine={refLine} />
+        {line.noNewlineAtEnd && <span className="ml-2 text-fg-muted">no newline at end</span>}
       </span>
     </div>
   );

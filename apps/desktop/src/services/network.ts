@@ -187,9 +187,9 @@ export const AUTO_FETCH_INTERVAL_MS = 5 * 60 * 1000;
  * 3. Browser is online (navigator.onLine).
  * 4. No other sync operation is currently active.
  */
-export function useAutoFetch(repositoryId: number | null): void {
+export function useAutoFetch(repositoryId: number | null, enabled: boolean = true): void {
   useEffect(() => {
-    if (repositoryId === null) return;
+    if (repositoryId === null || !enabled) return;
 
     const maybeFetch = () => {
       if (typeof document !== "undefined" && document.hidden) return;
@@ -213,5 +213,5 @@ export function useAutoFetch(repositoryId: number | null): void {
 
     const interval = window.setInterval(maybeFetch, AUTO_FETCH_INTERVAL_MS);
     return () => window.clearInterval(interval);
-  }, [repositoryId]);
+  }, [repositoryId, enabled]);
 }

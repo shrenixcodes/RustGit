@@ -32,7 +32,8 @@ export function AppShell() {
   useGlobalShortcuts();
   useRestoreLastRepository();
   useRepositoryWatcher(activeRepositoryId);
-  useAutoFetch(activeRepositoryId);
+  const autoFetch: boolean = usePreferences((state) => state.autoFetch);
+  useAutoFetch(activeRepositoryId, autoFetch);
   useOperationEvents();
 
   return (

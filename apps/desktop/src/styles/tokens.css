@@ -172,7 +172,7 @@
 
 /* Workspace personalities (spacing). Quiet is the default. */
 :root {
-  --rg-row: 30px;
+  --rg-row: 32px; /* rowHeightFor("quiet") in stores/preferences.ts */
   --rg-control: 30px;
   --rg-header: 52px;
   --rg-shelf: 26px;
@@ -196,7 +196,7 @@
 }
 
 :root[data-workspace="deep"] {
-  --rg-row: 24px;
+  --rg-row: 26px; /* rowHeightFor("deep") */
   --rg-control: 26px;
   --rg-header: 44px;
   --rg-gutter: 12px;

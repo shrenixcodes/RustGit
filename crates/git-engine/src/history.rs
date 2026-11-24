@@ -4,7 +4,7 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
-use crate::diff::{DiffSide, FileDiff, parse_file_diff, parse_numstat, unified_arg};
+use crate::diff::{DiffSide, FileDiff, file_section, parse_file_diff, parse_numstat, unified_arg};
 use crate::error::{GitError, GitResult};
 use crate::executor::GitExecutor;
 use crate::index::has_head;
@@ -422,7 +422,7 @@ pub(crate) fn tree_file_diff(
         args.push(original);
     }
     let output: std::process::Output = git.run(root, args, None)?;
-    let mut diff: FileDiff = parse_file_diff(&output.stdout, DiffSide::Commit)?;
+    let mut diff: FileDiff = parse_file_diff(file_section(&output.stdout, path), DiffSide::Commit)?;
     diff.path = path.to_owned();
     if diff.original_path.is_none() {
         diff.original_path = original_path.map(str::to_owned);

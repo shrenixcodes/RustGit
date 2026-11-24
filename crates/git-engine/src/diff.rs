@@ -165,7 +165,7 @@ pub fn file_diff(git: &GitExecutor, root: &Path, request: &DiffRequest<'_>) -> G
         git.run(root, args, None)?.stdout
     };
 
-    let mut diff: FileDiff = parse_file_diff(&stdout, request.side)?;
+    let mut diff: FileDiff = parse_file_diff(file_section(&stdout, request.path), request.side)?;
     diff.path = request.path.to_owned();
     if diff.original_path.is_none() {
         diff.original_path = request.original_path.map(str::to_owned);
@@ -183,6 +183,40 @@ fn is_tracked(git: &GitExecutor, root: &Path, path: &str) -> GitResult<bool> {
         None,
     )?;
     Ok(!output.stdout.is_empty())
+}
+
+/// The part of `git diff` output that belongs to `path`. Asking for a rename
+/// passes both paths, and when a new file took the old name Git prints two
+/// file diffs; the one whose new side is `path` is wanted.
+pub(crate) fn file_section<'a>(raw: &'a [u8], path: &str) -> &'a [u8] {
+    const HEADER: &[u8] = b"diff --git ";
+    let mut starts: Vec<usize> = Vec::new();
+    if raw.starts_with(HEADER) {
+        starts.push(0);
+    }
+    for (index, window) in raw.windows(HEADER.len() + 1).enumerate() {
+        if window[0] == b'\n' && &window[1..] == HEADER {
+            starts.push(index + 1);
+        }
+    }
+    if starts.len() < 2 {
+        return raw;
+    }
+    let plain: String = format!(" b/{path}");
+    let quoted: String = format!(" \"b/{path}\"");
+    for (position, &start) in starts.iter().enumerate() {
+        let end: usize = starts.get(position + 1).copied().unwrap_or(raw.len());
+        let section: &[u8] = &raw[start..end];
+        let header: &[u8] = section
+            .split(|byte: &u8| *byte == b'\n')
+            .next()
+            .unwrap_or_default();
+        let header: &[u8] = header.strip_suffix(b"\r").unwrap_or(header);
+        if header.ends_with(plain.as_bytes()) || header.ends_with(quoted.as_bytes()) {
+            return section;
+        }
+    }
+    &raw[starts[0]..starts[1]]
 }
 
 /// Parses the output of `git diff` for a single file.
@@ -392,6 +426,26 @@ pub fn parse_numstat(raw: &[u8]) -> GitResult<ChangeTotals> {
         });
     }
     Ok(totals)
+}
+
+#[cfg(test)]
+mod section_tests {
+    use super::file_section;
+
+    #[test]
+    fn picks_the_renamed_file_when_its_old_name_was_reused() {
+        let raw: &[u8] = b"diff --git a/old.txt b/new.txt\nsimilarity index 90%\nrename from old.txt\nrename to new.txt\n@@ -1 +1 @@\n-a\n+b\ndiff --git a/old.txt b/old.txt\nnew file mode 100644\n--- /dev/null\n+++ b/old.txt\n@@ -0,0 +1 @@\n+fresh\n";
+        let section: &[u8] = file_section(raw, "new.txt");
+        assert!(section.starts_with(b"diff --git a/old.txt b/new.txt"));
+        assert!(!section.windows(5).any(|window: &[u8]| window == b"fresh"));
+        assert!(file_section(raw, "old.txt").ends_with(b"+fresh\n"));
+    }
+
+    #[test]
+    fn leaves_a_single_file_diff_alone() {
+        let raw: &[u8] = b"diff --git a/x b/x\n@@ -1 +1 @@\n-a\n+b\n";
+        assert_eq!(file_section(raw, "x"), raw);
+    }
 }
 
 #[cfg(test)]

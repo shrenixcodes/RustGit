@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { CommitContext, CommitDetails, FileDiff, FileStatus, LogCommit, RefList, StatusSnapshot } from "../services/types";
 
@@ -176,6 +176,19 @@ describe("the thread", () => {
     await waitFor(() => expect(useWorkspace.getState().focus).toBe(commitNode(OID("dd44"))));
   });
 
+  it("opens the next commit fresh instead of reusing the previous fold's state", async () => {
+    renderWithClient(<ThreadView repositoryId={1} />);
+    await userEvent.click(await screen.findByRole("treeitem", { name: /^Add feature/ }));
+    const first: HTMLElement = await screen.findByRole("group", { name: `Commit ${OID("cc33").slice(0, 7)} unfolded` });
+    await within(first).findByText("Why it changed.");
+    await userEvent.click(within(first).getByTitle("src/lib.rs"));
+    expect(within(first).getByTitle("src/lib.rs").getAttribute("aria-expanded")).toBe("true");
+    await userEvent.click(screen.getByRole("treeitem", { name: /^Fix main/ }));
+    const second: HTMLElement = await screen.findByRole("group", { name: `Commit ${OID("bb22").slice(0, 7)} unfolded` });
+    await within(second).findByText("Why it changed.");
+    expect(within(second).getByTitle("src/lib.rs").getAttribute("aria-expanded")).toBe("false");
+  });
+
   it("moves along the thread with the keyboard and folds with Escape", async () => {
     renderWithClient(<ThreadView repositoryId={1} />);
     const tree: HTMLElement = await screen.findByRole("tree", { name: "Thread" });
@@ -220,6 +233,16 @@ describe("the map", () => {
     await userEvent.click(within(await screen.findByRole("dialog", { name: "Merge feature into main?" })).getByRole("button", { name: "Merge" }));
     await waitFor(() => expect(invokeMock).toHaveBeenCalledWith("merge_branch", { id: 1, source: "feature", strategy: "default" }));
     expect(await within(fold).findByText(/Fast-forwarded/)).toBeTruthy();
+  });
+
+  it("keeps a commit open when switching to the thread", async () => {
+    useWorkspace.setState({ unfolded: mapNode(OID("cc33")), focus: mapNode(OID("cc33")) });
+    renderWithClient(<ThreadView repositoryId={1} />);
+    await screen.findByRole("group", { name: `Commit ${OID("cc33").slice(0, 7)} unfolded` });
+    act(() => usePreferences.getState().setZoom("thread"));
+    await waitFor(() => expect(useWorkspace.getState().unfolded).toBe(commitNode(OID("cc33"))));
+    expect(useWorkspace.getState().focus).toBe(commitNode(OID("cc33")));
+    expect(await screen.findByText("Why it changed.")).toBeTruthy();
   });
 
   it("lists the files a switch would overwrite and changes nothing", async () => {

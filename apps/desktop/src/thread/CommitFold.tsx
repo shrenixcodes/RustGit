@@ -25,12 +25,14 @@ interface CommitFoldProps {
   head: HeadState | undefined;
   currentBranch: string | null;
   height: number;
+  /** Left padding that clears the graph lanes running through the fold. */
+  inset: number;
   onGoTo: (oid: string) => void;
   onHeightChange?: (height: number) => void;
 }
 
 /** A commit unfolded in place: everything about it, under its own row. */
-export function CommitFold({ repositoryId, oid, refs, head, currentBranch, height, onGoTo, onHeightChange }: CommitFoldProps) {
+export function CommitFold({ repositoryId, oid, refs, head, currentBranch, height, inset, onGoTo, onHeightChange }: CommitFoldProps) {
   const details = useCommitDetails(repositoryId, oid);
   const operation = useBranchOperation(repositoryId);
   const [openFiles, setOpenFiles] = useState<ReadonlySet<string>>(new Set());
@@ -71,7 +73,7 @@ export function CommitFold({ repositoryId, oid, refs, head, currentBranch, heigh
   };
 
   return (
-    <div style={{ height }} className="overflow-y-auto pr-4 sm:pr-6 pb-5 pl-8 sm:pl-10">
+    <div style={{ height, paddingLeft: inset }} className="overflow-y-auto pr-4 sm:pr-6 pb-5">
       {details.isPending && <p className="py-4 text-xs font-mono text-fg-muted">Reading commit…</p>}
       {details.isError && <ErrorNotice title="Could not read commit" error={details.error} />}
       {details.data !== undefined && (
@@ -129,41 +131,45 @@ export function CommitFold({ repositoryId, oid, refs, head, currentBranch, heigh
             </div>
           </div>
 
-          {/* Commit Actions Toolbar */}
-          {currentBranch !== null && (
-            <div className="flex flex-wrap items-center gap-2 pt-0.5">
-              <Button
-                variant="secondary"
-                disabled={operation.isPending}
-                onClick={() =>
-                  setPending({
-                    request: { kind: "cherry_pick", oid },
-                    title: `Cherry-pick onto ${currentBranch}?`,
-                    body: `Applies the changes of ${oid.slice(0, 7)} as a new commit on ${currentBranch}. Conflicts, if any, are left for you to resolve.`,
-                    label: "Cherry-pick",
-                  })
-                }
-                className="h-7.5 text-xs font-medium"
-              >
-                <GitFork className="size-3.5 mr-1 text-accent" />
-                Cherry-pick onto {currentBranch}
-              </Button>
-              <Button
-                variant="secondary"
-                disabled={operation.isPending}
-                onClick={() =>
-                  setPending({
-                    request: { kind: "revert", oid },
-                    title: `Revert ${oid.slice(0, 7)}?`,
-                    body: `Creates a new commit on ${currentBranch} that undoes this commit's changes. History is not rewritten.`,
-                    label: "Revert",
-                  })
-                }
-                className="h-7.5 text-xs font-medium"
-              >
-                <RotateCcw className="size-3.5 mr-1 text-clay-text" />
-                Revert…
-              </Button>
+          {/* Commit Actions Toolbar: cherry-pick and revert need a branch; comparing only needs HEAD. */}
+          <div className="flex flex-wrap items-center gap-2 pt-0.5">
+            {currentBranch !== null && (
+              <>
+                <Button
+                  variant="secondary"
+                  disabled={operation.isPending}
+                  onClick={() =>
+                    setPending({
+                      request: { kind: "cherry_pick", oid },
+                      title: `Cherry-pick onto ${currentBranch}?`,
+                      body: `Applies the changes of ${oid.slice(0, 7)} as a new commit on ${currentBranch}. Conflicts, if any, are left for you to resolve.`,
+                      label: "Cherry-pick",
+                    })
+                  }
+                  className="h-7.5 text-xs font-medium"
+                >
+                  <GitFork className="size-3.5 mr-1 text-accent" />
+                  Cherry-pick onto {currentBranch}
+                </Button>
+                <Button
+                  variant="secondary"
+                  disabled={operation.isPending}
+                  onClick={() =>
+                    setPending({
+                      request: { kind: "revert", oid },
+                      title: `Revert ${oid.slice(0, 7)}?`,
+                      body: `Creates a new commit on ${currentBranch} that undoes this commit's changes. History is not rewritten.`,
+                      label: "Revert",
+                    })
+                  }
+                  className="h-7.5 text-xs font-medium"
+                >
+                  <RotateCcw className="size-3.5 mr-1 text-clay-text" />
+                  Revert…
+                </Button>
+              </>
+            )}
+            {head !== undefined && head.kind !== "unborn" && (
               <Button
                 variant="ghost"
                 onClick={() => useUi.getState().openCompare(oid, "HEAD")}
@@ -172,8 +178,8 @@ export function CommitFold({ repositoryId, oid, refs, head, currentBranch, heigh
                 <GitCompare className="size-3.5 mr-1" />
                 Compare with HEAD
               </Button>
-            </div>
-          )}
+            )}
+          </div>
 
           {operation.error !== null && <ErrorNotice title="Git did not complete the operation" error={operation.error} />}
           {outcome !== null && <OutcomeNotice outcome={outcome} />}

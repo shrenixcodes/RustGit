@@ -20,6 +20,8 @@ interface MapFoldProps {
   /** The working tree has changes (switching keeps them when Git can). */
   dirty: boolean;
   height: number;
+  /** Left padding that clears the graph lanes running through the fold. */
+  inset: number;
 }
 
 /** "origin/feature/x" → remote "origin", branch "feature/x" (remote names may contain "/"; the longest match wins). */
@@ -45,7 +47,7 @@ interface Pending {
  * relates to its upstream and to the current branch, and the operations
  * that apply to it. Every operation runs in the backend; risky ones confirm.
  */
-export function MapFold({ repositoryId, oid, refs, currentBranch, dirty, height }: MapFoldProps) {
+export function MapFold({ repositoryId, oid, refs, currentBranch, dirty, height, inset }: MapFoldProps) {
   const operation = useBranchOperation(repositoryId);
   const [pending, setPending] = useState<Pending | null>(null);
   const [outcome, setOutcome] = useState<BranchOutcome | null>(null);
@@ -98,7 +100,7 @@ export function MapFold({ repositoryId, oid, refs, currentBranch, dirty, height 
   const tags: RefEntry[] = refs.filter((ref) => ref.kind === "tag");
 
   return (
-    <div style={{ height }} className="overflow-y-auto pr-5 pb-3 pl-[72px]">
+    <div style={{ height, paddingLeft: inset }} className="overflow-y-auto pr-5 pb-3">
       <div className="space-y-3 pt-2">
         {locals.map((ref) => {
           const current: boolean = ref.shortName === currentBranch;

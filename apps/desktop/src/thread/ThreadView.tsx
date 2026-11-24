@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { ChevronRight } from "lucide-react";
 import { OpenNode } from "../components/Mark";
 import { useLogPages, useRefs, useRepositoryStatus, type LogFilters } from "../services/queries";
@@ -27,6 +27,8 @@ const MAP_PREFETCH = 3_000;
 const LANE = laneWidthFor(0);
 /** Content starts at the same x in every row, after the graph column. */
 const CONTENT_LEFT = 72;
+/** Height of a commit fold before its content has been measured. */
+const DEFAULT_COMMIT_FOLD_HEIGHT = 360;
 
 type ThreadRowModel =
   | { kind: "now"; id: NodeId }
@@ -62,6 +64,15 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
   const composer: CommitComposer = useCommitComposer(repositoryId, status);
   const container = useRef<HTMLDivElement>(null);
   const summaryInput = useRef<HTMLInputElement>(null);
+  // "c" may be pressed far down the thread, where the summary row is not
+  // mounted yet: focus it once the scroll back to the top has rendered it.
+  const focusSummaryPending = useRef<boolean>(false);
+  useEffect(() => {
+    if (focusSummaryPending.current && summaryInput.current !== null) {
+      focusSummaryPending.current = false;
+      summaryInput.current.focus();
+    }
+  });
 
   const [debounced, setDebounced] = useState<string>(search.trim());
   useEffect(() => {
@@ -129,7 +140,14 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
 
   // Unfolding geometry.
   const [viewportHint, setViewportHint] = useState<number>(800);
-  const [measuredCommitHeight, setMeasuredCommitHeight] = useState<number>(360);
+  // Measured per node, so another commit's height never applies to the one being opened.
+  const [measured, setMeasured] = useState<{ node: NodeId | null; height: number }>({ node: null, height: DEFAULT_COMMIT_FOLD_HEIGHT });
+  const measuredCommitHeight: number = measured.node === unfolded ? measured.height : DEFAULT_COMMIT_FOLD_HEIGHT;
+  const onCommitFoldHeight = useCallback(
+    (height: number): void =>
+      setMeasured((current) => (current.node === unfolded && current.height === height ? current : { node: unfolded, height })),
+    [unfolded],
+  );
   const unfoldedIndex: number = unfolded === null ? -1 : (indexById.get(unfolded) ?? -1);
   const unfoldedRow: ThreadRowModel | undefined = rows[unfoldedIndex];
   const unfoldHeight: number =
@@ -147,10 +165,20 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
   const { start, end, totalHeight, viewport, ensureVisible } = useThreadWindow(container, rows.length, rowHeight, unfolding);
   useEffect(() => setViewportHint(viewport), [viewport]);
 
-  // Fold away a node that no longer exists (e.g. after switching zoom).
+  // After switching zoom, keep the same commit open when the other view shows
+  // it too; otherwise fold away a node that no longer exists.
   useEffect(() => {
-    if (unfolded !== null && unfoldedIndex < 0 && rows.length > 1) unfold(null);
-  }, [unfolded, unfoldedIndex, rows.length, unfold]);
+    if (unfolded === null || unfoldedIndex >= 0 || rows.length <= 1) return;
+    const oid: string | null = oidOf(unfolded);
+    const counterpart: NodeId | null = oid === null ? null : unfolded.startsWith("m:") ? commitNode(oid) : mapNode(oid);
+    unfold(counterpart !== null && indexById.has(counterpart) ? counterpart : null);
+  }, [unfolded, unfoldedIndex, rows.length, indexById, unfold]);
+  useEffect(() => {
+    if (focus === null || indexById.has(focus) || rows.length <= 1) return;
+    const oid: string | null = oidOf(focus);
+    const counterpart: NodeId | null = oid === null ? null : focus.startsWith("m:") ? commitNode(oid) : mapNode(oid);
+    if (counterpart !== null && indexById.has(counterpart)) setFocus(counterpart);
+  }, [focus, indexById, rows.length, setFocus]);
 
   // Keep the focused node in view only when focus or unfold target changes (not on every scroll tick).
   const lastFocus = useRef<NodeId | null>(null);
@@ -247,7 +275,8 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
         break;
       case "c":
         setFocus(LOOSE_END);
-        summaryInput.current?.focus();
+        if (summaryInput.current !== null) summaryInput.current.focus();
+        else focusSummaryPending.current = true;
         break;
       default:
         return;
@@ -327,13 +356,15 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
 
           {unfoldedRow !== undefined && unfolding !== null && (
             <div
+              // A new node gets a fresh fold: its own state, and the unfold animation.
+              key={unfoldedRow.id}
               role="group"
               aria-label={unfoldedRow.kind === "now" ? "Uncommitted changes" : `Commit ${unfoldedRow.commit.oid.slice(0, 7)} unfolded`}
               style={{ position: "absolute", top: (unfolding.after + 1) * rowHeight, height: unfolding.height, left: 0, right: 0 }}
               className="rg-fold-anim border-y border-divider bg-surface"
             >
               {/* The thread keeps running past the fold: every lane that passes this point, in its colour. */}
-              <FoldLanes row={unfoldedRow} headLane={headLane} />
+              <FoldLanes row={unfoldedRow} headLane={headLane} linked={headIndex > 0 && !searching} />
               {unfoldedRow.kind === "now" ? (
                 <ReviewStream repositoryId={repositoryId} status={status} composer={composer} height={unfolding.height} />
               ) : unfoldedRow.id.startsWith("m:") ? (
@@ -344,6 +375,7 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
                   currentBranch={currentBranch}
                   dirty={dirty}
                   height={unfolding.height}
+                  inset={Math.max(CONTENT_LEFT, graphWidth + 4)}
                 />
               ) : (
                 <CommitFold
@@ -353,8 +385,9 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
                   head={head}
                   currentBranch={currentBranch}
                   height={unfolding.height}
+                  inset={Math.max(40, graphWidth + 4)}
                   onGoTo={goTo}
-                  onHeightChange={setMeasuredCommitHeight}
+                  onHeightChange={onCommitFoldHeight}
                 />
               )}
             </div>
@@ -376,9 +409,11 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
 }
 
 /** Lanes that continue through an unfolded region (the dashed link for the loose end). */
-function FoldLanes({ row, headLane }: { row: ThreadRowModel; headLane: number }) {
+function FoldLanes({ row, headLane, linked }: { row: ThreadRowModel; headLane: number; linked: boolean }) {
   const x = (lane: number): number => 6 + lane * LANE + LANE / 2;
   if (row.kind === "now") {
+    // Without a HEAD commit below (a new repository) there is nothing to link to.
+    if (!linked) return null;
     return <span aria-hidden className="absolute top-0 bottom-0 border-l border-dashed border-accent" style={{ left: x(headLane) }} />;
   }
   const lanes: Array<{ lane: number; color: number }> = [...(row.graph?.outgoing ?? []), ...(row.graph?.passing ?? [])].filter(
@@ -443,7 +478,7 @@ function NowRow({ id, top, height, lane, graphWidth, linked, focused, unfolded, 
       }`}
     >
       <svg aria-hidden width={Math.max(graphWidth, CONTENT_LEFT - 12)} height={height} className="shrink-0" style={{ display: "block" }}>
-        {(linked || dirty) && (
+        {linked && (
           <line x1={cx} y1={height / 2 + 6} x2={cx} y2={height} stroke="var(--rg-accent)" strokeWidth={1.25} strokeDasharray="2 3" />
         )}
         <OpenNode cx={cx} cy={height / 2} r={6} stroke="var(--rg-clay)" width={1.6} />

@@ -9,6 +9,7 @@ import { useFileDiffs, useStaging, type DiffRequest, type StagingRequest } from 
 import { ConflictResolver } from "./ConflictResolver";
 import { OperationBanner } from "./OperationBanner";
 import type { DiffHunk, FileDiff, FileStatus, StatusSnapshot, WorkingDiffSide } from "../services/types";
+import { useUi } from "../stores/ui";
 import { useWorkspace } from "../stores/workspace";
 import {
   CHANGE_LABELS,
@@ -77,8 +78,11 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
   const selected: string | null = useWorkspace((state) => state.selectedChange?.path ?? null);
   const selectChange = useWorkspace((state) => state.selectChange);
   const [filter, setFilter] = useState<string>("");
-  const [layout, setLayout] = useState<DiffLayout>("unified");
-  const [ignoreWhitespace, setIgnoreWhitespace] = useState<boolean>(false);
+  // Diff display choices outlive the fold (folding and unfolding keeps them).
+  const layout: DiffLayout = useUi((state) => state.reviewLayout);
+  const setLayout = useUi((state) => state.setReviewLayout);
+  const ignoreWhitespace: boolean = useUi((state) => state.reviewIgnoreWhitespace);
+  const setIgnoreWhitespace = useUi((state) => state.setReviewIgnoreWhitespace);
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() =>
     new Set(status.files.length <= 4 ? status.files.map((f) => f.path) : status.files.slice(0, 1).map((f) => f.path)),
   );
@@ -385,6 +389,10 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
                 if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
                   event.preventDefault();
                   composer.submit();
+                } else if (event.key === "Escape") {
+                  // Same as the summary field: leave the field, keep the fold open.
+                  event.preventDefault();
+                  event.currentTarget.closest<HTMLElement>('[role="tree"]')?.focus();
                 }
               }}
               rows={2}

@@ -80,6 +80,8 @@ export interface ShortcutBinding {
   run: () => void;
   /** Fire even while a text field has focus (only for modifier shortcuts). */
   allowInInput?: boolean;
+  /** Fire while a modal dialog (sheet, confirmation, credential prompt) is open. */
+  allowInDialog?: boolean;
   enabled?: boolean;
 }
 
@@ -94,8 +96,10 @@ export function useShortcuts(bindings: readonly ShortcutBinding[]): void {
         return;
       }
       const inInput: boolean = isTextInput(event.target);
+      // Whatever a shortcut opens or runs would happen behind the modal.
+      const inDialog: boolean = document.querySelector("dialog[open]") !== null;
       for (const binding of latest.current) {
-        if (binding.enabled === false || (inInput && binding.allowInInput !== true)) {
+        if (binding.enabled === false || (inInput && binding.allowInInput !== true) || (inDialog && binding.allowInDialog !== true)) {
           continue;
         }
         if (matchesShortcut(event, binding.shortcut)) {

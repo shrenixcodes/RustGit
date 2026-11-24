@@ -512,7 +512,9 @@ function NowRow({ id, top, height, lane, graphWidth, linked, focused, unfolded, 
                 event.preventDefault();
                 composer.submit();
               } else if (event.key === "Escape") {
-                event.currentTarget.blur();
+                // Leave the field for the thread; a second Escape folds.
+                event.preventDefault();
+                event.currentTarget.closest<HTMLElement>('[role="tree"]')?.focus();
               }
             }}
             placeholder={dirty ? "Write the next commit…" : "Nothing to commit"}

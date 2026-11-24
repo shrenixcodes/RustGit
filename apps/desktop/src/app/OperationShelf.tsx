@@ -30,10 +30,11 @@ export function OperationShelf() {
     <footer
       aria-label="Operations"
       style={{ height: "var(--rg-shelf)" }}
-      className="flex shrink-0 items-center gap-3 border-t border-divider bg-bg px-4 sm:px-5 font-sans text-xs text-fg-muted select-none"
+      // Above the activity drawer, which slides up from behind it.
+      className="relative z-10 flex shrink-0 items-center gap-3 border-t border-divider bg-bg px-4 sm:px-5 font-sans text-xs text-fg-muted select-none"
     >
       {network[0] !== undefined ? (
-        <RunningNetworkOperation operation={network[0]} more={running - 1} />
+        <RunningNetworkOperation key={network[0].operationId} operation={network[0]} more={running - 1} />
       ) : current !== undefined ? (
         <RunningOperation record={current} more={running - 1} />
       ) : last !== undefined ? (

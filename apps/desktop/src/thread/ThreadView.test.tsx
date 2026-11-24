@@ -52,7 +52,7 @@ beforeEach(() => {
   localStorage.clear();
   window.innerWidth = 1440;
   usePreferences.setState({ zoom: "thread", personality: "quiet" });
-  useUi.setState({ search: "", commitDrafts: {} });
+  useUi.setState({ search: "", commitDrafts: {}, reviewLayout: "unified", reviewIgnoreWhitespace: false });
   useWorkspace.setState({ activeRepositoryId: 1, activeRepositoryPath: "D:/x", focus: LOOSE_END, unfolded: null, selectedChange: null });
   files = [file("src/lib.rs", "modified", "modified"), file("notes.md", null, "untracked")];
   branchError = null;
@@ -153,6 +153,16 @@ describe("the thread", () => {
     const fold: HTMLElement = await screen.findByRole("group", { name: "Uncommitted changes" });
     expect(await within(fold).findByText("@@ -1 +1 @@ unstaged src/lib.rs", undefined, { timeout: 5000 })).toBeTruthy();
     expect(within(fold).getByText(/Could not read the other side of the diff: index is locked/)).toBeTruthy();
+  });
+
+  it("leaves the description field on Escape without folding the loose end", async () => {
+    useWorkspace.setState({ unfolded: LOOSE_END });
+    renderWithClient(<ThreadView repositoryId={1} />);
+    const description: HTMLElement = await screen.findByPlaceholderText("Description (optional)");
+    description.focus();
+    fireEvent.keyDown(description, { key: "Escape" });
+    expect(useWorkspace.getState().unfolded).toBe(LOOSE_END);
+    expect(document.activeElement).toBe(screen.getByRole("tree", { name: "Thread" }));
   });
 
   it("commits from the loose end's own row, with the description from its fold", async () => {

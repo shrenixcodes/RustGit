@@ -28,6 +28,11 @@ interface UiState {
   restoreFailure: { repositoryId: number; error: IpcError } | null;
   /** Unsent commit messages per repository, kept while the app runs. */
   commitDrafts: Record<number, CommitDraft>;
+  /** How the loose end shows diffs; kept while it is folded and unfolded again. */
+  reviewLayout: "unified" | "split";
+  reviewIgnoreWhitespace: boolean;
+  setReviewLayout: (layout: "unified" | "split") => void;
+  setReviewIgnoreWhitespace: (ignore: boolean) => void;
   /** Revisions shown in the compare sheet. */
   compare: { base: string; head: string } | null;
   setCompare: (compare: { base: string; head: string } | null) => void;
@@ -55,6 +60,10 @@ export const useUi = create<UiState>()((set) => ({
   searchFocusRequest: 0,
   restoreFailure: null,
   commitDrafts: {},
+  reviewLayout: "unified",
+  reviewIgnoreWhitespace: false,
+  setReviewLayout: (reviewLayout) => set({ reviewLayout }),
+  setReviewIgnoreWhitespace: (reviewIgnoreWhitespace) => set({ reviewIgnoreWhitespace }),
   compare: null,
   setCompare: (compare) => set({ compare }),
   openCompare: (base: string, head: string) => set({ compare: { base, head }, sheet: "compare" }),

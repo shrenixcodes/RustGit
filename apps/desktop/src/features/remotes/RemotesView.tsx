@@ -105,7 +105,7 @@ function RemotesList({ repositoryId }: { repositoryId: number }) {
                         onClick={() => actions.fetch(remote.name).catch(() => {})}
                         className="h-7 text-xs"
                       >
-                        <RefreshCw aria-hidden className={`size-3 mr-1 ${fetching ? "animate-spin" : ""}`} />
+                        <RefreshCw aria-hidden className={`size-3 mr-1 ${fetching ? "motion-safe:animate-spin" : ""}`} />
                         Fetch
                       </Button>
                       <Button

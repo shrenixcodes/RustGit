@@ -152,6 +152,11 @@ export function CommandPalette() {
       .map((entry) => entry.command);
   }, [commands, query]);
   const current: PaletteCommand | undefined = visible[Math.min(highlight, visible.length - 1)];
+  // Arrow keys move the highlight; keep it inside the scrolled list.
+  const currentId: string | undefined = current === undefined ? undefined : `${listId}-${current.id}`;
+  useEffect(() => {
+    if (currentId !== undefined) document.getElementById(currentId)?.scrollIntoView?.({ block: "nearest" });
+  }, [currentId]);
 
   const runCommand = (command: PaletteCommand): void => {
     close();
@@ -170,7 +175,7 @@ function iconForCommand(command: PaletteCommand) {
   if (command.group === "Branches") return <GitBranch aria-hidden className="size-3.5 shrink-0 text-accent" />;
   if (command.group === "Repositories") return <Folder aria-hidden className="size-3.5 shrink-0 text-clay-text" />;
   if (command.group === "Settings") {
-    if (command.id.startsWith("theme:")) return <SunMoon aria-hidden className="size-3.5 shrink-0 text-warning" />;
+    if (command.id.startsWith("theme-")) return <SunMoon aria-hidden className="size-3.5 shrink-0 text-warning" />;
     return <Settings aria-hidden className="size-3.5 shrink-0 text-fg-muted" />;
   }
   if (command.id === "refresh") return <RefreshCw aria-hidden className="size-3.5 shrink-0 text-fg-muted" />;

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { RepositoryEntry } from "../services/types";
 
@@ -11,6 +11,7 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({ open: (...args: unknown[]) => dial
 const { SwitcherPopover } = await import("./RepositorySwitcher");
 const { renderWithClient } = await import("../test/renderWithClient");
 const { useWorkspace } = await import("../stores/workspace");
+const { useUi } = await import("../stores/ui");
 
 function makeEntry(id: number, name: string, overrides: Partial<RepositoryEntry> = {}): RepositoryEntry {
   return { id, name, path: `D:/projects/${name}`, pinned: false, addedAt: 1, lastOpenedAt: null, ...overrides };
@@ -106,5 +107,26 @@ describe("SwitcherPopover", () => {
       expect(screen.getByText("Create New Repository")).toBeTruthy();
       expect(screen.getByRole("button", { name: /Back to repositories/i })).toBeTruthy();
     });
+  });
+
+  it("keeps a create form open when clicking outside, but closes the list", async () => {
+    const user = userEvent.setup();
+    useUi.setState({ switcherView: "list" });
+    const root: { current: HTMLElement | null } = { current: null };
+    const onClose = vi.fn();
+    const { container } = renderWithClient(<SwitcherPopover onClose={onClose} root={root as { current: HTMLDivElement | null }} />);
+    root.current = container;
+    const outside: HTMLElement = document.createElement("div");
+    document.body.append(outside);
+
+    await user.click(await screen.findByRole("button", { name: /\+ New/i }));
+    await screen.findByText("Create New Repository");
+    fireEvent.pointerDown(outside);
+    expect(onClose).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: /Back to repositories/i }));
+    fireEvent.pointerDown(outside);
+    expect(onClose).toHaveBeenCalledTimes(1);
+    outside.remove();
   });
 });

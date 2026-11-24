@@ -179,7 +179,7 @@ export function NewRepositoryForm({ onDone }: { onDone: () => void }) {
 
           <label className="block">
             <span className="flex items-center gap-1.5 rg-label">
-              <Scale className="size-3 text-pine-text" />
+              <Scale className="size-3 text-success" />
               <span>License</span>
             </span>
             <select
@@ -205,7 +205,7 @@ export function NewRepositoryForm({ onDone }: { onDone: () => void }) {
           <span>Branch: main</span>
           {readme && <span className="rounded bg-accent/15 px-1 py-0.2 text-accent">README.md</span>}
           {gitignore !== "none" && <span className="rounded bg-clay/15 px-1 py-0.2 text-clay-text">.gitignore</span>}
-          {license !== "none" && <span className="rounded bg-pine/15 px-1 py-0.2 text-pine-text">LICENSE</span>}
+          {license !== "none" && <span className="rounded bg-success/15 px-1 py-0.2 text-success">LICENSE</span>}
         </div>
       )}
 

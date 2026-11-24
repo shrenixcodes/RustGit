@@ -132,7 +132,8 @@ export function Seal() {
         {switcherOpen && <SwitcherPopover onClose={close} root={root} />}
 
         {repository !== undefined && status.data !== undefined && (
-          <div className="hidden md:flex min-w-0 items-center gap-2.5 pl-1">
+          // Always shown: BranchPath shortens the name on narrow windows instead.
+          <div className="flex min-w-0 items-center gap-2.5 pl-1">
             <span aria-hidden className="h-4 w-px bg-border/60 shrink-0" />
             <BranchPath branch={status.data.branch} />
             {status.data.inProgress !== "none" && (

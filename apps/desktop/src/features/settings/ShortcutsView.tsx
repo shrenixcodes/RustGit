@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { Keyboard, Search } from "lucide-react";
 import { Input } from "../../components/Input";
 import { Kbd } from "../../components/Kbd";
-import { PageHeader } from "../../components/PageHeader";
 import { SHORTCUT_GROUPS, type ShortcutEntry, type ShortcutGroup } from "../../app/shortcutReference";
 
 /** Every keyboard shortcut, grouped by where it applies ("?"). */
@@ -26,7 +25,8 @@ export function ShortcutsView() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center justify-between px-6 sm:px-8 pt-4 sm:pt-6 pb-2">
-        <PageHeader title="Keyboard shortcuts" visible />
+        {/* The row already has the page padding; PageHeader would add its own. */}
+        <h1 className="text-xl font-semibold tracking-tight text-fg">Keyboard shortcuts</h1>
         <div className="w-56">
           <Input
             icon={<Search className="size-3.5" />}
@@ -37,6 +37,11 @@ export function ShortcutsView() {
         </div>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-6 sm:px-8 pb-8">
+        {filteredGroups.length === 0 && (
+          <p role="status" className="py-6 text-xs text-fg-muted">
+            No shortcut matches “{filter.trim()}”.
+          </p>
+        )}
         <div className="grid max-w-4xl gap-4 md:grid-cols-2">
           {filteredGroups.map((group: ShortcutGroup) => (
             <section

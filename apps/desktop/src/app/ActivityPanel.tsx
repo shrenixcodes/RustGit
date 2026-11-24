@@ -93,7 +93,7 @@ function OperationsView() {
                     </span>
                   ) : record.outcome === "running" ? (
                     <span className="flex items-center gap-1 rounded bg-accent/15 border border-accent/25 px-1.5 py-0.2 font-mono text-2xs font-semibold text-accent">
-                      <LoaderCircle className="size-2.5 animate-spin" /> running
+                      <LoaderCircle className="size-2.5 motion-safe:animate-spin" /> running
                     </span>
                   ) : (
                     <span className="flex items-center gap-1 rounded bg-success/15 border border-success/25 px-1.5 py-0.2 font-mono text-2xs font-semibold text-success">
@@ -199,7 +199,7 @@ function CommandsView() {
                 type="button"
                 onClick={() => copyCommand(record.sequence, cmdStr)}
                 title={isCopied ? "Copied command" : "Copy command"}
-                className="opacity-0 group-hover:opacity-100 rounded p-1 text-fg-muted hover:bg-hover hover:text-fg transition-opacity"
+                className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 rounded p-1 text-fg-muted hover:bg-hover hover:text-fg transition-opacity"
               >
                 {isCopied ? <Check className="size-3 text-success" /> : <Copy className="size-3" />}
               </button>

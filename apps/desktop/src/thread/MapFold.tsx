@@ -281,6 +281,13 @@ export function MapFold({ repositoryId, oid, refs, currentBranch, dirty, height,
                 autoFocus
                 value={trackTarget}
                 onChange={(event) => setTrackTarget(event.target.value)}
+                onKeyDown={(event) => {
+                  // Escape cancels the tracking change, not the whole fold.
+                  if (event.key === "Escape") {
+                    event.stopPropagation();
+                    setTracking(null);
+                  }
+                }}
                 className="h-7 rounded-sm border border-border bg-elevated px-1 font-mono text-xs text-fg"
               >
                 <option value="">nothing (stop tracking)</option>

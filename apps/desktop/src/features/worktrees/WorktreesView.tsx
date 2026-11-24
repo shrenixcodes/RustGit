@@ -81,7 +81,8 @@ function WorktreeList({ repositoryId }: { repositoryId: number }) {
     );
   };
 
-  const canAdd: boolean = path.trim() !== "" && (mode !== "new" || branch.trim() !== "") && !operation.isPending;
+  // A new or an existing branch needs its name; a detached worktree may start at HEAD.
+  const canAdd: boolean = path.trim() !== "" && (mode === "detached" || branch.trim() !== "") && !operation.isPending;
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-8">

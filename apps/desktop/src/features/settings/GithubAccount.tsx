@@ -171,7 +171,7 @@ export function GithubAccount() {
                   value={pat}
                   onChange={(e) => setPat(e.target.value)}
                   placeholder="ghp_... or github_pat_..."
-                  className="h-8 flex-1 rounded-lg border border-border/80 bg-input px-2.5 font-mono text-xs text-fg focus:border-accent focus:outline-none"
+                  className="h-8 flex-1 rounded-lg border border-border/80 bg-canvas px-2.5 font-mono text-xs text-fg focus:border-accent focus:outline-none"
                   disabled={patBusy}
                 />
                 <Button variant="primary" disabled={patBusy || !pat.trim()} onClick={() => void savePat()}>

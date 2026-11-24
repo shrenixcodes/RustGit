@@ -68,6 +68,9 @@ export function SwitcherPopover({
   }, [highlightedId]);
 
   useEffect(() => {
+    // A half-filled create or clone form is not thrown away by a stray click
+    // outside; it closes with its own buttons or Escape.
+    if (view !== "list") return;
     const onPointerDown = (event: PointerEvent): void => {
       // The trigger lives in the root, so clicking it toggles instead of close-then-reopen.
       if (root.current !== null && !root.current.contains(event.target as Node)) {
@@ -76,7 +79,7 @@ export function SwitcherPopover({
     };
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [onClose, root]);
+  }, [onClose, root, view]);
 
   const choose = async (entry: RepositoryEntry): Promise<void> => {
     setFailure(null);
@@ -319,7 +322,7 @@ export function SwitcherPopover({
       )}
 
       {view === "create" && (
-        <div className="p-4 space-y-3">
+        <div className="max-h-[min(640px,calc(100vh-120px))] overflow-y-auto p-4 space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-border">
             <button
               type="button"
@@ -336,7 +339,7 @@ export function SwitcherPopover({
       )}
 
       {view === "clone" && (
-        <div className="p-4 space-y-3">
+        <div className="max-h-[min(640px,calc(100vh-120px))] overflow-y-auto p-4 space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-border">
             <button
               type="button"

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "../components/Button";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { ErrorNotice } from "../components/ErrorNotice";
@@ -24,6 +24,12 @@ export function OperationBanner({ repositoryId, status }: { repositoryId: number
   const [outcome, setOutcome] = useState<BranchOutcome | null>(null);
   const [aborted, setAborted] = useState<boolean>(false);
   const [confirmSkip, setConfirmSkip] = useState<boolean>(false);
+  // A new operation starting replaces whatever the last one reported.
+  useEffect(() => {
+    if (status.inProgress === "none") return;
+    setAborted(false);
+    setOutcome(null);
+  }, [status.inProgress]);
   if (status.inProgress === "none" && outcome === null && !aborted) return null;
 
   const name: string = status.inProgress === "none" ? "operation" : NAMES[status.inProgress];

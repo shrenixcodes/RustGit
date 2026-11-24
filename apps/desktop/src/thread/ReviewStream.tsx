@@ -308,9 +308,21 @@ export function ReviewStream({ repositoryId, status, composer, height }: ReviewS
               <FileCheck className="size-3.5 text-accent" />
               <span className="font-semibold text-xs text-fg">Commit Details</span>
               {composer.stagedFiles > 0 ? (
-                <span className="rounded-full bg-accent/15 border border-accent/25 px-2 py-0.5 font-mono text-2xs font-semibold text-accent">
-                  {composer.stagedFiles} file{composer.stagedFiles === 1 ? "" : "s"} staged
-                </span>
+                <>
+                  <span className="rounded-full bg-accent/15 border border-accent/25 px-2 py-0.5 font-mono text-2xs font-semibold text-accent">
+                    {composer.stagedFiles} file{composer.stagedFiles === 1 ? "" : "s"} staged
+                  </span>
+                  {/* How big the next commit is, in lines. */}
+                  {composer.totals.data !== undefined && (
+                    <span
+                      className="font-mono text-2xs tabular-nums"
+                      aria-label={`${composer.totals.data.added} lines added, ${composer.totals.data.deleted} removed in the staged changes`}
+                    >
+                      <span className="text-success font-semibold">+{composer.totals.data.added}</span>{" "}
+                      <span className="text-danger font-semibold">−{composer.totals.data.deleted}</span>
+                    </span>
+                  )}
+                </>
               ) : (
                 <span className="rounded-full bg-surface border border-border px-2 py-0.5 font-mono text-2xs text-fg-muted">
                   no staged files

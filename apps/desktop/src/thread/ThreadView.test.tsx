@@ -129,6 +129,12 @@ describe("the thread", () => {
     );
   });
 
+  it("shows how many lines the staged changes add and remove", async () => {
+    useWorkspace.setState({ unfolded: LOOSE_END });
+    renderWithClient(<ThreadView repositoryId={1} />);
+    expect(await screen.findByLabelText("1 lines added, 1 removed in the staged changes")).toBeTruthy();
+  });
+
   it("commits from the loose end's own row, with the description from its fold", async () => {
     useWorkspace.setState({ unfolded: LOOSE_END });
     renderWithClient(<ThreadView repositoryId={1} />);

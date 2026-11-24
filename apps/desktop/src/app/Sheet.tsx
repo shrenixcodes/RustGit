@@ -77,18 +77,23 @@ export function Sheet() {
   const setSheet = useUi((state) => state.setSheet);
   const activeRepositoryId: number | null = useWorkspace((state) => state.activeRepositoryId);
   const dialog = useRef<HTMLDialogElement>(null);
+  /** Where the current click started: only a click that starts and ends on the backdrop closes. */
+  const pressedBackdrop = useRef<boolean>(false);
+  const open: boolean = sheet !== null;
 
+  // Open and close the native dialog only when the sheet appears or goes away:
+  // switching tabs must not re-run the modal and backdrop enter animations.
   useEffect(() => {
     const previousFocus = document.activeElement as HTMLElement | null;
     const element: HTMLDialogElement | null = dialog.current;
-    if (element === null || sheet === null) return;
+    if (element === null || !open) return;
     if (typeof element.showModal === "function" && !element.open) element.showModal();
     else element.setAttribute("open", "");
     return () => {
       if (typeof element.close === "function" && element.open) element.close();
       previousFocus?.focus();
     };
-  }, [sheet]);
+  }, [open]);
 
   if (sheet === null) return null;
 
@@ -99,6 +104,15 @@ export function Sheet() {
       onCancel={(event) => {
         event.preventDefault();
         setSheet(null);
+      }}
+      // The dialog's own box is covered by its content, so a target of the
+      // dialog itself means the backdrop.
+      onPointerDown={(event) => {
+        pressedBackdrop.current = event.target === event.currentTarget;
+      }}
+      onClick={(event) => {
+        if (pressedBackdrop.current && event.target === event.currentTarget) setSheet(null);
+        pressedBackdrop.current = false;
       }}
       className="m-auto flex h-[min(740px,calc(100vh-64px))] w-[min(832px,calc(100vw-64px))] flex-col rounded-2xl border border-border/80 bg-bg p-0 text-fg shadow-popover backdrop:bg-overlay backdrop:backdrop-blur-sm"
     >

@@ -37,7 +37,7 @@ export function AppShell() {
   useOperationEvents();
 
   return (
-    <div className="flex h-full flex-col bg-bg text-fg">
+    <div className="flex h-full flex-col bg-bg text-fg transition-[background-color,color,border-color] duration-200">
       <Seal />
       <UpdateBanner />
       <main className="flex min-h-0 flex-1 flex-col">

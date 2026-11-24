@@ -39,7 +39,7 @@ export function ErrorNotice({ title, error, actions }: ErrorNoticeProps) {
   return (
     <div
       role="alert"
-      className="flex gap-3.5 rounded-xl border border-danger/35 bg-danger/10 p-4 shadow-sm transition-all"
+      className="rg-notice-anim flex gap-3.5 rounded-xl border border-danger/35 bg-danger/10 p-4 shadow-sm transition-all"
     >
       <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-danger/15 border border-danger/25 text-danger">
         <CircleAlert aria-hidden className="size-4" />

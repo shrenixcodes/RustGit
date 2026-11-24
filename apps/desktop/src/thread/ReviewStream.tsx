@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { CheckSquare, ChevronDown, ChevronRight, FileCheck, MinusSquare, Search, Square } from "lucide-react";
+import { CheckSquare, ChevronRight, FileCheck, MinusSquare, Search, Square } from "lucide-react";
 import { Button } from "../components/Button";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { ErrorNotice } from "../components/ErrorNotice";
@@ -794,7 +794,6 @@ function FileRow({
   const staged: boolean = file.staged !== null && !file.conflicted;
   const changed: boolean = file.unstaged !== null && !file.conflicted;
   const partiallyStaged = isPartiallyStaged(file);
-  const Chevron = expanded ? ChevronDown : ChevronRight;
   const stemWidth: number = Math.max(0, inset - headLaneX - 8);
 
   return (
@@ -865,7 +864,10 @@ function FileRow({
         {meta?.letter}
       </span>
 
-      <Chevron aria-hidden className="size-3.5 shrink-0 text-fg-muted transition-transform" />
+      <ChevronRight
+        aria-hidden
+        className={`size-3.5 shrink-0 transition-transform duration-150 ${expanded ? "rotate-90 text-accent" : "text-fg-muted"}`}
+      />
 
       <span className="flex min-w-0 flex-1 items-baseline gap-2">
         <span className="max-w-[65%] shrink-0 truncate font-mono text-xs font-semibold text-fg">
@@ -904,7 +906,7 @@ function FileRow({
             event.stopPropagation();
             onDiscardFile(file);
           }}
-          className="shrink-0 rounded px-2 py-0.5 text-2xs text-fg-muted opacity-0 transition-all duration-100 group-hover:opacity-100 hover:bg-danger/10 hover:text-danger active:scale-95"
+          className="shrink-0 rounded px-2 py-0.5 text-2xs text-fg-muted opacity-0 transition-all duration-100 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 hover:bg-danger/10 hover:text-danger active:scale-95"
         >
           {file.unstaged === "untracked" ? "Delete…" : "Discard…"}
         </button>

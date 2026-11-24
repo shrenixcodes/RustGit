@@ -322,7 +322,7 @@ export function SwitcherPopover({
       )}
 
       {view === "create" && (
-        <div className="max-h-[min(640px,calc(100vh-120px))] overflow-y-auto p-4 space-y-3">
+        <div className="rg-tab-anim max-h-[min(640px,calc(100vh-120px))] overflow-y-auto p-4 space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-border">
             <button
               type="button"
@@ -339,7 +339,7 @@ export function SwitcherPopover({
       )}
 
       {view === "clone" && (
-        <div className="max-h-[min(640px,calc(100vh-120px))] overflow-y-auto p-4 space-y-3">
+        <div className="rg-tab-anim max-h-[min(640px,calc(100vh-120px))] overflow-y-auto p-4 space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-border">
             <button
               type="button"

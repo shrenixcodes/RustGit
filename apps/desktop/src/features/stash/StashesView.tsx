@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Archive, ChevronDown, ChevronRight, FileCode, Plus, Trash2, ArrowUpFromLine } from "lucide-react";
+import { Archive, ChevronRight, FileCode, Plus, Trash2, ArrowUpFromLine } from "lucide-react";
 import { Button } from "../../components/Button";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { EmptyState } from "../../components/EmptyState";
@@ -140,11 +140,12 @@ function StashList({ repositoryId }: { repositoryId: number }) {
                         onClick={() => setOpen(isOpen ? null : entry.oid)}
                         className="flex min-w-0 flex-1 items-center gap-2.5 text-left outline-none"
                       >
-                        {isOpen ? (
-                          <ChevronDown className="size-4 shrink-0 text-accent transition-transform" />
-                        ) : (
-                          <ChevronRight className="size-4 shrink-0 text-fg-muted transition-transform group-hover:text-fg" />
-                        )}
+                        <ChevronRight
+                          aria-hidden
+                          className={`size-4 shrink-0 transition-transform duration-150 ${
+                            isOpen ? "rotate-90 text-accent" : "text-fg-muted group-hover:text-fg"
+                          }`}
+                        />
                         <span className="shrink-0 rounded bg-indigo/15 border border-indigo/25 px-2 py-0.5 font-mono text-xs font-semibold text-indigo-text">
                           {stashLabel(entry)}
                         </span>
@@ -190,7 +191,7 @@ function StashList({ repositoryId }: { repositoryId: number }) {
                     </div>
 
                     {isOpen && (
-                      <div className="mt-3.5 border-t border-divider/80 pt-3">
+                      <div className="rg-fold-anim mt-3.5 border-t border-divider/80 pt-3">
                         <StashFiles repositoryId={repositoryId} oid={entry.oid} />
                       </div>
                     )}
@@ -237,7 +238,6 @@ function StashFiles({ repositoryId, oid }: { repositoryId: number; oid: string }
       <ul aria-label="Files in the stash" className="space-y-1 rounded-lg border border-border/60 bg-canvas/60 p-2.5">
         {details.data.files.map((file: StashFile) => {
           const open: boolean = openPath === file.path;
-          const Chevron = open ? ChevronDown : ChevronRight;
           return (
             <li key={file.path} className="py-0.5">
               <button
@@ -247,7 +247,10 @@ function StashFiles({ repositoryId, oid }: { repositoryId: number; oid: string }
                 title={open ? "Hide the diff" : "Show the diff"}
                 className="flex w-full items-center gap-2.5 rounded text-left hover:bg-hover"
               >
-                <Chevron aria-hidden className="size-3 shrink-0 text-fg-muted" />
+                <ChevronRight
+                  aria-hidden
+                  className={`size-3 shrink-0 transition-transform duration-150 ${open ? "rotate-90 text-accent" : "text-fg-muted"}`}
+                />
                 <FileCode aria-hidden className="size-3 shrink-0 text-fg-muted" />
                 <span className={`w-16 shrink-0 text-2xs font-semibold ${file.untracked ? "text-moss" : "text-accent"}`}>
                   {file.untracked ? "untracked" : file.kind}
@@ -256,7 +259,11 @@ function StashFiles({ repositoryId, oid }: { repositoryId: number; oid: string }
                   {file.path}
                 </span>
               </button>
-              {open && <StashFileDiff repositoryId={repositoryId} oid={oid} path={file.path} />}
+              {open && (
+                <div className="rg-fold-anim mt-1">
+                  <StashFileDiff repositoryId={repositoryId} oid={oid} path={file.path} />
+                </div>
+              )}
             </li>
           );
         })}

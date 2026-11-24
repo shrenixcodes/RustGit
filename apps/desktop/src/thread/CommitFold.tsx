@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { Check, ChevronDown, ChevronRight, Copy, GitCompare, GitFork, RotateCcw } from "lucide-react";
+import { Check, ChevronRight, Copy, GitCompare, GitFork, RotateCcw } from "lucide-react";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { Button } from "../components/Button";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -250,7 +250,6 @@ export function FileEntry({
 }) {
   const meta = CHANGE_LABELS[file.kind];
   const { name, directory } = splitPath(file.path);
-  const Chevron = open ? ChevronDown : ChevronRight;
   return (
     <li className="rounded-lg overflow-hidden border border-border/70 bg-canvas/40 hover:border-border-control transition-all shadow-2xs">
       <button
@@ -260,7 +259,10 @@ export function FileEntry({
         title={file.originalPath === null ? file.path : `${file.originalPath} → ${file.path}`}
         className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs cursor-pointer select-none hover:bg-hover/60 transition-colors"
       >
-        <Chevron aria-hidden className={`size-3.5 shrink-0 transition-transform ${open ? "text-accent" : "text-fg-muted"}`} />
+        <ChevronRight
+          aria-hidden
+          className={`size-3.5 shrink-0 transition-transform duration-150 ${open ? "rotate-90 text-accent" : "text-fg-muted"}`}
+        />
         <span
           aria-label={meta.label}
           className={`flex size-4 shrink-0 items-center justify-center rounded text-2xs font-mono font-bold leading-none ${meta.tone}`}

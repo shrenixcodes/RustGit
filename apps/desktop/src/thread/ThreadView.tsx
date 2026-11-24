@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { ChevronRight } from "lucide-react";
+import { ArrowUp, ChevronRight, LoaderCircle } from "lucide-react";
+import { ErrorNotice } from "../components/ErrorNotice";
 import { OpenNode } from "../components/Mark";
 import { useLogPages, useRefs, useRepositoryStatus, type LogFilters } from "../services/queries";
 import type { HeadState, LogCommit, LogPage, RefEntry, StatusSnapshot } from "../services/types";
@@ -45,8 +46,17 @@ export function ThreadView({ repositoryId }: { repositoryId: number }) {
   const status = useRepositoryStatus(repositoryId);
   if (status.data === undefined) {
     return (
-      <div className="flex flex-1 items-center justify-center text-fg-muted">
-        {status.isError ? `Could not read the repository: ${status.error.message}` : "Reading the repository…"}
+      <div className="flex flex-1 items-center justify-center p-6 text-fg-muted">
+        {status.isError ? (
+          <div className="w-full max-w-md">
+            <ErrorNotice title="Could not read the repository" error={status.error} />
+          </div>
+        ) : (
+          <div className="flex items-center gap-2.5 text-xs font-mono text-fg-muted">
+            <LoaderCircle aria-hidden className="size-4 text-accent motion-safe:animate-spin" />
+            <span>Reading the repository…</span>
+          </div>
+        )}
       </div>
     );
   }
@@ -161,6 +171,30 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
   );
   const { start, end, totalHeight, viewport, ensureVisible } = useThreadWindow(container, rows.length, rowHeight, unfolding);
   useEffect(() => setViewportHint(viewport), [viewport]);
+
+  const [scrolledDown, setScrolledDown] = useState<boolean>(false);
+  useEffect(() => {
+    const element: HTMLDivElement | null = container.current;
+    if (element === null) return;
+    const onScroll = (): void => {
+      const next: boolean = element.scrollTop > 400;
+      setScrolledDown((prev) => (prev === next ? prev : next));
+    };
+    onScroll();
+    element.addEventListener("scroll", onScroll, { passive: true });
+    return () => element.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const scrollToTop = (): void => {
+    setFocus(LOOSE_END);
+    const reduced: boolean =
+      document.documentElement.dataset.motion === "reduce" ||
+      (document.documentElement.dataset.motion !== "full" &&
+        typeof window !== "undefined" &&
+        window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true);
+    container.current?.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
+    container.current?.focus();
+  };
 
   // After switching zoom, keep the same commit open when the other view shows
   // it too; otherwise fold away a node that no longer exists.
@@ -282,7 +316,7 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="relative flex min-h-0 flex-1 flex-col">
       {(searching || revealFailed !== null) && (
         <p role="status" className="shrink-0 py-1.5 pr-5 text-xs text-fg-muted" style={{ paddingLeft: contentLeft }}>
           {revealFailed !== null
@@ -325,6 +359,7 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
                   summaryInput={summaryInput}
                   onToggle={() => toggleUnfold(row.id)}
                   onFocusRow={() => setFocus(row.id)}
+                  onGoTo={goTo}
                 />
               );
             }
@@ -424,6 +459,19 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
           )}
         </div>
       </div>
+
+      {scrolledDown && (
+        <button
+          type="button"
+          onClick={scrollToTop}
+          aria-label="Back to loose end"
+          title="Scroll back to the top (Loose end)"
+          className="rg-notice-anim absolute right-5 bottom-4 z-20 flex h-8 items-center gap-1.5 rounded-full border border-border/80 bg-elevated/90 px-3 text-xs font-medium text-fg shadow-popover backdrop-blur-sm transition-all hover:border-accent hover:text-accent active:scale-95"
+        >
+          <ArrowUp aria-hidden className="size-3.5" />
+          <span>Loose end</span>
+        </button>
+      )}
     </div>
   );
 }
@@ -538,10 +586,11 @@ interface NowRowProps {
   summaryInput: React.RefObject<HTMLInputElement | null>;
   onToggle: () => void;
   onFocusRow: () => void;
+  onGoTo: (oid: string) => void;
 }
 
 /** The loose end: the working tree as the open node, and the next commit's summary in its own row. */
-function NowRow({ id, top, height, lane, graphWidth, contentLeft, linked, focused, unfolded, composer, counts, dirty, summaryInput, onToggle, onFocusRow }: NowRowProps) {
+function NowRow({ id, top, height, lane, graphWidth, contentLeft, linked, focused, unfolded, composer, counts, dirty, summaryInput, onToggle, onFocusRow, onGoTo }: NowRowProps) {
   const cx: number = laneCenterX(lane, LANE);
   const parts: string[] = [];
   if (counts.conflicted > 0) parts.push(`${counts.conflicted} conflicted`);
@@ -612,9 +661,17 @@ function NowRow({ id, top, height, lane, graphWidth, contentLeft, linked, focuse
         {dirty ? (
           <div className="hidden sm:flex items-center gap-1.5 font-mono text-2xs">
             {counts.conflicted > 0 && (
-              <span className="rounded bg-danger/15 border border-danger/25 px-1.5 py-0.5 font-semibold text-danger">
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (!unfolded) onToggle();
+                }}
+                title="Open uncommitted changes to resolve conflicts"
+                className="rounded bg-danger/15 border border-danger/25 px-1.5 py-0.5 font-semibold text-danger transition-colors hover:bg-danger/25"
+              >
                 {counts.conflicted} conflicted
-              </span>
+              </button>
             )}
             {counts.staged > 0 && (
               <span className="rounded bg-accent/15 border border-accent/25 px-1.5 py-0.5 font-semibold text-accent">
@@ -637,9 +694,18 @@ function NowRow({ id, top, height, lane, graphWidth, contentLeft, linked, focuse
           <span className="shrink-0 font-sans text-xs text-fg-muted">{summaryText}</span>
         )}
         {composer.done !== null && (
-          <span role="status" className="shrink-0 font-mono text-xs text-success font-medium">
+          <button
+            type="button"
+            role="status"
+            onClick={(event) => {
+              event.stopPropagation();
+              onGoTo(composer.done!.oid);
+            }}
+            title="Jump to this commit"
+            className="rg-notice-anim shrink-0 rounded border border-success/30 bg-success/10 px-1.5 py-0.5 font-mono text-2xs font-medium text-success transition-colors hover:bg-success/20"
+          >
             committed {composer.done.oid.slice(0, 7)}
-          </span>
+          </button>
         )}
         <button
           type="button"

@@ -245,7 +245,9 @@ function iconForCommand(command: PaletteCommand) {
                   onPointerMove={() => setHighlight(index)}
                   onClick={() => runCommand(command)}
                   className={`mx-2 my-0.5 flex h-9 cursor-default items-center gap-3 rounded-lg px-3 text-xs transition-colors ${
-                    isCurrent ? "bg-selection text-fg font-medium" : "text-fg-secondary hover:bg-hover hover:text-fg"
+                    isCurrent
+                      ? "bg-selection text-fg font-medium relative before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[2px] before:rounded-r before:bg-accent"
+                      : "text-fg-secondary hover:bg-hover hover:text-fg"
                   }`}
                 >
                   {iconForCommand(command)}
@@ -271,10 +273,15 @@ function iconForCommand(command: PaletteCommand) {
               <span>navigate</span>
             </span>
           </div>
-          <span className="flex items-center gap-1">
-            <kbd className="rounded border border-border/70 bg-elevated px-1 font-mono">esc</kbd>
-            <span>dismiss</span>
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="font-mono tabular-nums text-fg-muted">
+              {visible.length} command{visible.length === 1 ? "" : "s"}
+            </span>
+            <span className="flex items-center gap-1">
+              <kbd className="rounded border border-border/70 bg-elevated px-1 font-mono">esc</kbd>
+              <span>dismiss</span>
+            </span>
+          </div>
         </div>
       </div>
     </dialog>

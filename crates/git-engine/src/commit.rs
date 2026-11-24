@@ -168,6 +168,26 @@ impl Config {
 }
 
 /// Reads `keys` (lowercase) from every configuration scope at once.
+/// Fails with `IdentityMissing` unless Git would know the commit author.
+/// Works outside a repository too, where only global and system config apply.
+pub(crate) fn ensure_identity(git: &GitExecutor, dir: &Path) -> GitResult<()> {
+    let identity: Option<Config> = read_config(git, dir, &["user.name", "user.email"]).ok();
+    let missing: Vec<&str> = ["user.name", "user.email"]
+        .into_iter()
+        .filter(|key: &&str| {
+            identity
+                .as_ref()
+                .and_then(|config: &Config| config.value(key))
+                .is_none()
+        })
+        .collect();
+    if missing.is_empty() {
+        Ok(())
+    } else {
+        Err(GitError::IdentityMissing(missing.join(", ")))
+    }
+}
+
 fn read_config(git: &GitExecutor, root: &Path, keys: &[&str]) -> GitResult<Config> {
     let pattern: String = format!(
         "^({})$",
@@ -224,19 +244,7 @@ pub fn create_commit(
             "the commit message is empty".to_owned(),
         ));
     }
-    let identity: Option<Config> = read_config(git, root, &["user.name", "user.email"]).ok();
-    let missing: Vec<&str> = ["user.name", "user.email"]
-        .into_iter()
-        .filter(|key: &&str| {
-            identity
-                .as_ref()
-                .and_then(|config: &Config| config.value(key))
-                .is_none()
-        })
-        .collect();
-    if !missing.is_empty() {
-        return Err(GitError::IdentityMissing(missing.join(", ")));
-    }
+    ensure_identity(git, root)?;
     if !amend {
         let status: StatusSnapshot = read_status(git, root)?;
         let staged: bool = status

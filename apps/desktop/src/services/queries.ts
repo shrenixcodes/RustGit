@@ -593,9 +593,9 @@ export function useUpdateCheck(): UseQueryResult<UpdateCheckResult, IpcError> {
 }
 
 /** Installs a downloaded GitHub release update. */
-export function useInstallUpdate(): UseMutationResult<void, IpcError, { downloadUrl: string; assetName: string }> {
+export function useInstallUpdate(): UseMutationResult<void, IpcError, { downloadUrl: string; assetName: string; assetDigest: string | null }> {
   return useMutation({
-    mutationFn: ({ downloadUrl, assetName }) => ipc.installUpdate(downloadUrl, assetName),
+    mutationFn: ({ downloadUrl, assetName, assetDigest }) => ipc.installUpdate(downloadUrl, assetName, assetDigest),
     meta: {
       operation: "Install update",
       describe: (variables: unknown) => {

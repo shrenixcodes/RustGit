@@ -5,6 +5,7 @@ import { Button } from "../../components/Button";
 import { ErrorNotice } from "../../components/ErrorNotice";
 import { PageHeader } from "../../components/PageHeader";
 import { SegmentedControl, type SegmentOption } from "../../components/SegmentedControl";
+import { ipc } from "../../services/ipc";
 import { useGitInfo, useInstallUpdate, useSetTheme, useSettings, useUpdateCheck } from "../../services/queries";
 import type { ThemePreference } from "../../services/types";
 import { usePreferences, type MotionPreference, type Personality } from "../../stores/preferences";
@@ -199,20 +200,32 @@ export function SettingsView() {
                     {installUpdate.isError && (
                       <p className="text-danger text-xs">{installUpdate.error.message}</p>
                     )}
-                    <Button
-                      variant="primary"
-                      disabled={installUpdate.isPending || !updateCheck.data.downloadUrl}
-                      onClick={() => {
-                        if (updateCheck.data?.downloadUrl && updateCheck.data?.assetName) {
-                          installUpdate.mutate({
-                            downloadUrl: updateCheck.data.downloadUrl,
-                            assetName: updateCheck.data.assetName,
-                          });
-                        }
-                      }}
-                    >
-                      {installUpdate.isPending ? "Downloading & Installing…" : "Install update"}
-                    </Button>
+                    {updateCheck.data.downloadUrl !== null ? (
+                      <Button
+                        variant="primary"
+                        disabled={installUpdate.isPending}
+                        onClick={() => {
+                          if (updateCheck.data?.downloadUrl && updateCheck.data?.assetName) {
+                            installUpdate.mutate({
+                              downloadUrl: updateCheck.data.downloadUrl,
+                              assetName: updateCheck.data.assetName,
+                              assetDigest: updateCheck.data.assetDigest,
+                            });
+                          }
+                        }}
+                      >
+                        {installUpdate.isPending ? "Downloading & Installing…" : "Install update"}
+                      </Button>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-2xs text-fg-muted">This release has no installer for your operating system yet.</p>
+                        {updateCheck.data.releaseUrl !== null && (
+                          <Button variant="secondary" onClick={() => void ipc.openGithubPage(updateCheck.data?.releaseUrl as string)}>
+                            View release on GitHub
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   updateCheck.data !== undefined && !updateCheck.isFetching && (

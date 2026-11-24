@@ -33,7 +33,10 @@ export function GithubAccount() {
     setError(null);
     setFailure(null);
     try {
-      setCode(await ipc.githubStartSignIn());
+      const started: GithubDeviceCode = await ipc.githubStartSignIn();
+      setCode(started);
+      // Take the person straight to the page where the code is entered.
+      void ipc.openGithubPage(started.verification_uri).catch(() => {});
     } catch (cause: unknown) {
       setError(toIpcError(cause));
     }
@@ -111,7 +114,17 @@ export function GithubAccount() {
       ) : code !== null ? (
         <div role="status" className="space-y-3 rounded-lg border border-accent/40 bg-accent/10 p-4 shadow-2xs text-xs">
           <p className="text-fg-secondary">
-            On <span data-selectable className="font-mono font-semibold text-accent underline">{code.verification_uri}</span> enter this code:
+            On{" "}
+            <button
+              type="button"
+              onClick={() => void ipc.openGithubPage(code.verification_uri).catch(() => {})}
+              title="Open in your browser"
+              className="inline-flex items-center gap-1 font-mono font-semibold text-accent underline underline-offset-2 hover:text-accent/80"
+            >
+              {code.verification_uri}
+              <ExternalLink aria-hidden className="size-3" />
+            </button>{" "}
+            enter this code:
           </p>
           <div className="flex items-center gap-3">
             <span data-selectable className="rounded-lg border border-accent/30 bg-canvas/80 px-4 py-2 font-mono text-lg font-bold tracking-widest text-accent">

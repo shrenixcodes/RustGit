@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "./Button";
+import { ipc } from "../services/ipc";
 import { useInstallUpdate, useUpdateCheck } from "../services/queries";
 
 export function UpdateBanner() {
@@ -17,6 +18,7 @@ export function UpdateBanner() {
       installUpdate.mutate({
         downloadUrl: data.downloadUrl,
         assetName: data.assetName,
+        assetDigest: data.assetDigest,
       });
     }
   };
@@ -38,13 +40,18 @@ export function UpdateBanner() {
       </div>
 
       <div className="flex items-center gap-2">
-        <Button
-          variant="primary"
-          onClick={handleInstall}
-          disabled={installUpdate.isPending || !data.downloadUrl}
-        >
-          {installUpdate.isPending ? "Downloading & Installing…" : "Install update"}
-        </Button>
+        {data.downloadUrl !== null ? (
+          <Button variant="primary" onClick={handleInstall} disabled={installUpdate.isPending}>
+            {installUpdate.isPending ? "Downloading & Installing…" : "Install update"}
+          </Button>
+        ) : (
+          // The release has no installer for this platform: offer its page instead.
+          data.releaseUrl !== null && (
+            <Button variant="primary" onClick={() => void ipc.openGithubPage(data.releaseUrl as string)}>
+              View release
+            </Button>
+          )
+        )}
         <button
           type="button"
           onClick={() => setDismissedVersion(data.latestVersion)}

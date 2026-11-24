@@ -1,10 +1,13 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { Button } from "../../components/Button";
 import { ErrorNotice } from "../../components/ErrorNotice";
 import { ipc, type IpcError } from "../../services/ipc";
 import { useGithubStatus } from "../../services/github";
 import type { GithubRepository } from "../../services/types";
+
+/** Repositories per page of the backend's GitHub listing. */
+const GITHUB_PAGE_SIZE = 100;
 
 /** Case-insensitive match on the owner/name and description. */
 export function filterGithubRepositories(repositories: readonly GithubRepository[], query: string): GithubRepository[] {
@@ -25,17 +28,19 @@ export function GithubRepositoryPicker({ onPick }: { onPick: (cloneUrl: string, 
   const [open, setOpen] = useState<boolean>(false);
   const [query, setQuery] = useState<string>("");
   const signedIn: boolean = status.data?.account != null;
-  const repositories = useQuery<GithubRepository[], IpcError>({
+  const repositories = useInfiniteQuery<GithubRepository[], IpcError, { pages: GithubRepository[][] }, string[], number>({
     queryKey: ["github-repositories"],
-    queryFn: () => ipc.githubListRepositories(1),
+    queryFn: ({ pageParam }: { pageParam: number }): Promise<GithubRepository[]> => ipc.githubListRepositories(pageParam),
+    initialPageParam: 1,
+    // GitHub returns up to GITHUB_PAGE_SIZE per page; a full page may have more after it.
+    getNextPageParam: (lastPage: GithubRepository[], pages: GithubRepository[][]) =>
+      lastPage.length >= GITHUB_PAGE_SIZE ? pages.length + 1 : undefined,
     enabled: open && signedIn,
     staleTime: 60_000,
     retry: false,
   });
-  const shown: GithubRepository[] = useMemo(
-    () => filterGithubRepositories(repositories.data ?? [], query),
-    [repositories.data, query],
-  );
+  const loaded: GithubRepository[] = useMemo(() => repositories.data?.pages.flat() ?? [], [repositories.data]);
+  const shown: GithubRepository[] = useMemo(() => filterGithubRepositories(loaded, query), [loaded, query]);
 
   if (!signedIn) return null;
   if (!open) {
@@ -83,9 +88,16 @@ export function GithubRepositoryPicker({ onPick }: { onPick: (cloneUrl: string, 
           </li>
         ))}
       </ul>
-      <Button variant="ghost" onClick={() => setOpen(false)}>
-        Close list
-      </Button>
+      <div className="flex items-center gap-2">
+        {repositories.hasNextPage && (
+          <Button variant="secondary" disabled={repositories.isFetchingNextPage} onClick={() => void repositories.fetchNextPage()}>
+            {repositories.isFetchingNextPage ? "Loading…" : `Load more (${loaded.length} shown)`}
+          </Button>
+        )}
+        <Button variant="ghost" onClick={() => setOpen(false)}>
+          Close list
+        </Button>
+      </div>
     </div>
   );
 }

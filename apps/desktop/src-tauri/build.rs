@@ -4,6 +4,8 @@ const COMMANDS: &[&str] = &[
     "git_info",
     "get_settings",
     "set_theme",
+    "check_for_update",
+    "install_update",
     "list_repositories",
     "add_repository",
     "init_repository",
@@ -68,9 +70,11 @@ const COMMANDS: &[&str] = &[
     "github_status",
     "github_start_sign_in",
     "github_cancel_sign_in",
+    "github_save_pat",
     "github_sign_out",
     "github_list_repositories",
     "github_create_repository",
+    "open_github_page",
 ];
 
 fn main() {

@@ -539,8 +539,9 @@ background and reports through `operation-progress` and
 
 - Locking (refined during implementation): fetch, push and remote branch
   deletion only update refs and hold the **read** lock, so status and other
-  reads continue while mutations wait; pull changes the working tree and
-  holds the **write** lock.
+  reads continue while mutations wait. Pull holds the read lock for its
+  fetch phase and takes the **write** lock only to integrate; it refuses to
+  integrate if a different branch was checked out in between.
 - Push never uses plain `--force`; `forceWithLease` passes
   `--force-with-lease` (UI confirms).
 - `start_clone` registers the new repository; its `operation-finished` event
@@ -552,7 +553,8 @@ background and reports through `operation-progress` and
   it is granted in `capabilities/default.json`.
 - `operation-finished` for a pull does not carry the integration result;
   the UI refreshes status (conflicts appear as `inProgress` and conflicted
-  files).
+  files). A pull that stops with conflicts finishes as `failed` with
+  `operation_in_progress`, so it is never reported as done.
 - Cancelling kills the Git process tree (remote helpers and ssh included); Git leaves no partial refs for fetch or
   clone (a cancelled clone's directory is removed). Push is not cancellable
   because the remote may already have accepted it.

@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use rustgit_git_engine::integrate::IntegrationOutcome;
 use rustgit_git_engine::remote::{
     Progress, PullMode, PushRequest, add_remote, clone, delete_remote_branch, fetch, list_remotes,
-    pull, push, remove_remote, set_remote_url,
+    pull, pull_fetch, pull_integrate, push, remove_remote, set_remote_url,
 };
 use rustgit_git_engine::{CancelToken, GitError, list_refs};
 use support::{TestRepo, run_git};
@@ -330,4 +330,27 @@ fn failed_clone_cleans_up() {
     );
     assert!(result.is_err());
     assert!(!repo.dir.path().join("target").exists());
+}
+
+#[test]
+fn pull_refuses_to_integrate_after_a_branch_switch() {
+    let network: Network = network();
+    let fetched = pull_fetch(
+        &network.repo.git,
+        &network.repo.root(),
+        &CancelToken::default(),
+        &mut |_| {},
+    )
+    .expect("fetch phase");
+    network.repo.git_ok(&["switch", "-c", "elsewhere"]);
+    let refused = pull_integrate(
+        &network.repo.git,
+        &network.repo.root(),
+        PullMode::Merge,
+        &fetched,
+    );
+    assert!(
+        matches!(refused, Err(GitError::InvalidRequest(_))),
+        "{refused:?}"
+    );
 }

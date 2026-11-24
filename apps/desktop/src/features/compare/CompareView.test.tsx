@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, screen } from "@testing-library/react";
+import { cleanup, screen, within } from "@testing-library/react";
 import type { Comparison } from "../../services/types";
 
 const invokeMock = vi.fn();
@@ -29,6 +29,15 @@ beforeEach(() => {
         return { head: { kind: "branch", name: "main" }, refs: [] };
       case "compare_revisions":
         return { ...comparison, mergeBase: args.mergeBase === true ? comparison.mergeBase : null };
+      case "log_page": {
+        // Test fixtures only: one commit per side of the range.
+        const range: string = (args.revisions as string[])[0] ?? "";
+        const onHead: boolean = range.endsWith("h".repeat(40));
+        return {
+          commits: [{ oid: (onHead ? "c" : "d").repeat(40), parents: [], summary: onHead ? "Topic work" : "Main work", authorName: "Ada", authorEmail: "a@x", authorTime: 1_700_000_000, committerTime: 1_700_000_000 }],
+          hasMore: false,
+        };
+      }
       case "compare_file_diff":
         return { path: "src/a.ts", originalPath: null, side: "commit", status: "modified", binary: false, tooLarge: false, hunks: [], added: 3, deleted: 1, header: "" };
       default:
@@ -68,6 +77,16 @@ describe("CompareView", () => {
     // The click blurs the field (committing "v1.0") and then swaps.
     await userEvent.click(screen.getByRole("button", { name: "Swap base and head" }));
     expect(useUi.getState().compare).toEqual({ base: "topic", head: "v1.0" });
+  });
+
+  it("lists the commits on each side of the comparison", async () => {
+    renderWithClient(<CompareView />);
+    const ahead: HTMLElement = await screen.findByRole("region", { name: "In topic, not in main" });
+    expect(await within(ahead).findByText("Topic work")).toBeTruthy();
+    expect(within(ahead).getByText("and 1 more not listed here")).toBeTruthy();
+    const behind: HTMLElement = screen.getByRole("region", { name: "In main, not in topic" });
+    expect(await within(behind).findByText("Main work")).toBeTruthy();
+    expect(invokeMock).toHaveBeenCalledWith("log_page", expect.objectContaining({ revisions: [`${"b".repeat(40)}..${"h".repeat(40)}`] }));
   });
 
   it("loads a file's diff when unfolded", async () => {

@@ -112,6 +112,7 @@ pub fn run() {
             commands::history::cherry_pick,
             commands::history::revert_commit,
             commands::history::continue_operation,
+            commands::history::skip_operation,
             commands::history::abort_operation,
             commands::history::conflict_versions,
             commands::history::resolve_conflict,

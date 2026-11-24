@@ -39,7 +39,7 @@ pub use index::{discard_paths, stage_all, stage_paths, unstage_all, unstage_path
 pub use integrate::{
     ConflictVersions, IntegrationOutcome, IntegrationResult, abort_operation, cherry_pick,
     conflict_versions, continue_operation, merge_branch, rebase_branch, resolve_conflict,
-    revert_commit,
+    revert_commit, skip_operation,
 };
 pub use patch::{HunkAction, HunkRequest, apply_hunk};
 pub use refs::{

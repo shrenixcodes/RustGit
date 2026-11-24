@@ -38,6 +38,7 @@ const COMMANDS: &[&str] = &[
     "cherry_pick",
     "revert_commit",
     "continue_operation",
+    "skip_operation",
     "abort_operation",
     "conflict_versions",
     "resolve_conflict",

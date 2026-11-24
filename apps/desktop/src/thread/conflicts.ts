@@ -148,7 +148,12 @@ function rebuildMarkers(segment: Extract<Segment, { kind: "conflict" }>): string
   return `<<<<<<< ${segment.oursLabel}${eol}${end(segment.ours)}${base}=======${eol}${end(segment.theirs)}>>>>>>> ${segment.theirsLabel}${eol}`;
 }
 
-/** True when the text still contains a complete conflict block. */
+/**
+ * True when the text still contains conflict markers: a complete block, or a
+ * stray opening, base or closing marker left behind by a hand edit. A lone
+ * "=======" line is not counted, since it is common in ordinary text.
+ */
 export function hasConflictMarkers(text: string): boolean {
-  return conflictCount(parseConflicts(text)) > 0;
+  if (conflictCount(parseConflicts(text)) > 0) return true;
+  return lines(text).some((line) => marker(line, "<<<<<<<") !== null || marker(line, "|||||||") !== null || marker(line, ">>>>>>>") !== null);
 }

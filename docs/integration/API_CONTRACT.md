@@ -301,7 +301,7 @@ follow the requests unless a difference is called out. Mapping:
 | R-11 branch operations | `create_branch`, `checkout_branch`, `rename_branch`, `delete_branch`, `set_upstream`, `merge_branch` |
 | R-12 repository-changed | `watch_repository`, `unwatch_repository`, event `repository-changed` |
 | R-13 network operations | `start_fetch`, `start_pull`, `start_push`, `start_clone`, `cancel_operation`, events `operation-progress`, `operation-finished` |
-| R-14 conflicts | `conflict_versions`, `resolve_conflict`, `continue_operation`, `abort_operation` |
+| R-14 conflicts | `conflict_versions`, `resolve_conflict`, `continue_operation`, `skip_operation`, `abort_operation` |
 
 Not requested but in the master specification and UI-independent:
 `rebase_branch`, `cherry_pick`, `revert_commit`, remotes management, stash
@@ -481,6 +481,7 @@ interface IntegrationResult {
 | `cherry_pick` | `{ id, oids: string[] }` |
 | `revert_commit` | `{ id, oid }` |
 | `continue_operation` | `{ id }` — continues the in-progress merge/rebase/cherry-pick/revert |
+| `skip_operation` | `{ id }` — skips the current step of a rebase/cherry-pick/revert (`invalid_request` during a merge) |
 | `abort_operation` | `{ id }` — aborts it and restores the pre-operation state |
 
 Conflicts are an outcome, not an error. Starting any of these while another
@@ -505,8 +506,9 @@ is the commit being replayed; the labels state this.
 
 `resolve_conflict({ id, path, content: string | null, take: "ours" | "theirs" | null }) -> StatusSnapshot`
 Exactly one of `content` / `take`. Writes the file (or checks out the side),
-then `git add`; fails with `git_command_failed` if the path is still
-unmerged afterwards.
+then `git add`. Taking a side that deleted the file removes it with `git rm`
+instead. Fails with `git_command_failed` if the path is still unmerged
+afterwards.
 
 ### Remotes and network operations
 

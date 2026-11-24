@@ -197,6 +197,7 @@ export const ipc = {
   cherryPick: (id: number, oids: string[]): Promise<IntegrationResult> => call("cherry_pick", { id, oids }),
   revertCommit: (id: number, oid: string): Promise<IntegrationResult> => call("revert_commit", { id, oid }),
   continueOperation: (id: number): Promise<IntegrationResult> => call("continue_operation", { id }),
+  skipOperation: (id: number): Promise<IntegrationResult> => call("skip_operation", { id }),
   abortOperation: (id: number): Promise<StatusSnapshot> => call("abort_operation", { id }),
   conflictVersions: (id: number, path: string): Promise<ConflictVersions> => call("conflict_versions", { id, path }),
   /** Exactly one of content or take. */

@@ -5,6 +5,7 @@ import { useLogPages, useRefs, useRepositoryStatus, type LogFilters } from "../s
 import type { HeadState, LogCommit, LogPage, RefEntry, StatusSnapshot } from "../services/types";
 import { rowHeightFor, usePreferences, type Zoom } from "../stores/preferences";
 import { useUi } from "../stores/ui";
+import { parseThreadSearch } from "./searchQuery";
 import { LOOSE_END, commitNode, mapNode, oidOf, useWorkspace, type NodeId } from "../stores/workspace";
 import { countChanges } from "../features/changes/changeLabels";
 import { GraphCell, MAX_DRAWN_LANES, laneWidthFor } from "../features/history/GraphCell";
@@ -69,15 +70,8 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
     return () => window.clearTimeout(timer);
   }, [search]);
   const searching: boolean = debounced !== "";
-  const filters: LogFilters = useMemo(
-    () => ({
-      revision: null,
-      search: searching ? { text: debounced, field: /^[0-9a-f]{4,64}$/i.test(debounced) ? "sha" : "message" } : null,
-      since: null,
-      until: null,
-    }),
-    [debounced, searching],
-  );
+  // Plain words search messages; author:, since:, until: and branch: narrow the history.
+  const filters: LogFilters = useMemo(() => parseThreadSearch(debounced), [debounced]);
   const log = useLogPages(repositoryId, filters);
   const headOid: string | null = status.branch.oid;
   const head: HeadState | undefined = refs.data?.head;

@@ -94,7 +94,7 @@ export function NewRepositoryForm({ onDone }: { onDone: () => void }) {
     <form
       onSubmit={(event) => void submit(event)}
       aria-label="Create a repository"
-      className="space-y-3.5 rounded-xl border border-border/80 bg-elevated/60 p-4 shadow-sm backdrop-blur-xs"
+      className="space-y-3.5 rounded-xl border border-border/80 bg-elevated/80 p-4 shadow-sm"
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <label className="block">

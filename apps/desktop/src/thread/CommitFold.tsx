@@ -251,7 +251,7 @@ export function FileEntry({
   const meta = CHANGE_LABELS[file.kind];
   const { name, directory } = splitPath(file.path);
   return (
-    <li className="rounded-lg overflow-hidden border border-border/70 bg-canvas/40 hover:border-border-control transition-all shadow-2xs">
+    <li className="rounded-lg overflow-hidden border border-border/70 bg-canvas/40 hover:border-border-control transition-colors shadow-2xs">
       <button
         type="button"
         aria-expanded={open}

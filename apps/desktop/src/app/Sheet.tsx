@@ -114,10 +114,10 @@ export function Sheet() {
         if (pressedBackdrop.current && event.target === event.currentTarget) setSheet(null);
         pressedBackdrop.current = false;
       }}
-      className="m-auto flex h-[min(780px,calc(100vh-48px))] w-[min(920px,calc(100vw-48px))] flex-col overflow-hidden rounded-2xl border border-border/80 bg-bg p-0 text-fg shadow-popover backdrop:bg-overlay backdrop:backdrop-blur-sm"
+      className="m-auto flex h-[min(780px,calc(100vh-48px))] w-[min(920px,calc(100vw-48px))] flex-col overflow-hidden rounded-2xl border border-border/80 bg-bg p-0 text-fg shadow-popover backdrop:bg-overlay"
     >
       {/* Top Modal Navigation Header */}
-      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-divider/80 bg-elevated/50 px-5 py-3 backdrop-blur-md">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-divider/80 bg-elevated/80 px-5 py-3">
         <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto select-none scrollbar-none">
           {TABS.map((tab) => {
             if (tab.requiresRepo && activeRepositoryId === null) return null;

@@ -42,4 +42,30 @@ describe("useVirtualRows", () => {
     });
     expect(screen.getByTestId("start").textContent).toBe("100");
   });
+
+  it("skips re-rendering when sub-row scroll events keep the same row window", () => {
+    let renders = 0;
+    function Counter() {
+      renders += 1;
+      const container = useRef<HTMLDivElement>(null);
+      const { start, end } = useVirtualRows(container, 1_000, 32, 8);
+      return createElement(
+        "div",
+        { ref: container, "data-testid": "scroll-box" },
+        `${start}-${end}`,
+      );
+    }
+    render(createElement(Counter));
+    const initialRenders = renders;
+    const box = screen.getByTestId("scroll-box");
+    act(() => {
+      box.scrollTop = 8;
+      fireEvent.scroll(box);
+      box.scrollTop = 16;
+      fireEvent.scroll(box);
+      box.scrollTop = 24;
+      fireEvent.scroll(box);
+    });
+    expect(renders).toBe(initialRenders);
+  });
 });

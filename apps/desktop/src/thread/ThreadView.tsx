@@ -144,6 +144,8 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
   const contentLeft: number = searching ? 20 : graphColWidth + 12;
   const headIndex: number = headOid === null ? -1 : (indexById.get(zoom === "map" && !searching ? mapNode(headOid) : commitNode(headOid)) ?? -1);
   const headLane: number = headIndex > 0 ? ((rows[headIndex] as Extract<ThreadRowModel, { kind: "commit" }>).graph?.lane ?? 0) : 0;
+  const uncommittedTop = useMemo(() => ({ lane: headLane, span: "top" as const }), [headLane]);
+  const uncommittedFull = useMemo(() => ({ lane: headLane, span: "full" as const }), [headLane]);
 
   // Unfolding geometry.
   const [viewportHint, setViewportHint] = useState<number>(800);
@@ -379,12 +381,14 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
                 map={zoom === "map" && !searching}
                 uncommitted={
                   !searching && headIndex > 0 && index > 0 && index <= headIndex
-                    ? { lane: headLane, span: index === headIndex ? "top" : "full" }
+                    ? index === headIndex
+                      ? uncommittedTop
+                      : uncommittedFull
                     : undefined
                 }
                 focused={focus === row.id}
                 unfolded={unfolded === row.id}
-                onClick={() => toggleUnfold(row.id)}
+                onToggle={toggleUnfold}
               />
             );
           })}
@@ -466,7 +470,7 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
           onClick={scrollToTop}
           aria-label="Back to loose end"
           title="Scroll back to the top (Loose end)"
-          className="rg-notice-anim absolute right-5 bottom-4 z-20 flex h-8 items-center gap-1.5 rounded-full border border-border/80 bg-elevated/90 px-3 text-xs font-medium text-fg shadow-popover backdrop-blur-sm transition-all hover:border-accent hover:text-accent active:scale-95"
+          className="rg-notice-anim absolute right-5 bottom-4 z-20 flex h-8 items-center gap-1.5 rounded-full border border-border/80 bg-elevated px-3 text-xs font-medium text-fg shadow-raised transition-[border-color,color,transform] duration-150 hover:border-accent hover:text-accent active:scale-95"
         >
           <ArrowUp aria-hidden className="size-3.5" />
           <span>Loose end</span>
@@ -604,7 +608,7 @@ function NowRow({ id, top, height, lane, graphWidth, contentLeft, linked, focuse
       aria-expanded={unfolded}
       aria-selected={focused}
       aria-label={`Uncommitted changes: ${summaryText}`}
-      style={{ position: "absolute", top, height, left: 0, right: 0, paddingLeft: graphWidth === 0 ? contentLeft : undefined }}
+      style={{ position: "absolute", top, height, left: 0, right: 0, contain: "layout style", paddingLeft: graphWidth === 0 ? contentLeft : undefined }}
       onClick={(event) => {
         if (!(event.target instanceof HTMLInputElement) && !(event.target instanceof HTMLButtonElement)) onToggle();
       }}
@@ -736,10 +740,10 @@ interface CommitRowProps {
   uncommitted: { lane: number; span: "full" | "top" } | undefined;
   focused: boolean;
   unfolded: boolean;
-  onClick: () => void;
+  onToggle: (id: NodeId) => void;
 }
 
-const CommitRow = memo(function CommitRow({ id, top, height, row, graphWidth, graphColWidth, contentLeft, head, headState, refs, map, uncommitted, focused, unfolded, onClick }: CommitRowProps) {
+const CommitRow = memo(function CommitRow({ id, top, height, row, graphWidth, graphColWidth, contentLeft, head, headState, refs, map, uncommitted, focused, unfolded, onToggle }: CommitRowProps) {
   const { commit } = row;
   const detachedHere: boolean = headState?.kind === "detached" && headState.oid === commit.oid;
   const hasRefs: boolean = detachedHere || (refs !== undefined && refs.length > 0);
@@ -763,8 +767,8 @@ const CommitRow = memo(function CommitRow({ id, top, height, row, graphWidth, gr
       aria-expanded={unfolded}
       aria-selected={focused}
       aria-label={label}
-      onClick={onClick}
-      style={{ position: "absolute", top, height, left: 0, right: 0, paddingLeft: graphColWidth === 0 ? contentLeft : undefined }}
+      onClick={() => onToggle(row.id)}
+      style={{ position: "absolute", top, height, left: 0, right: 0, contain: "layout style", paddingLeft: graphColWidth === 0 ? contentLeft : undefined }}
       className={`flex cursor-default items-center gap-3 pr-3 sm:pr-5 transition-colors duration-100 ${
         focused ? "bg-selection relative before:absolute before:left-0 before:top-1 before:bottom-1 before:w-[2px] before:bg-accent before:rounded-r" : "hover:bg-hover"
       }`}

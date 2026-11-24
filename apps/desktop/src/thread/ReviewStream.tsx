@@ -368,7 +368,7 @@ export function ReviewStream({
       <>
       {/* Elevated Commit Composer Console */}
       <div style={{ paddingLeft: inset }} className="flex shrink-0 gap-6 py-3 pr-4 sm:pr-6">
-        <div className="min-w-0 max-w-[1040px] flex-1 rounded-xl border border-border/80 bg-elevated/50 p-4 shadow-sm backdrop-blur-xs space-y-3">
+        <div className="min-w-0 max-w-[1040px] flex-1 rounded-xl border border-border/80 bg-elevated/75 p-4 shadow-sm space-y-3">
           <div className="flex items-center justify-between pb-1 border-b border-border/60">
             <div className="flex items-center gap-2">
               <FileCheck className="size-3.5 text-accent" />
@@ -592,7 +592,7 @@ export function ReviewStream({
                 ? { position: "sticky", left: 0, width: "100cqi", height: DIFF_ROW }
                 : { height: DIFF_ROW };
               return (
-                <div key={rowKey(row, index)} style={{ position: "absolute", top: index * DIFF_ROW, height: DIFF_ROW, left: 0, right: 0 }}>
+                <div key={rowKey(row, index)} style={{ position: "absolute", top: index * DIFF_ROW, height: DIFF_ROW, left: 0, right: 0, contain: "layout style" }}>
                 <StreamRowView
                   id={`stream-row-${index}`}
                   row={row}

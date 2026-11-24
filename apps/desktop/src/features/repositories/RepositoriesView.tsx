@@ -190,7 +190,7 @@ export function RepositoriesView() {
         )}
 
         {creating && (
-          <div className="rounded-xl border border-accent/40 bg-elevated/70 p-4 shadow-md backdrop-blur-xs">
+          <div className="rounded-xl border border-accent/40 bg-elevated p-4 shadow-md">
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-border/80">
               <div className="flex items-center gap-2">
                 <FolderPlus className="size-4 text-accent" />
@@ -209,7 +209,7 @@ export function RepositoriesView() {
         )}
 
         {cloning && (
-          <div className="rounded-xl border border-accent/40 bg-elevated/70 p-4 shadow-md backdrop-blur-xs">
+          <div className="rounded-xl border border-accent/40 bg-elevated p-4 shadow-md">
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-border/80">
               <div className="flex items-center gap-2">
                 <Download className="size-4 text-accent" />
@@ -245,15 +245,16 @@ export function RepositoriesView() {
 
         {repositories.isSuccess && repositories.data.length === 0 && !creating && !cloning && (
           <div className="my-auto flex flex-1 flex-col items-center justify-center overflow-hidden py-12 text-center">
-            {/* Ambient halo: a soft, slow gradient so the welcome screen reads
-             * as a stage rather than an empty box. Decorative only. */}
+            {/* Ambient halo: a soft radial gradient without runtime Gaussian blur shaders. */}
             <div
               aria-hidden
-              className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[380px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/15 blur-3xl"
+              className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[380px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-25"
+              style={{ background: "radial-gradient(closest-side, var(--rg-accent), transparent)" }}
             />
             <div
               aria-hidden
-              className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[240px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo/10 blur-2xl"
+              className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[240px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-20"
+              style={{ background: "radial-gradient(closest-side, var(--rg-indigo), transparent)" }}
             />
 
             <div className="relative mb-5 flex size-16 items-center justify-center rounded-2xl border border-accent/30 bg-elevated/70 shadow-raised">

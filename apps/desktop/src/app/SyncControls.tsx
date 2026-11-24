@@ -111,7 +111,7 @@ export function SyncControls({ repositoryId, branch }: { repositoryId: number; b
   ];
 
   return (
-    <div role="group" aria-label="Sync" className="flex shrink-0 min-w-0 items-center rounded-lg border border-border/80 bg-elevated/70 p-0.5 shadow-2xs backdrop-blur-xs">
+    <div role="group" aria-label="Sync" className="flex shrink-0 min-w-0 items-center rounded-lg border border-border/80 bg-elevated/80 p-0.5 shadow-2xs">
       <button
         type="button"
         className={CONTROL}

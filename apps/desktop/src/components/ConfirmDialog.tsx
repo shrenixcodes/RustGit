@@ -44,7 +44,7 @@ export function ConfirmDialog({ title, children, confirmLabel, destructive = fal
         event.preventDefault();
         if (!busy) onCancel();
       }}
-      className="m-auto w-[460px] max-w-[calc(100vw-32px)] rounded-2xl border border-border/80 bg-elevated p-0 text-fg shadow-popover backdrop:bg-overlay backdrop:backdrop-blur-sm"
+      className="m-auto w-[460px] max-w-[calc(100vw-32px)] rounded-2xl border border-border/80 bg-elevated p-0 text-fg shadow-popover backdrop:bg-overlay"
       style={{ backgroundColor: "var(--rg-elevated)" }}
     >
       <div className="space-y-3.5 px-6 pt-6 pb-4">

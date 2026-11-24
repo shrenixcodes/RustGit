@@ -82,7 +82,7 @@ export function CloneForm({ onDone }: { onDone: () => void }) {
   };
 
   return (
-    <form onSubmit={(event) => void submit(event)} aria-label="Clone a repository" className="space-y-3.5 rounded-xl border border-border/80 bg-elevated/60 p-4 shadow-sm backdrop-blur-xs">
+    <form onSubmit={(event) => void submit(event)} aria-label="Clone a repository" className="space-y-3.5 rounded-xl border border-border/80 bg-elevated/80 p-4 shadow-sm">
       <GithubRepositoryPicker
         onPick={(cloneUrl, repositoryName) => {
           setUrl(cloneUrl);

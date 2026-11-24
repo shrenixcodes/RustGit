@@ -21,8 +21,8 @@ export function EmptyState({ icon: Icon, title, description, action, className =
       <div className="relative mb-4">
         <div
           aria-hidden
-          className="absolute inset-0 -z-10 rounded-full bg-accent/10 blur-xl"
-          style={{ transform: "scale(1.6)" }}
+          className="pointer-events-none absolute -inset-4 -z-10 rounded-full"
+          style={{ background: "radial-gradient(closest-side, rgb(186 165 216 / 0.14), transparent)" }}
         />
         <div className="flex size-12 items-center justify-center rounded-xl border border-border/70 bg-elevated/80 text-fg-muted shadow-raised">
           <Icon aria-hidden className="size-[22px] text-accent" strokeWidth={1.75} />

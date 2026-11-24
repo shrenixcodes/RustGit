@@ -73,7 +73,7 @@ function CredentialDialog({ request, onAnswer }: { request: CredentialRequest; o
         event.preventDefault();
         onAnswer(null);
       }}
-      className="m-auto w-[460px] max-w-[calc(100vw-32px)] overflow-hidden rounded-2xl border border-border/80 bg-elevated p-0 text-fg shadow-popover backdrop:bg-overlay backdrop:backdrop-blur-sm"
+      className="m-auto w-[460px] max-w-[calc(100vw-32px)] overflow-hidden rounded-2xl border border-border/80 bg-elevated p-0 text-fg shadow-popover backdrop:bg-overlay"
       style={{ backgroundColor: "var(--rg-elevated)" }}
     >
       <form onSubmit={submit}>

@@ -273,7 +273,7 @@ export function BranchPath({ branch }: { branch: BranchStatus }) {
 
   return (
     <span className="flex min-w-0 items-center gap-2 font-mono text-xs">
-      <span className="group inline-flex items-center gap-1.5 rounded-md border border-border/70 bg-elevated/50 px-2 py-0.5 shadow-2xs backdrop-blur-xs">
+      <span className="group inline-flex items-center gap-1.5 rounded-md border border-border/70 bg-elevated/70 px-2 py-0.5 shadow-2xs">
         <GitBranch aria-hidden className={`size-3.5 shrink-0 ${detached ? "text-clay-text" : "text-accent"}`} />
         <span className={`max-w-[100px] sm:max-w-[160px] lg:max-w-[220px] 2xl:max-w-[320px] truncate font-medium ${detached ? "text-clay-text" : "text-fg"}`}>
           {branch.head ?? `detached at ${branch.oid?.slice(0, 7) ?? "?"}`}

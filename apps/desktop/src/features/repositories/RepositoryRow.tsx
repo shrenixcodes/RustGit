@@ -23,14 +23,14 @@ export function RepositoryRow({ entry, active, onOpen, onRemove, onTogglePin }: 
 
   return (
     <li
-      className={`group relative flex items-center gap-3 px-4 py-3 transition-all ${
+      className={`group relative flex items-center gap-3 px-4 py-3 transition-colors ${
         active
           ? "bg-selection text-fg border-l-2 border-l-accent"
           : "hover:bg-hover/70 text-fg-secondary hover:text-fg border-l-2 border-l-transparent"
       }`}
     >
       <div
-        className={`flex size-8 shrink-0 items-center justify-center rounded-lg border transition-all ${
+        className={`flex size-8 shrink-0 items-center justify-center rounded-lg border transition-colors ${
           active
             ? "border-accent/40 bg-accent/15 text-accent shadow-xs"
             : "border-border/80 bg-elevated/70 text-fg-muted group-hover:border-border-control group-hover:text-fg"

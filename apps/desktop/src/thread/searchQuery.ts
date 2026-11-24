@@ -1,4 +1,5 @@
 import type { LogFilters } from "../services/queries";
+import { dayEnd, dayStart } from "../features/history/time";
 
 /**
  * Thread search text to log filters. Plain words search commit messages (a
@@ -30,8 +31,8 @@ export function parseThreadSearch(text: string): LogFilters {
     if (key === "author") {
       author = value;
       authorWord = word;
-    } else if (key === "since" && dayStart(value) !== null) since = dayStart(value);
-    else if (key === "until" && dayStart(value) !== null) until = (dayStart(value, 1) as number) - 1;
+    } else if (key === "since" && day(value, false) !== null) since = day(value, false);
+    else if (key === "until" && day(value, true) !== null) until = day(value, true);
     else if (key === "branch" && !value.startsWith("-")) revision = value;
     else plain.push(word);
   }
@@ -46,16 +47,7 @@ export function parseThreadSearch(text: string): LogFilters {
   return { revision, search, since, until };
 }
 
-/**
- * Local midnight of a YYYY-MM-DD day (plus `addDays`, which keeps "end of
- * day" right across daylight saving changes), in Unix seconds; null if the
- * text is not a real date.
- */
-function dayStart(value: string, addDays: number = 0): number | null {
-  const match: RegExpMatchArray | null = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (match === null) return null;
-  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
-  const date: Date = new Date(year, month - 1, day);
-  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
-  return Math.floor(new Date(year, month - 1, day + addDays).getTime() / 1000);
+/** A `YYYY-MM-DD` value as the history date helpers read it; null if it is not a real date. */
+function day(value: string, end: boolean): number | null {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? (end ? dayEnd(value) : dayStart(value)) : null;
 }

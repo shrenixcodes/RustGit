@@ -28,7 +28,11 @@ export function formatAbsolute(seconds: number): string {
 /** Start of the local day for a `yyyy-mm-dd` date input value, in Unix seconds. */
 export function dayStart(value: string): number | null {
   const date: Date = new Date(`${value}T00:00:00`);
-  return Number.isNaN(date.getTime()) ? null : Math.floor(date.getTime() / 1000);
+  if (Number.isNaN(date.getTime())) return null;
+  // Engines roll impossible days over ("2026-02-30" becomes 2 March): refuse them.
+  const [year, month, day] = value.split("-").map(Number);
+  if (date.getFullYear() !== year || date.getMonth() + 1 !== month || date.getDate() !== day) return null;
+  return Math.floor(date.getTime() / 1000);
 }
 
 /** End of the local day for a `yyyy-mm-dd` date input value, in Unix seconds. */

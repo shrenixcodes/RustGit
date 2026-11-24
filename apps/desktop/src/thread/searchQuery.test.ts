@@ -14,7 +14,7 @@ describe("parseThreadSearch", () => {
       revision: "feature/x",
       search: { text: "ada", field: "author" },
       since: localDay(2026, 1, 31),
-      until: localDay(2026, 3, 1) - 1,
+      until: localDay(2026, 2, 28) + 24 * 3600 - 1,
     });
   });
 

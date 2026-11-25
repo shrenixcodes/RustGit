@@ -4,7 +4,7 @@
 
 A lightweight, fast, cross-platform Git desktop client built with Rust, Tauri 2, React, and the Git CLI directly—combining a unified commit thread, Bezier branch graph, inline diffs, and full keyboard control in a small native binary.
 
-> **Status: 0.4.68.** Installers for Windows, macOS, and Linux are available on the
+> **Status: 0.4.69.** Installers for Windows, macOS, and Linux are available on the
 > [releases page](https://github.com/shrenixcodes/RustGit/releases) (currently unsigned,
 > so OS Gatekeeper/SmartScreen warnings appear on first launch). RustGit also checks
 > GitHub Releases for newer versions and can download and run the installer in-app.

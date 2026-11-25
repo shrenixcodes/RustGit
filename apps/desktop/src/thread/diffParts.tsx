@@ -93,10 +93,11 @@ interface UnifiedLineProps {
   refLine: LineRef;
   selected: boolean;
   selectable: boolean;
+  wrap?: boolean;
   onToggle?: (extend: boolean) => void;
 }
 
-export const UnifiedLine = memo(function UnifiedLine({ style, indent, refLine, selected, selectable, onToggle }: UnifiedLineProps) {
+export const UnifiedLine = memo(function UnifiedLine({ style, indent, refLine, selected, selectable, wrap = false, onToggle }: UnifiedLineProps) {
   const { line } = refLine;
   return (
     <div
@@ -113,7 +114,7 @@ export const UnifiedLine = memo(function UnifiedLine({ style, indent, refLine, s
       >
         {SIGN[line.kind]}
       </span>
-      <span data-selectable className="pr-6 text-fg">
+      <span data-selectable className={`pr-6 text-fg ${wrap ? "min-w-0 flex-1 whitespace-pre-wrap [overflow-wrap:anywhere]" : ""}`}>
         <LineContent refLine={refLine} />
         {line.noNewlineAtEnd && <span className="ml-2 text-fg-muted">no newline at end</span>}
       </span>

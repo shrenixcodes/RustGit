@@ -66,8 +66,8 @@ function RemotesList({ repositoryId }: { repositoryId: number }) {
   };
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-8">
-      <div className="space-y-6">
+    <div className="min-h-0 flex-1 overflow-y-auto px-6 sm:px-8 pb-8">
+      <div className="w-full max-w-[960px] space-y-6">
         <div className="rounded-xl border border-border/70 bg-canvas/40 p-4 text-xs text-fg-muted leading-relaxed">
           Git's credential helper authenticates network operations. When no stored credentials exist, RustGit asks for the password or key passphrase and passes it directly to Git without storing secrets.
         </div>
@@ -105,7 +105,7 @@ function RemotesList({ repositoryId }: { repositoryId: number }) {
                         onClick={() => actions.fetch(remote.name).catch(() => {})}
                         className="h-7 text-xs"
                       >
-                        <RefreshCw aria-hidden className={`size-3 mr-1 ${fetching ? "animate-spin" : ""}`} />
+                        <RefreshCw aria-hidden className={`size-3 mr-1 ${fetching ? "motion-safe:animate-spin" : ""}`} />
                         Fetch
                       </Button>
                       <Button

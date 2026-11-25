@@ -30,7 +30,7 @@ pub use diff::{
     DiffRequest, DiffSide, FileDiff, FileTotals, change_totals, file_diff,
 };
 pub use error::{GitError, GitErrorKind, GitResult};
-pub use executor::{CancelToken, CommandRecord, GitExecutor};
+pub use executor::{CancelToken, CappedOutput, CommandRecord, GitExecutor};
 pub use history::{
     CommitDetails, CommitFile, LogCommit, LogPage, LogQuery, commit_details, commit_file_diff,
     log_page,
@@ -39,7 +39,7 @@ pub use index::{discard_paths, stage_all, stage_paths, unstage_all, unstage_path
 pub use integrate::{
     ConflictVersions, IntegrationOutcome, IntegrationResult, abort_operation, cherry_pick,
     conflict_versions, continue_operation, merge_branch, rebase_branch, resolve_conflict,
-    revert_commit,
+    revert_commit, skip_operation,
 };
 pub use patch::{HunkAction, HunkRequest, apply_hunk};
 pub use refs::{

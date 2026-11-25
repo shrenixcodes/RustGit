@@ -216,6 +216,28 @@ pub fn pull(
     cancel: &CancelToken,
     on_progress: &mut dyn FnMut(Progress),
 ) -> GitResult<IntegrationResult> {
+    let fetched: PullFetch = pull_fetch(git, root, cancel, on_progress)?;
+    // From here on the working tree changes; cancelling is no longer possible.
+    if !cancel.commit() {
+        return Err(GitError::Cancelled);
+    }
+    pull_integrate(git, root, mode, &fetched)
+}
+
+/// What the fetch phase of a pull fetched for, checked again before integrating.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PullFetch {
+    branch: String,
+}
+
+/// First phase of a pull: checks the upstream and fetches its remote. Only
+/// refs change, so callers may run it without blocking working tree reads.
+pub fn pull_fetch(
+    git: &GitExecutor,
+    root: &Path,
+    cancel: &CancelToken,
+    on_progress: &mut dyn FnMut(Progress),
+) -> GitResult<PullFetch> {
     let upstream: std::process::Output = git.run_unchecked(
         root,
         [
@@ -231,10 +253,7 @@ pub fn pull(
             "the current branch has no upstream branch".to_owned(),
         ));
     }
-    let branch: String = git
-        .run_text(root, ["symbolic-ref", "--short", "HEAD"])?
-        .trim()
-        .to_owned();
+    let branch: String = current_branch(git, root)?;
     let remote: String = git
         .run_text(
             root,
@@ -249,15 +268,36 @@ pub fn pull(
         args.push(remote);
         run_network(git, root, &args, cancel, on_progress)?;
     }
-    // From here on the working tree changes; cancelling is no longer possible.
-    if !cancel.commit() {
-        return Err(GitError::Cancelled);
+    Ok(PullFetch { branch })
+}
+
+/// Second phase of a pull: integrates the upstream into the branch that was
+/// fetched for. Refuses if a different branch was checked out in between.
+pub fn pull_integrate(
+    git: &GitExecutor,
+    root: &Path,
+    mode: PullMode,
+    fetched: &PullFetch,
+) -> GitResult<IntegrationResult> {
+    let branch: String = current_branch(git, root)?;
+    if branch != fetched.branch {
+        return Err(GitError::InvalidRequest(format!(
+            "the current branch changed from '{}' to '{branch}' during the pull",
+            fetched.branch
+        )));
     }
     match mode {
         PullMode::FfOnly => merge_branch(git, root, "@{upstream}", MergeStrategy::FfOnly),
         PullMode::Merge => merge_branch(git, root, "@{upstream}", MergeStrategy::Default),
         PullMode::Rebase => rebase_branch(git, root, "@{upstream}"),
     }
+}
+
+fn current_branch(git: &GitExecutor, root: &Path) -> GitResult<String> {
+    Ok(git
+        .run_text(root, ["symbolic-ref", "--short", "HEAD"])?
+        .trim()
+        .to_owned())
 }
 
 #[derive(Debug, Clone, Default)]

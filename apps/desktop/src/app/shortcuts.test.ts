@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
-import { formatShortcut, isTextInput, matchesShortcut } from "./shortcuts";
+import { describe, expect, it, vi } from "vitest";
+import { renderHook } from "@testing-library/react";
+import { formatShortcut, isTextInput, matchesShortcut, useShortcuts } from "./shortcuts";
 
 function key(init: KeyboardEventInit): KeyboardEvent {
   return new KeyboardEvent("keydown", init);
@@ -40,5 +41,28 @@ describe("isTextInput", () => {
     expect(isTextInput(checkbox)).toBe(false);
     expect(isTextInput(document.createElement("textarea"))).toBe(true);
     expect(isTextInput(document.createElement("button"))).toBe(false);
+  });
+});
+
+describe("useShortcuts", () => {
+  it("does not fire behind an open modal dialog unless allowed", () => {
+    const push = vi.fn();
+    const palette = vi.fn();
+    renderHook(() =>
+      useShortcuts([
+        { shortcut: "F5", run: push },
+        { shortcut: "F6", run: palette, allowInDialog: true },
+      ]),
+    );
+    const dialog: HTMLDialogElement = document.createElement("dialog");
+    dialog.setAttribute("open", "");
+    document.body.append(dialog);
+    window.dispatchEvent(key({ key: "F5" }));
+    window.dispatchEvent(key({ key: "F6" }));
+    expect(push).not.toHaveBeenCalled();
+    expect(palette).toHaveBeenCalledTimes(1);
+    dialog.remove();
+    window.dispatchEvent(key({ key: "F5" }));
+    expect(push).toHaveBeenCalledTimes(1);
   });
 });

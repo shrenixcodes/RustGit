@@ -1,4 +1,4 @@
-import { useRef, type KeyboardEvent } from "react";
+import { useCallback, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 
 export interface SegmentOption<T extends string> {
   value: T;
@@ -21,11 +21,41 @@ export function SegmentedControl<T extends string>({
   onChange,
   disabled = false,
 }: SegmentedControlProps<T>) {
+  const container = useRef<HTMLDivElement>(null);
   const buttons = useRef<Array<HTMLButtonElement | null>>([]);
+  const hasSelection: boolean = value !== undefined && options.some((option) => option.value === value);
   const selectedIndex: number = Math.max(
     0,
     options.findIndex((option: SegmentOption<T>) => option.value === value),
   );
+  const [thumb, setThumb] = useState<{ x: number; width: number; animate: boolean } | null>(null);
+  const positioned = useRef<boolean>(false);
+
+  const syncThumb = useCallback(() => {
+    if (!hasSelection) {
+      setThumb(null);
+      return;
+    }
+    const target: HTMLButtonElement | null | undefined = buttons.current[selectedIndex];
+    if (!target || target.offsetWidth <= 0) {
+      setThumb(null);
+      return;
+    }
+    const nextX: number = target.offsetLeft;
+    const nextWidth: number = target.offsetWidth;
+    const animate: boolean = positioned.current;
+    positioned.current = true;
+    setThumb({ x: nextX, width: nextWidth, animate });
+  }, [hasSelection, selectedIndex]);
+
+  useLayoutEffect(() => {
+    syncThumb();
+    const element: HTMLDivElement | null = container.current;
+    if (!element || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(syncThumb);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [syncThumb, options]);
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
     const step: number =
@@ -48,13 +78,28 @@ export function SegmentedControl<T extends string>({
 
   return (
     <div
+      ref={container}
       role="radiogroup"
       aria-label={label}
       onKeyDown={handleKeyDown}
-      className="inline-flex rounded-md border border-border/70 bg-canvas/80 p-0.5 shadow-2xs"
+      className="relative inline-flex rounded-md border border-border/70 bg-canvas/80 p-0.5 shadow-2xs"
     >
+      {thumb !== null && (
+        <span
+          aria-hidden
+          style={{
+            width: thumb.width,
+            transform: `translateX(${thumb.x - 2}px)`,
+            transitionDuration: thumb.animate ? "var(--rg-duration-base)" : "0ms",
+            transitionTimingFunction: "var(--rg-ease-out)",
+          }}
+          className="pointer-events-none absolute top-0.5 bottom-0.5 left-0.5 rounded-sm bg-elevated shadow-xs ring-1 ring-border/40 transition-[transform,width]"
+        />
+      )}
       {options.map((option: SegmentOption<T>, index: number) => {
         const checked: boolean = option.value === value;
+        const staticActive: string =
+          thumb === null ? "bg-elevated shadow-xs ring-1 ring-border/40" : "";
         return (
           <button
             key={option.value}
@@ -67,10 +112,10 @@ export function SegmentedControl<T extends string>({
             tabIndex={index === selectedIndex ? 0 : -1}
             disabled={disabled}
             onClick={() => onChange(option.value)}
-            className={`h-6.5 rounded-sm px-3 text-xs font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-40 ${
+            className={`relative z-10 h-6.5 rounded-sm px-3 text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-40 ${
               checked
-                ? "bg-elevated font-medium text-fg shadow-xs ring-1 ring-border/40"
-                : "text-fg-secondary hover:text-fg hover:bg-hover/60"
+                ? `${staticActive} font-medium text-fg`
+                : "text-fg-secondary hover:text-fg hover:bg-hover/40"
             }`}
           >
             {option.label}

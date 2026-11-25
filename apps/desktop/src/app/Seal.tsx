@@ -66,7 +66,7 @@ export function Seal() {
   return (
     <header
       aria-label="Repository"
-      className="relative z-30 flex h-13 shrink-0 items-center justify-between gap-2 sm:gap-3 border-b border-border/70 bg-surface px-3 sm:px-4 select-none transition-colors"
+      className="relative z-30 flex h-13 shrink-0 items-center justify-between gap-2 sm:gap-3 border-b border-border/70 bg-surface px-4 select-none transition-colors"
       style={{ backgroundColor: "var(--rg-surface)" }}
     >
       {/* Zone 1: Repository Identity & Branch */}
@@ -94,7 +94,7 @@ export function Seal() {
             <ChevronDown aria-hidden className="size-3.5 shrink-0 text-accent/80 transition-transform duration-150 group-hover:text-accent group-aria-expanded:rotate-180" />
           </button>
         ) : (
-          <div className="flex items-center gap-1.5">
+          <div className="flex min-w-0 items-center gap-1.5">
             <button
               ref={trigger}
               type="button"
@@ -106,7 +106,7 @@ export function Seal() {
                 if (switcherOpen && switcherView === "list") setSwitcherOpen(false);
                 else openSwitcher("list");
               }}
-              className="group flex min-w-0 max-w-[160px] sm:max-w-[240px] items-center gap-2 rounded-lg border border-border/80 bg-elevated/70 px-2.5 py-1 text-left shadow-2xs transition-all hover:border-accent hover:bg-elevated hover:text-fg active:scale-[0.98]"
+              className="group flex min-w-0 max-w-[160px] sm:max-w-[220px] items-center gap-2 rounded-lg border border-border/80 bg-elevated/70 px-2.5 py-1 text-left shadow-2xs transition-all hover:border-accent hover:bg-elevated hover:text-fg active:scale-[0.98]"
             >
               <FolderGit2 className="size-3.5 shrink-0 text-accent" />
               <span className="truncate text-xs font-semibold text-fg">
@@ -122,17 +122,18 @@ export function Seal() {
               }}
               title={`Create new repository (${formatShortcut("Mod+N")})`}
               aria-label="Create new repository"
-              className="flex h-7 items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/15 px-2.5 text-xs font-semibold text-accent hover:bg-accent/25 active:scale-95 transition-all shadow-2xs"
+              className="flex h-7 shrink-0 items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/15 px-2 lg:px-2.5 text-xs font-semibold text-accent hover:bg-accent/25 active:scale-95 transition-all shadow-2xs"
             >
               <Plus className="size-3.5" />
-              <span className="font-sans text-xs">New</span>
+              <span className="hidden lg:inline font-sans text-xs">New</span>
             </button>
           </div>
         )}
         {switcherOpen && <SwitcherPopover onClose={close} root={root} />}
 
         {repository !== undefined && status.data !== undefined && (
-          <div className="hidden md:flex min-w-0 items-center gap-2.5 pl-1">
+          // Always shown: BranchPath shortens the name on narrow windows instead.
+          <div className="flex min-w-0 items-center gap-2.5 pl-1">
             <span aria-hidden className="h-4 w-px bg-border/60 shrink-0" />
             <BranchPath branch={status.data.branch} />
             {status.data.inProgress !== "none" && (
@@ -150,7 +151,7 @@ export function Seal() {
           <div className="hidden sm:inline-flex shrink-0">
             <SegmentedControl label="Distance" options={ZOOMS} value={zoom} onChange={setZoom} />
           </div>
-          <label className="flex w-28 sm:w-40 xl:w-56 min-w-0 items-center gap-2 rounded-lg border border-border/70 bg-canvas/70 px-2.5 py-1 shadow-2xs transition-[border-color,background-color,box-shadow] focus-within:border-accent focus-within:bg-canvas focus-within:ring-1 focus-within:ring-accent/30">
+          <label className="flex w-28 md:w-36 lg:w-44 xl:w-56 min-w-0 items-center gap-2 rounded-lg border border-border/70 bg-canvas/70 px-2.5 py-1 shadow-2xs transition-[border-color,background-color,box-shadow] focus-within:border-accent focus-within:bg-canvas focus-within:ring-1 focus-within:ring-accent/30">
             <Search aria-hidden className="size-3.5 shrink-0 text-fg-muted" />
             <span className="sr-only">Search the thread</span>
             <input
@@ -166,7 +167,7 @@ export function Seal() {
                 }
               }}
               placeholder="Search commits"
-              title="Search commits by message or ID"
+              title="Search commits by message or ID. Narrow with author:name, since:YYYY-MM-DD, until:YYYY-MM-DD or branch:name"
               className="h-5 min-w-0 flex-1 bg-transparent font-sans text-xs text-fg outline-none placeholder:text-fg-muted"
             />
             {search === "" ? (
@@ -225,7 +226,7 @@ export function Seal() {
             type="button"
             onClick={() => setSheet("settings")}
             title={`GitHub: @${githubStatus.data.account.login} (Manage account)`}
-            className="hidden lg:flex h-7 items-center gap-1.5 rounded-full border border-border/80 bg-elevated/70 px-2.5 font-mono text-xs text-fg-secondary transition-all hover:border-accent hover:bg-elevated hover:text-fg active:scale-95"
+            className="hidden xl:flex h-7 items-center gap-1.5 rounded-full border border-border/80 bg-elevated/70 px-2.5 font-mono text-xs text-fg-secondary transition-all hover:border-accent hover:bg-elevated hover:text-fg active:scale-95"
           >
             <span className="size-2 rounded-full bg-success ring-2 ring-success/20" />
             <span>@{githubStatus.data.account.login}</span>
@@ -235,7 +236,7 @@ export function Seal() {
             type="button"
             onClick={() => setSheet("settings")}
             title="Connect GitHub account"
-            className="hidden lg:flex h-7 items-center gap-1.5 rounded-full border border-border/80 bg-canvas/40 px-2.5 font-sans text-xs text-fg-muted transition-all hover:border-border-control hover:bg-elevated/50 hover:text-fg active:scale-95"
+            className="hidden xl:flex h-7 items-center gap-1.5 rounded-full border border-border/80 bg-canvas/40 px-2.5 font-sans text-xs text-fg-muted transition-all hover:border-border-control hover:bg-elevated/50 hover:text-fg active:scale-95"
           >
             <span>Connect GitHub</span>
           </button>
@@ -249,7 +250,7 @@ export function Seal() {
           type="button"
           onClick={() => setPaletteOpen(true)}
           title={`Commands (${formatShortcut("Mod+K")})`}
-          className="hidden md:flex h-7 items-center gap-1.5 rounded-md border border-border/80 bg-canvas/60 px-2 font-mono text-xs text-fg-muted transition-all hover:border-border-control hover:bg-elevated hover:text-fg active:scale-95"
+          className="hidden lg:flex h-7 items-center gap-1.5 rounded-md border border-border/80 bg-canvas/60 px-2 font-mono text-xs text-fg-muted transition-all hover:border-border-control hover:bg-elevated hover:text-fg active:scale-95"
         >
           <span className="font-sans text-2xs">{formatShortcut("Mod+K")}</span>
         </button>
@@ -272,9 +273,9 @@ export function BranchPath({ branch }: { branch: BranchStatus }) {
 
   return (
     <span className="flex min-w-0 items-center gap-2 font-mono text-xs">
-      <span className="group inline-flex items-center gap-1.5 rounded-md border border-border/70 bg-elevated/50 px-2 py-0.5 shadow-2xs backdrop-blur-xs">
+      <span className="group inline-flex items-center gap-1.5 rounded-md border border-border/70 bg-elevated/70 px-2 py-0.5 shadow-2xs">
         <GitBranch aria-hidden className={`size-3.5 shrink-0 ${detached ? "text-clay-text" : "text-accent"}`} />
-        <span className={`max-w-[100px] sm:max-w-[180px] md:max-w-[220px] truncate font-medium ${detached ? "text-clay-text" : "text-fg"}`}>
+        <span className={`max-w-[100px] sm:max-w-[160px] lg:max-w-[220px] 2xl:max-w-[320px] truncate font-medium ${detached ? "text-clay-text" : "text-fg"}`}>
           {branch.head ?? `detached at ${branch.oid?.slice(0, 7) ?? "?"}`}
         </span>
         {branch.head !== null && (

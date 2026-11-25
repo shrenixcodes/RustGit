@@ -29,9 +29,13 @@ records the dependencies. Contract details: `API_CONTRACT.md`.
 | Fetch / pull / push / clone, operation shelf | `start_*`, `cancel_operation`, events `operation-progress`, `operation-finished` | IMPLEMENTED |
 | Stashes                           | `list_stashes`, `create_stash`, `apply_stash`, `drop_stash`, `stash_details`, `stash_file_diff` | IMPLEMENTED |
 | Worktrees                         | `list_worktrees`, `add_worktree`, `remove_worktree`, `prune_worktrees` | IMPLEMENTED  |
-| Pull requests, GitHub account     | none                                                                | BLOCKED (see INTEGRATION_STATUS) |
+| GitHub account and repositories   | `github_status`, sign-in and repository commands in `ipc.ts`         | IMPLEMENTED |
+| Pull requests                     | none                                                                | NOT IMPLEMENTED |
 
 ## Requests from the UI session
+
+This request history records the 2026-11-15 design process and is not a
+current implementation checklist.
 
 Requirements read from the UI session's `docs/INTERACTION_SPEC.md` and
 `docs/UX_DECISIONS.md` (uncommitted in its worktree on 2026-11-15) and

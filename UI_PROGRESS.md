@@ -1,3 +1,5 @@
+> **Historical record:** This document captures an earlier project state. Statuses, branches, findings, and verification results below have not been revalidated for the current release. See the [README](README.md) and current source for present behavior.
+
 # RustGit UI progress
 
 Owner: UI session. Backend progress lives in `BUILD_PROGRESS.md` (core

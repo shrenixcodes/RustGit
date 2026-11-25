@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "./Button";
+import { ipc } from "../services/ipc";
 import { useInstallUpdate, useUpdateCheck } from "../services/queries";
 
 export function UpdateBanner() {
@@ -17,6 +18,7 @@ export function UpdateBanner() {
       installUpdate.mutate({
         downloadUrl: data.downloadUrl,
         assetName: data.assetName,
+        assetDigest: data.assetDigest,
       });
     }
   };
@@ -25,7 +27,7 @@ export function UpdateBanner() {
     <div
       role="region"
       aria-label="Software update notification"
-      className="flex items-center justify-between gap-4 border-b border-accent/30 bg-accent/10 px-4 py-2 text-sm"
+      className="rg-notice-anim flex flex-wrap items-center justify-between gap-3 border-b border-accent/30 bg-accent/10 px-4 py-2 text-sm"
     >
       <div className="flex items-center gap-2">
         <span className="inline-block h-2 w-2 rounded-full bg-accent" />
@@ -38,13 +40,18 @@ export function UpdateBanner() {
       </div>
 
       <div className="flex items-center gap-2">
-        <Button
-          variant="primary"
-          onClick={handleInstall}
-          disabled={installUpdate.isPending || !data.downloadUrl}
-        >
-          {installUpdate.isPending ? "Downloading & Installing…" : "Install update"}
-        </Button>
+        {data.downloadUrl !== null ? (
+          <Button variant="primary" onClick={handleInstall} disabled={installUpdate.isPending}>
+            {installUpdate.isPending ? "Downloading & Installing…" : "Install update"}
+          </Button>
+        ) : (
+          // The release has no installer for this platform: offer its page instead.
+          data.releaseUrl !== null && (
+            <Button variant="primary" onClick={() => void ipc.openGithubPage(data.releaseUrl as string)}>
+              View release
+            </Button>
+          )
+        )}
         <button
           type="button"
           onClick={() => setDismissedVersion(data.latestVersion)}

@@ -82,6 +82,13 @@ impl CancelToken {
     }
 }
 
+/// Output captured up to a stdout byte ceiling so huge diffs cannot exhaust memory.
+#[derive(Debug, Clone)]
+pub struct CappedOutput {
+    pub output: Output,
+    pub truncated: bool,
+}
+
 /// Runs the Git executable with explicit arguments. Never uses a shell.
 #[derive(Debug, Clone)]
 pub struct GitExecutor {
@@ -98,6 +105,26 @@ impl GitExecutor {
     pub fn with_env(mut self, variables: Vec<(OsString, OsString)>) -> Self {
         self.extra_env = Arc::new(variables);
         self
+    }
+
+    /// Returns a copy for unattended work (background fetches): no prompt
+    /// helper is offered and Git Credential Manager is told not to open its
+    /// own windows, so missing credentials fail instead of interrupting the
+    /// user. Command history stays shared with `self`.
+    #[must_use]
+    pub fn without_prompts(&self) -> Self {
+        const PROMPT_VARIABLES: [&str; 3] = ["GIT_ASKPASS", "SSH_ASKPASS", "SSH_ASKPASS_REQUIRE"];
+        let mut variables: Vec<(OsString, OsString)> = self
+            .extra_env
+            .iter()
+            .filter(|(name, _)| !PROMPT_VARIABLES.iter().any(|prompt| name == prompt))
+            .cloned()
+            .collect();
+        variables.push(("GCM_INTERACTIVE".into(), "never".into()));
+        Self {
+            extra_env: Arc::new(variables),
+            ..self.clone()
+        }
     }
 
     /// Creates an executor for the given Git binary (`git` resolves through `PATH`).
@@ -162,6 +189,68 @@ impl GitExecutor {
     {
         let args: Vec<OsString> = collect_args(args);
         self.execute(cwd, &args, stdin)
+    }
+
+    /// Runs Git and caps stdout at `max_stdout_bytes`, killing the process early if exceeded.
+    pub fn run_capped<I, S>(
+        &self,
+        cwd: &Path,
+        args: I,
+        max_stdout_bytes: usize,
+        allowed_codes: &[i32],
+    ) -> GitResult<CappedOutput>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        let args: Vec<OsString> = collect_args(args);
+        let started: Instant = Instant::now();
+        let started_at: u64 = unix_millis();
+        let mut child: Child = self.spawn(cwd, &args, false)?;
+        let stderr_reader: JoinHandle<Vec<u8>> = read_all_in_thread(child.stderr.take());
+
+        let mut stdout: Vec<u8> = Vec::new();
+        let mut truncated: bool = false;
+        if let Some(mut pipe) = child.stdout.take() {
+            let mut chunk: [u8; 8192] = [0; 8192];
+            loop {
+                let read: usize = pipe.read(&mut chunk).unwrap_or(0);
+                if read == 0 {
+                    break;
+                }
+                let remaining: usize = max_stdout_bytes.saturating_sub(stdout.len());
+                if read > remaining {
+                    stdout.extend_from_slice(&chunk[..remaining]);
+                    truncated = true;
+                    break;
+                }
+                stdout.extend_from_slice(&chunk[..read]);
+            }
+            drop(pipe);
+        }
+        if truncated {
+            let _ = child.kill();
+        }
+        let status: ExitStatus = child.wait()?;
+        let output: Output = Output {
+            status,
+            stdout,
+            stderr: stderr_reader.join().unwrap_or_default(),
+        };
+        self.record(cwd, &args, started_at, started.elapsed(), &output);
+        if !truncated
+            && !output.status.success()
+            && !output
+                .status
+                .code()
+                .is_some_and(|code: i32| allowed_codes.contains(&code))
+        {
+            return check_success(&args, output).map(|output| CappedOutput {
+                output,
+                truncated: false,
+            });
+        }
+        Ok(CappedOutput { output, truncated })
     }
 
     /// Runs Git, delivering each stderr progress line (split on `\r` and `\n`)
@@ -471,3 +560,39 @@ fn hide_console_window(command: &mut Command) {
 
 #[cfg(not(windows))]
 fn hide_console_window(_command: &mut Command) {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn without_prompts_drops_the_prompt_helper_only() {
+        let git: GitExecutor = GitExecutor::new("git").with_env(vec![
+            ("GIT_ASKPASS".into(), "helper".into()),
+            ("SSH_ASKPASS".into(), "helper".into()),
+            ("SSH_ASKPASS_REQUIRE".into(), "force".into()),
+            ("RUSTGIT_ASKPASS_ADDR".into(), "127.0.0.1:1".into()),
+        ]);
+        let quiet: GitExecutor = git.without_prompts();
+        let names: Vec<&OsString> = quiet.extra_env.iter().map(|(name, _)| name).collect();
+        assert_eq!(names, ["RUSTGIT_ASKPASS_ADDR", "GCM_INTERACTIVE"]);
+        assert!(Arc::ptr_eq(&quiet.history, &git.history));
+    }
+
+    #[test]
+    fn run_capped_truncates_stdout_past_limit() {
+        let git: GitExecutor = GitExecutor::new("git");
+        let dir: PathBuf = std::env::current_dir().expect("cwd");
+        let full = git
+            .run_capped(&dir, ["--version"], 4096, &[0])
+            .expect("full --version");
+        assert!(!full.truncated);
+        assert!(full.output.stdout.starts_with(b"git version "));
+
+        let capped = git
+            .run_capped(&dir, ["--version"], 4, &[0])
+            .expect("capped --version");
+        assert!(capped.truncated);
+        assert_eq!(capped.output.stdout.len(), 4);
+    }
+}

@@ -135,6 +135,8 @@
     :root:not([data-motion="full"]) *::after,
     :root:not([data-motion="full"]) *::backdrop {
       animation-duration: 0.01ms !important;
+      /* One pass only: an infinite spinner at 0.01ms would repaint constantly. */
+      animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
@@ -144,11 +146,15 @@
   :root[data-motion="reduce"] *::after,
   :root[data-motion="reduce"] *::backdrop {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
   :root[data-motion="full"] .motion-safe\:animate-spin {
     animation: spin 1s linear infinite;
+  }
+  :root[data-motion="full"] .rg-progress-indeterminate {
+    animation: rg-progress-sweep 1.3s var(--rg-ease-in-out) infinite;
   }
 
   /* Full motion mode parameters */
@@ -163,11 +169,11 @@
   @keyframes rg-modal-enter {
     from {
       opacity: 0;
-      transform: scale(0.96) translateY(12px);
+      transform: translate3d(0, 10px, 0) scale(0.97);
     }
     to {
       opacity: 1;
-      transform: scale(1) translateY(0);
+      transform: translate3d(0, 0, 0) scale(1);
     }
   }
 
@@ -183,55 +189,75 @@
   @keyframes rg-palette-enter {
     from {
       opacity: 0;
-      transform: translateY(-16px) scale(0.98);
+      transform: translate3d(0, -12px, 0) scale(0.985);
     }
     to {
       opacity: 1;
-      transform: translateY(0) scale(1);
+      transform: translate3d(0, 0, 0) scale(1);
     }
   }
 
   @keyframes rg-popover-enter {
     from {
       opacity: 0;
-      transform: translateY(-8px) scale(0.97);
+      transform: translate3d(0, -6px, 0) scale(0.98);
     }
     to {
       opacity: 1;
-      transform: translateY(0) scale(1);
+      transform: translate3d(0, 0, 0) scale(1);
     }
   }
 
   @keyframes rg-drawer-enter {
     from {
       opacity: 0;
-      transform: translateY(24px);
+      transform: translate3d(0, 18px, 0);
     }
     to {
       opacity: 1;
-      transform: translateY(0);
+      transform: translate3d(0, 0, 0);
     }
   }
 
   @keyframes rg-fold-enter {
     from {
       opacity: 0;
-      transform: translateY(-6px);
+      transform: translate3d(0, -5px, 0);
     }
     to {
       opacity: 1;
-      transform: translateY(0);
+      transform: translate3d(0, 0, 0);
     }
   }
 
   @keyframes rg-tab-enter {
     from {
       opacity: 0;
-      transform: translateY(6px);
+      transform: translate3d(0, 5px, 0);
     }
     to {
       opacity: 1;
-      transform: translateY(0);
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes rg-notice-enter {
+    from {
+      opacity: 0;
+      transform: translate3d(0, -4px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes rg-progress-sweep {
+    0% {
+      transform: translate3d(-100%, 0, 0);
+    }
+    100% {
+      transform: translate3d(260%, 0, 0);
     }
   }
 
@@ -252,10 +278,16 @@
     animation: rg-drawer-enter var(--rg-duration-base) var(--rg-ease-out) both;
   }
   .rg-fold-anim {
-    animation: rg-fold-enter var(--rg-duration-fast) var(--rg-ease-out) both;
+    animation: rg-fold-enter var(--rg-duration-base) var(--rg-ease-out) both;
   }
   .rg-tab-anim {
     animation: rg-tab-enter var(--rg-duration-fast) var(--rg-ease-out) both;
+  }
+  .rg-notice-anim {
+    animation: rg-notice-enter var(--rg-duration-fast) var(--rg-ease-out) both;
+  }
+  .rg-progress-indeterminate {
+    animation: rg-progress-sweep 1.3s var(--rg-ease-in-out) infinite;
   }
 }
 

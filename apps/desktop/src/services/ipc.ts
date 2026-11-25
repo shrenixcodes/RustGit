@@ -197,6 +197,7 @@ export const ipc = {
   cherryPick: (id: number, oids: string[]): Promise<IntegrationResult> => call("cherry_pick", { id, oids }),
   revertCommit: (id: number, oid: string): Promise<IntegrationResult> => call("revert_commit", { id, oid }),
   continueOperation: (id: number): Promise<IntegrationResult> => call("continue_operation", { id }),
+  skipOperation: (id: number): Promise<IntegrationResult> => call("skip_operation", { id }),
   abortOperation: (id: number): Promise<StatusSnapshot> => call("abort_operation", { id }),
   conflictVersions: (id: number, path: string): Promise<ConflictVersions> => call("conflict_versions", { id, path }),
   /** Exactly one of content or take. */
@@ -214,8 +215,9 @@ export const ipc = {
     call("set_remote_url", { id, name, url, push }),
   removeRemote: (id: number, name: string): Promise<Remote[]> => call("remove_remote", { id, name }),
   /** remote null = all remotes. */
-  startFetch: (id: number, remote: string | null, prune: boolean): Promise<OperationStarted> =>
-    call("start_fetch", { id, remote, prune }),
+  /** `background` fetches never prompt for credentials; they fail instead. */
+  startFetch: (id: number, remote: string | null, prune: boolean, background: boolean = false): Promise<OperationStarted> =>
+    call("start_fetch", { id, remote, prune, background }),
   startPull: (id: number, mode: PullMode): Promise<OperationStarted> => call("start_pull", { id, mode }),
   /** forceWithLease rewrites remote history: confirm with the user first. */
   startPush: (args: {
@@ -271,6 +273,8 @@ export const ipc = {
 
   // System & Updater
   checkForUpdate: (): Promise<UpdateCheckResult> => call("check_for_update"),
-  installUpdate: (downloadUrl: string, assetName: string): Promise<void> =>
-    call("install_update", { downloadUrl, assetName }),
+  installUpdate: (downloadUrl: string, assetName: string, assetDigest: string | null): Promise<void> =>
+    call("install_update", { downloadUrl, assetName, assetDigest }),
+  /** Opens a github.com page in the default browser; other addresses are refused. */
+  openGithubPage: (url: string): Promise<void> => call("open_github_page", { url }),
 } as const;

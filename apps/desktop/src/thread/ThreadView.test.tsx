@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { CommitContext, CommitDetails, FileDiff, FileStatus, LogCommit, RefList, StatusSnapshot } from "../services/types";
 
@@ -46,15 +46,17 @@ function diff(side: "staged" | "unstaged", path: string): FileDiff {
 
 let files: FileStatus[];
 let branchError: unknown;
+let stagedDiffError: unknown;
 
 beforeEach(() => {
   localStorage.clear();
   window.innerWidth = 1440;
   usePreferences.setState({ zoom: "thread", personality: "quiet" });
-  useUi.setState({ search: "", commitDrafts: {} });
+  useUi.setState({ search: "", commitDrafts: {}, reviewLayout: "unified", reviewIgnoreWhitespace: false });
   useWorkspace.setState({ activeRepositoryId: 1, activeRepositoryPath: "D:/x", focus: LOOSE_END, unfolded: null, selectedChange: null });
   files = [file("src/lib.rs", "modified", "modified"), file("notes.md", null, "untracked")];
   branchError = null;
+  stagedDiffError = null;
   const context: CommitContext = { authorName: "Ada", authorEmail: "ada@example.invalid", signing: "off", head: { oid: OID("aa11"), summary: "Merge feature", message: "Merge feature\n", onUpstream: null }, inProgress: "none" };
   invokeMock.mockImplementation(async (command: string, args: Record<string, unknown>) => {
     const status: StatusSnapshot = { branch: { head: "main", oid: OID("aa11"), upstream: null, ahead: 0, behind: 0 }, files, inProgress: "none" };
@@ -70,6 +72,7 @@ beforeEach(() => {
         if (args.search !== null) return { commits: history.filter((c) => c.summary.toLowerCase().includes(String((args.search as { text: string }).text).toLowerCase())), hasMore: false };
         return args.skip === 0 ? { commits: history, hasMore: false } : { commits: [], hasMore: false };
       case "file_diff":
+        if (args.side === "staged" && stagedDiffError !== null) throw stagedDiffError;
         return diff(args.side as "staged" | "unstaged", String(args.path));
       case "change_totals":
         return { files: [], added: 1, deleted: 1 };
@@ -129,6 +132,45 @@ describe("the thread", () => {
     );
   });
 
+  it("selects a range of lines with Shift-click and keeps it across diff layouts", async () => {
+    useWorkspace.setState({ unfolded: LOOSE_END });
+    renderWithClient(<ThreadView repositoryId={1} />);
+    const fold: HTMLElement = await screen.findByRole("group", { name: "Uncommitted changes" });
+    await within(fold).findByText("@@ -1 +1 @@ unstaged src/lib.rs");
+    // Lines of the not-staged diff follow the two lines of the staged one.
+    const lines = (): HTMLElement[] => [...fold.querySelectorAll<HTMLElement>("div[aria-selected]:not([role])")];
+    fireEvent.click(lines()[2] as HTMLElement);
+    fireEvent.click(lines()[3] as HTMLElement, { shiftKey: true });
+    expect(within(fold).getByRole("button", { name: "Stage 2 lines" })).toBeTruthy();
+    await userEvent.click(within(fold).getByRole("radio", { name: "Split" }));
+    expect(within(fold).getByRole("button", { name: "Stage 2 lines" })).toBeTruthy();
+  });
+
+  it("still shows the side of a partly staged file that loaded when the other fails", async () => {
+    stagedDiffError = { kind: "internal", message: "index is locked" };
+    useWorkspace.setState({ unfolded: LOOSE_END });
+    renderWithClient(<ThreadView repositoryId={1} />);
+    const fold: HTMLElement = await screen.findByRole("group", { name: "Uncommitted changes" });
+    expect(await within(fold).findByText("@@ -1 +1 @@ unstaged src/lib.rs", undefined, { timeout: 5000 })).toBeTruthy();
+    expect(within(fold).getByText(/Could not read the other side of the diff: index is locked/)).toBeTruthy();
+  });
+
+  it("leaves the description field on Escape without folding the loose end", async () => {
+    useWorkspace.setState({ unfolded: LOOSE_END });
+    renderWithClient(<ThreadView repositoryId={1} />);
+    const description: HTMLElement = await screen.findByPlaceholderText("Description (optional)");
+    description.focus();
+    fireEvent.keyDown(description, { key: "Escape" });
+    expect(useWorkspace.getState().unfolded).toBe(LOOSE_END);
+    expect(document.activeElement).toBe(screen.getByRole("tree", { name: "Thread" }));
+  });
+
+  it("shows how many lines the staged changes add and remove", async () => {
+    useWorkspace.setState({ unfolded: LOOSE_END });
+    renderWithClient(<ThreadView repositoryId={1} />);
+    expect(await screen.findByLabelText("1 lines added, 1 removed in the staged changes")).toBeTruthy();
+  });
+
   it("commits from the loose end's own row, with the description from its fold", async () => {
     useWorkspace.setState({ unfolded: LOOSE_END });
     renderWithClient(<ThreadView repositoryId={1} />);
@@ -148,6 +190,36 @@ describe("the thread", () => {
     expect(await within(fold).findByText("Why it changed.")).toBeTruthy();
     await userEvent.click(within(fold).getByRole("button", { name: OID("dd44").slice(0, 7) }));
     await waitFor(() => expect(useWorkspace.getState().focus).toBe(commitNode(OID("dd44"))));
+  });
+
+  it("continues graph lanes smoothly as SVG lines inside unfolded commit and review folds", async () => {
+    useWorkspace.setState({ unfolded: commitNode(OID("cc33")) });
+    renderWithClient(<ThreadView repositoryId={1} />);
+    const fold: HTMLElement = await screen.findByRole("group", { name: `Commit ${OID("cc33").slice(0, 7)} unfolded` });
+    const laneSvg = fold.querySelector("svg[data-fold-lanes]");
+    expect(laneSvg).not.toBeNull();
+    // Same SVG coordinate space and continuous lanes across the fold.
+    const lines = [...laneSvg!.querySelectorAll("line")];
+    expect(lines.length).toBeGreaterThanOrEqual(2);
+    for (const line of lines) {
+      expect(line.getAttribute("y1")).toBe("0");
+      expect(line.getAttribute("y2")).toBe("100%");
+    }
+    const contentDiv = fold.querySelector("[style*='padding-left']");
+    expect(contentDiv?.getAttribute("style")).toContain("padding-left: 72px");
+  });
+
+  it("opens the next commit fresh instead of reusing the previous fold's state", async () => {
+    renderWithClient(<ThreadView repositoryId={1} />);
+    await userEvent.click(await screen.findByRole("treeitem", { name: /^Add feature/ }));
+    const first: HTMLElement = await screen.findByRole("group", { name: `Commit ${OID("cc33").slice(0, 7)} unfolded` });
+    await within(first).findByText("Why it changed.");
+    await userEvent.click(within(first).getByTitle("src/lib.rs"));
+    expect(within(first).getByTitle("src/lib.rs").getAttribute("aria-expanded")).toBe("true");
+    await userEvent.click(screen.getByRole("treeitem", { name: /^Fix main/ }));
+    const second: HTMLElement = await screen.findByRole("group", { name: `Commit ${OID("bb22").slice(0, 7)} unfolded` });
+    await within(second).findByText("Why it changed.");
+    expect(within(second).getByTitle("src/lib.rs").getAttribute("aria-expanded")).toBe("false");
   });
 
   it("moves along the thread with the keyboard and folds with Escape", async () => {
@@ -194,6 +266,16 @@ describe("the map", () => {
     await userEvent.click(within(await screen.findByRole("dialog", { name: "Merge feature into main?" })).getByRole("button", { name: "Merge" }));
     await waitFor(() => expect(invokeMock).toHaveBeenCalledWith("merge_branch", { id: 1, source: "feature", strategy: "default" }));
     expect(await within(fold).findByText(/Fast-forwarded/)).toBeTruthy();
+  });
+
+  it("keeps a commit open when switching to the thread", async () => {
+    useWorkspace.setState({ unfolded: mapNode(OID("cc33")), focus: mapNode(OID("cc33")) });
+    renderWithClient(<ThreadView repositoryId={1} />);
+    await screen.findByRole("group", { name: `Commit ${OID("cc33").slice(0, 7)} unfolded` });
+    act(() => usePreferences.getState().setZoom("thread"));
+    await waitFor(() => expect(useWorkspace.getState().unfolded).toBe(commitNode(OID("cc33"))));
+    expect(useWorkspace.getState().focus).toBe(commitNode(OID("cc33")));
+    expect(await screen.findByText("Why it changed.")).toBeTruthy();
   });
 
   it("lists the files a switch would overwrite and changes nothing", async () => {

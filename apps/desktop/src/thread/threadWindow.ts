@@ -35,9 +35,12 @@ export function computeThreadWindow(
   return { start, end: Math.max(end, start + 1) };
 }
 
+const OVERSCAN = 10;
+
 /**
  * Windowed rendering for the thread: fixed-height rows plus at most one
- * unfolded region of known height. Only nearby rows are mounted.
+ * unfolded region of known height. Only nearby rows are mounted, and
+ * sub-row scroll events that keep the same visible range skip React renders.
  */
 export function useThreadWindow(
   container: RefObject<HTMLElement | null>,
@@ -51,20 +54,31 @@ export function useThreadWindow(
   viewport: number;
   ensureVisible: (index: number, extra?: number) => void;
 } {
-  const [scrollTop, setScrollTop] = useState<number>(0);
+  const scrollTopRef = useRef<number>(0);
   const [viewport, setViewport] = useState<number>(800);
+  const [, setWindowTick] = useState<number>(0);
 
-  const unfoldingRef = useRef(unfolding);
-  unfoldingRef.current = unfolding;
-  const rowHeightRef = useRef(rowHeight);
-  rowHeightRef.current = rowHeight;
+  const { start, end } = computeThreadWindow(count, rowHeight, unfolding, scrollTopRef.current, viewport, OVERSCAN);
+
+  const latestRef = useRef({ count, rowHeight, unfolding, viewport, start, end });
+  latestRef.current = { count, rowHeight, unfolding, viewport, start, end };
+
+  const syncScrollRange = useCallback((nextTop: number): void => {
+    scrollTopRef.current = nextTop;
+    const cur = latestRef.current;
+    const next = computeThreadWindow(cur.count, cur.rowHeight, cur.unfolding, nextTop, cur.viewport, OVERSCAN);
+    if (next.start !== cur.start || next.end !== cur.end) {
+      setWindowTick((tick) => tick + 1);
+    }
+  }, []);
 
   useLayoutEffect(() => {
     const element: HTMLElement | null = container.current;
     if (element === null) return;
     const measure = (): void => setViewport(element.clientHeight > 0 ? element.clientHeight : 800);
-    const onScroll = (): void => setScrollTop(element.scrollTop);
+    const onScroll = (): void => syncScrollRange(element.scrollTop);
     measure();
+    syncScrollRange(element.scrollTop);
     element.addEventListener("scroll", onScroll, { passive: true });
     const observer: ResizeObserver | null = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
     observer?.observe(element);
@@ -72,21 +86,27 @@ export function useThreadWindow(
       element.removeEventListener("scroll", onScroll);
       observer?.disconnect();
     };
-  }, [container]);
+  }, [container, syncScrollRange]);
 
   const ensureVisible = useCallback(
     (index: number, extra: number = 0): void => {
       const element: HTMLElement | null = container.current;
       if (element === null) return;
-      const top: number = rowTop(index, rowHeightRef.current, unfoldingRef.current);
-      const bottom: number = top + rowHeightRef.current + extra;
+      const cur = latestRef.current;
+      const top: number = rowTop(index, cur.rowHeight, cur.unfolding);
+      const bottom: number = top + cur.rowHeight + extra;
       const height: number = element.clientHeight > 0 ? element.clientHeight : 800;
-      if (top < element.scrollTop) element.scrollTop = top;
-      else if (bottom > element.scrollTop + height) element.scrollTop = Math.min(top, bottom - height);
+      if (top < element.scrollTop) {
+        element.scrollTop = top;
+        syncScrollRange(top);
+      } else if (bottom > element.scrollTop + height) {
+        const nextTop: number = Math.min(top, bottom - height);
+        element.scrollTop = nextTop;
+        syncScrollRange(nextTop);
+      }
     },
-    [container],
+    [container, syncScrollRange],
   );
 
-  const { start, end } = computeThreadWindow(count, rowHeight, unfolding, scrollTop, viewport, 10);
   return { start, end, totalHeight: count * rowHeight + (unfolding?.height ?? 0), viewport, ensureVisible };
 }

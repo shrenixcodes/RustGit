@@ -11,6 +11,10 @@ use crate::pathspec::validate_relative_path;
 /// Diffs larger than this are reported as `too_large` without hunks.
 pub const MAX_DIFF_BYTES: usize = 2 * 1024 * 1024;
 pub const MAX_DIFF_LINES: usize = 20_000;
+/// Cap subprocess stdout capture shortly after `MAX_DIFF_BYTES` so multi-hundred-MiB
+/// modified or untracked files are short-circuited without exhausting RAM.
+pub(crate) const SINGLE_DIFF_CAPTURE_CAP: usize = MAX_DIFF_BYTES + 64 * 1024;
+pub(crate) const RENAME_DIFF_CAPTURE_CAP: usize = MAX_DIFF_BYTES * 4;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -116,10 +120,15 @@ pub fn file_diff(git: &GitExecutor, root: &Path, request: &DiffRequest<'_>) -> G
 
     let untracked: bool =
         request.side == DiffSide::Unstaged && !is_tracked(git, root, request.path)?;
-    let stdout: Vec<u8> = if untracked {
+    let cap: usize = if request.original_path.is_some() {
+        RENAME_DIFF_CAPTURE_CAP
+    } else {
+        SINGLE_DIFF_CAPTURE_CAP
+    };
+    let capped = if untracked {
         // Compare against an empty file so every line is an addition.
         // `--no-index` exits with 1 when the files differ.
-        let output: std::process::Output = git.run_unchecked(
+        git.run_capped(
             root,
             [
                 "diff",
@@ -131,16 +140,9 @@ pub fn file_diff(git: &GitExecutor, root: &Path, request: &DiffRequest<'_>) -> G
                 "/dev/null",
                 request.path,
             ],
-            None,
-        )?;
-        if output.status.code() != Some(0) && output.status.code() != Some(1) {
-            return Err(GitError::CommandFailed {
-                command: "diff --no-index".to_owned(),
-                exit_code: output.status.code(),
-                stderr: String::from_utf8_lossy(&output.stderr).trim().to_owned(),
-            });
-        }
-        output.stdout
+            SINGLE_DIFF_CAPTURE_CAP,
+            &[0, 1],
+        )?
     } else {
         let mut args: Vec<&str> = vec![
             "--literal-pathspecs",
@@ -162,10 +164,11 @@ pub fn file_diff(git: &GitExecutor, root: &Path, request: &DiffRequest<'_>) -> G
         if let Some(original) = request.original_path {
             args.push(original);
         }
-        git.run(root, args, None)?.stdout
+        git.run_capped(root, args, cap, &[0])?
     };
 
-    let mut diff: FileDiff = parse_file_diff(&stdout, request.side)?;
+    let section: &[u8] = file_section(&capped.output.stdout, request.path);
+    let mut diff: FileDiff = parse_file_diff_capped(section, request.side, capped.truncated)?;
     diff.path = request.path.to_owned();
     if diff.original_path.is_none() {
         diff.original_path = request.original_path.map(str::to_owned);
@@ -185,8 +188,50 @@ fn is_tracked(git: &GitExecutor, root: &Path, path: &str) -> GitResult<bool> {
     Ok(!output.stdout.is_empty())
 }
 
+/// The part of `git diff` output that belongs to `path`. Asking for a rename
+/// passes both paths, and when a new file took the old name Git prints two
+/// file diffs; the one whose new side is `path` is wanted.
+pub(crate) fn file_section<'a>(raw: &'a [u8], path: &str) -> &'a [u8] {
+    const HEADER: &[u8] = b"diff --git ";
+    let mut starts: Vec<usize> = Vec::new();
+    if raw.starts_with(HEADER) {
+        starts.push(0);
+    }
+    for (index, window) in raw.windows(HEADER.len() + 1).enumerate() {
+        if window[0] == b'\n' && &window[1..] == HEADER {
+            starts.push(index + 1);
+        }
+    }
+    if starts.len() < 2 {
+        return raw;
+    }
+    let plain: String = format!(" b/{path}");
+    let quoted: String = format!(" \"b/{path}\"");
+    for (position, &start) in starts.iter().enumerate() {
+        let end: usize = starts.get(position + 1).copied().unwrap_or(raw.len());
+        let section: &[u8] = &raw[start..end];
+        let header: &[u8] = section
+            .split(|byte: &u8| *byte == b'\n')
+            .next()
+            .unwrap_or_default();
+        let header: &[u8] = header.strip_suffix(b"\r").unwrap_or(header);
+        if header.ends_with(plain.as_bytes()) || header.ends_with(quoted.as_bytes()) {
+            return section;
+        }
+    }
+    &raw[starts[0]..starts[1]]
+}
+
 /// Parses the output of `git diff` for a single file.
 pub fn parse_file_diff(raw: &[u8], side: DiffSide) -> GitResult<FileDiff> {
+    parse_file_diff_capped(raw, side, false)
+}
+
+pub(crate) fn parse_file_diff_capped(
+    raw: &[u8],
+    side: DiffSide,
+    truncated: bool,
+) -> GitResult<FileDiff> {
     let text: String = String::from_utf8_lossy(raw).into_owned();
     let mut diff: FileDiff = FileDiff {
         path: String::new(),
@@ -221,7 +266,7 @@ pub fn parse_file_diff(raw: &[u8], side: DiffSide) -> GitResult<FileDiff> {
     if diff.binary {
         return Ok(diff);
     }
-    if raw.len() > MAX_DIFF_BYTES || body.lines().count() > MAX_DIFF_LINES {
+    if truncated || raw.len() > MAX_DIFF_BYTES || body.lines().count() > MAX_DIFF_LINES {
         diff.too_large = true;
         return Ok(diff);
     }
@@ -395,6 +440,26 @@ pub fn parse_numstat(raw: &[u8]) -> GitResult<ChangeTotals> {
 }
 
 #[cfg(test)]
+mod section_tests {
+    use super::file_section;
+
+    #[test]
+    fn picks_the_renamed_file_when_its_old_name_was_reused() {
+        let raw: &[u8] = b"diff --git a/old.txt b/new.txt\nsimilarity index 90%\nrename from old.txt\nrename to new.txt\n@@ -1 +1 @@\n-a\n+b\ndiff --git a/old.txt b/old.txt\nnew file mode 100644\n--- /dev/null\n+++ b/old.txt\n@@ -0,0 +1 @@\n+fresh\n";
+        let section: &[u8] = file_section(raw, "new.txt");
+        assert!(section.starts_with(b"diff --git a/old.txt b/new.txt"));
+        assert!(!section.windows(5).any(|window: &[u8]| window == b"fresh"));
+        assert!(file_section(raw, "old.txt").ends_with(b"+fresh\n"));
+    }
+
+    #[test]
+    fn leaves_a_single_file_diff_alone() {
+        let raw: &[u8] = b"diff --git a/x b/x\n@@ -1 +1 @@\n-a\n+b\n";
+        assert_eq!(file_section(raw, "x"), raw);
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -473,5 +538,16 @@ mod tests {
     #[test]
     fn rejects_malformed_hunk_header() {
         assert!(parse_hunk_header("@@ nonsense @@").is_err());
+    }
+
+    #[test]
+    fn marks_truncated_stream_as_too_large_while_preserving_header() {
+        let raw: &[u8] =
+            b"diff --git a/big.sql b/big.sql\nnew file mode 100644\nindex 0..1\n--- /dev/null\n+++ b/big.sql\n@@ -0,0 +1,50000 @@\n+insert";
+        let diff: FileDiff =
+            parse_file_diff_capped(raw, DiffSide::Unstaged, true).expect("parse truncated");
+        assert!(diff.too_large);
+        assert_eq!(diff.status, DiffFileStatus::Added);
+        assert!(diff.hunks.is_empty());
     }
 }

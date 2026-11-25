@@ -1,5 +1,8 @@
 # RustGit IPC API contract
 
+The command implementations and `apps/desktop/src/services/ipc.ts` are the
+authoritative source when older contract entries or change-log notes differ.
+
 Owner: core engineering session (backend). Consumers: UI session (frontend).
 
 Every command is a Tauri command invoked with `invoke(name, args)`. The
@@ -15,7 +18,7 @@ Contract status values: **IMPLEMENTED** (backend done and tested),
 
 - **Errors.** Every failure rejects with `CommandError`
   `{ kind: ErrorKind, message: string }`. `message` is human-readable, already
-  redacted, and includes Git's stderr verbatim when Git failed. Never parse
+  redacted, and may include Git's stderr when Git failed. Never parse
   `message`; branch on `kind`.
 - **Repository identity.** Repository-scoped commands take `id` (or
   `repositoryId`) from `RepositoryEntry.id`, never a path. The backend
@@ -30,13 +33,11 @@ Contract status values: **IMPLEMENTED** (backend done and tested),
   Different repositories never block each other.
 - **Threads.** All Git and SQLite work runs on a blocking thread pool; a slow
   command never blocks the UI thread or other commands.
-- **Cancellation.** No command is cancellable yet. All current commands are
-  short-lived local operations. Long operations (clone, fetch, pull, push)
-  will get an operation id and a `cancel_operation` command; see
-  `EVENT_CONTRACT.md`.
-- **Mutations return fresh state.** Mutating repository commands return the
-  `StatusSnapshot` read *after* the mutation under the same lock, so the UI
-  can replace its cached status without another round trip.
+- **Cancellation.** Long-running clone, fetch, pull and push operations return
+  an operation id. `cancel_operation` requests cancellation when the operation
+  is still cancellable; see `EVENT_CONTRACT.md`.
+- **Mutation results.** Commands return their documented result type. Commands
+  that return a `StatusSnapshot` read it after the mutation under the lock.
 
 ### ErrorKind
 
@@ -301,7 +302,7 @@ follow the requests unless a difference is called out. Mapping:
 | R-11 branch operations | `create_branch`, `checkout_branch`, `rename_branch`, `delete_branch`, `set_upstream`, `merge_branch` |
 | R-12 repository-changed | `watch_repository`, `unwatch_repository`, event `repository-changed` |
 | R-13 network operations | `start_fetch`, `start_pull`, `start_push`, `start_clone`, `cancel_operation`, events `operation-progress`, `operation-finished` |
-| R-14 conflicts | `conflict_versions`, `resolve_conflict`, `continue_operation`, `abort_operation` |
+| R-14 conflicts | `conflict_versions`, `resolve_conflict`, `continue_operation`, `skip_operation`, `abort_operation` |
 
 Not requested but in the master specification and UI-independent:
 `rebase_branch`, `cherry_pick`, `revert_commit`, remotes management, stash
@@ -481,6 +482,7 @@ interface IntegrationResult {
 | `cherry_pick` | `{ id, oids: string[] }` |
 | `revert_commit` | `{ id, oid }` |
 | `continue_operation` | `{ id }` — continues the in-progress merge/rebase/cherry-pick/revert |
+| `skip_operation` | `{ id }` — skips the current step of a rebase/cherry-pick/revert (`invalid_request` during a merge) |
 | `abort_operation` | `{ id }` — aborts it and restores the pre-operation state |
 
 Conflicts are an outcome, not an error. Starting any of these while another
@@ -505,8 +507,9 @@ is the commit being replayed; the labels state this.
 
 `resolve_conflict({ id, path, content: string | null, take: "ours" | "theirs" | null }) -> StatusSnapshot`
 Exactly one of `content` / `take`. Writes the file (or checks out the side),
-then `git add`; fails with `git_command_failed` if the path is still
-unmerged afterwards.
+then `git add`. Taking a side that deleted the file removes it with `git rm`
+instead. Fails with `git_command_failed` if the path is still unmerged
+afterwards.
 
 ### Remotes and network operations
 
@@ -530,7 +533,7 @@ background and reports through `operation-progress` and
 
 | Command | Arguments | Cancellable |
 | ------- | --------- | ----------- |
-| `start_fetch` | `{ id, remote: string \| null, prune: boolean }` (`null` = all remotes) | yes |
+| `start_fetch` | `{ id, remote: string \| null, prune: boolean, background?: boolean }` (`null` = all remotes; `background` never prompts for credentials) | yes |
 | `start_pull` | `{ id, mode: "ff_only" \| "merge" \| "rebase" }` | fetch phase only (afterwards `cancel_operation` returns `false`) |
 | `start_push` | `{ id, remote: string \| null, branch: string \| null, setUpstream: boolean, forceWithLease: boolean }` | no |
 | `start_delete_remote_branch` | `{ id, remote, branch }` | no |
@@ -539,8 +542,9 @@ background and reports through `operation-progress` and
 
 - Locking (refined during implementation): fetch, push and remote branch
   deletion only update refs and hold the **read** lock, so status and other
-  reads continue while mutations wait; pull changes the working tree and
-  holds the **write** lock.
+  reads continue while mutations wait. Pull holds the read lock for its
+  fetch phase and takes the **write** lock only to integrate; it refuses to
+  integrate if a different branch was checked out in between.
 - Push never uses plain `--force`; `forceWithLease` passes
   `--force-with-lease` (UI confirms).
 - `start_clone` registers the new repository; its `operation-finished` event
@@ -552,7 +556,8 @@ background and reports through `operation-progress` and
   it is granted in `capabilities/default.json`.
 - `operation-finished` for a pull does not carry the integration result;
   the UI refreshes status (conflicts appear as `inProgress` and conflicted
-  files).
+  files). A pull that stops with conflicts finishes as `failed` with
+  `operation_in_progress`, so it is never reported as done.
 - Cancelling kills the Git process tree (remote helpers and ssh included); Git leaves no partial refs for fetch or
   clone (a cancelled clone's directory is removed). Push is not cancellable
   because the remote may already have accepted it.

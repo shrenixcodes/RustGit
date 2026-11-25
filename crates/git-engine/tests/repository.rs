@@ -46,10 +46,24 @@ fn init_then_discover_from_subdirectory() {
     assert!(!found.is_linked_worktree);
 }
 
+/// An executor whose global Git config is `config` alone (no system config),
+/// so identity-dependent tests do not depend on the machine running them.
+fn isolated_git(dir: &std::path::Path, config: &str) -> GitExecutor {
+    let path = dir.join("global.gitconfig");
+    std::fs::write(&path, config).expect("write global config");
+    support::executor().with_env(vec![
+        ("GIT_CONFIG_GLOBAL".into(), path.into_os_string()),
+        ("GIT_CONFIG_NOSYSTEM".into(), "1".into()),
+    ])
+}
+
+const IDENTITY: &str =
+    "[user]\n\tname = Init Test\n\temail = init@rustgit.invalid\n[commit]\n\tgpgsign = false\n";
+
 #[test]
 fn init_with_readme_gitignore_and_license() {
     let dir: tempfile::TempDir = tempfile::tempdir().expect("tempdir");
-    let git: GitExecutor = support::executor();
+    let git: GitExecutor = isolated_git(dir.path(), IDENTITY);
     let project_path = dir.path().join("my-cool-project");
     let options = rustgit_git_engine::InitOptions {
         initial_branch: Some("main".to_owned()),
@@ -74,6 +88,44 @@ fn init_with_readme_gitignore_and_license() {
     let git_desc =
         std::fs::read_to_string(location.git_dir.join("description")).expect("description");
     assert_eq!(git_desc.trim(), "A test project description");
+
+    // The starter files are committed, not left behind on an unborn branch.
+    let status: StatusSnapshot = read_status(&git, &location.root).expect("status");
+    assert!(status.files.is_empty(), "{:?}", status.files);
+}
+
+#[test]
+fn init_offers_a_gpl_notice() {
+    let dir: tempfile::TempDir = tempfile::tempdir().expect("tempdir");
+    let git: GitExecutor = isolated_git(dir.path(), IDENTITY);
+    let options = rustgit_git_engine::InitOptions {
+        license_template: Some("gpl-3.0".to_owned()),
+        ..Default::default()
+    };
+    let location = rustgit_git_engine::init_with_options(&git, &dir.path().join("gpl"), &options)
+        .expect("init_with_options");
+    let license = std::fs::read_to_string(location.root.join("LICENSE")).expect("license");
+    assert!(license.contains("GNU General Public License"));
+    assert!(license.contains("Init Test"));
+}
+
+#[test]
+fn init_with_starter_files_needs_an_identity_first() {
+    let dir: tempfile::TempDir = tempfile::tempdir().expect("tempdir");
+    let git: GitExecutor = isolated_git(dir.path(), "");
+    let project = dir.path().join("nobody");
+    let options = rustgit_git_engine::InitOptions {
+        readme: true,
+        ..Default::default()
+    };
+    let result = rustgit_git_engine::init_with_options(&git, &project, &options);
+    assert!(
+        matches!(result, Err(GitError::IdentityMissing(_))),
+        "{result:?}"
+    );
+    assert!(!project.exists(), "nothing is left behind");
+    // Without starter files nothing is committed, so no identity is needed.
+    init(&git, &project, "main").expect("plain init");
 }
 
 #[test]

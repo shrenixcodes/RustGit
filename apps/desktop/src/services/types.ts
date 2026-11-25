@@ -56,6 +56,10 @@ export interface UpdateCheckResult {
   publishedAt: string | null;
   assetName: string | null;
   downloadUrl: string | null;
+  /** `sha256:<hex>` published by GitHub for the installer, when available. */
+  assetDigest: string | null;
+  /** The release page, offered when there is no installer for this platform. */
+  releaseUrl: string | null;
 }
 
 export interface RepositoryEntry {

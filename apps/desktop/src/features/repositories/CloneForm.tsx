@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { Button } from "../../components/Button";
@@ -36,6 +36,15 @@ export function CloneForm({ onDone }: { onDone: () => void }) {
     operationId === null ? undefined : state.operations[operationId],
   );
   const running: boolean = operation?.outcome === "running";
+  // A clone that finishes after this form was closed is registered but not
+  // opened: switching repositories unprompted would be surprising.
+  const mounted = useRef<boolean>(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const pickParent = async (): Promise<void> => {
     const selected: string | string[] | null = await openDialog({ directory: true, multiple: false, title: "Clone into folder" });
@@ -63,7 +72,7 @@ export function CloneForm({ onDone }: { onDone: () => void }) {
     if (finished.outcome === "succeeded" && finished.repositoryId !== null) {
       const list: RepositoryEntry[] = await client.fetchQuery({ queryKey: queryKeys.repositories, queryFn: ipc.listRepositories, staleTime: 0 });
       const entry: RepositoryEntry | undefined = list.find((candidate) => candidate.id === finished.repositoryId);
-      if (entry !== undefined) {
+      if (entry !== undefined && mounted.current) {
         activate(entry.id, entry.path);
         onDone();
       }
@@ -73,7 +82,7 @@ export function CloneForm({ onDone }: { onDone: () => void }) {
   };
 
   return (
-    <form onSubmit={(event) => void submit(event)} aria-label="Clone a repository" className="space-y-3.5 rounded-xl border border-border/80 bg-elevated/60 p-4 shadow-sm backdrop-blur-xs">
+    <form onSubmit={(event) => void submit(event)} aria-label="Clone a repository" className="space-y-3.5 rounded-xl border border-border/80 bg-elevated/80 p-4 shadow-sm">
       <GithubRepositoryPicker
         onPick={(cloneUrl, repositoryName) => {
           setUrl(cloneUrl);

@@ -111,17 +111,24 @@ export function RepositoriesView() {
       : repositories.data?.find((entry: RepositoryEntry) => entry.id === failure.repositoryId);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-4 px-6 sm:px-8 pt-4 sm:pt-6 pb-6">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <div className="mx-auto flex min-h-0 w-full max-w-[960px] flex-1 flex-col gap-4 px-6 sm:px-8 pt-6 sm:pt-10 pb-8">
         <header className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-3">
-          <div className="flex items-baseline gap-2.5">
-            <h1 className="text-xl font-semibold tracking-tight text-fg">Repositories</h1>
+          <div>
+            <div className="flex items-baseline gap-2.5">
+              <h1 className="text-xl font-semibold tracking-tight text-fg">Repositories</h1>
+              {(repositories.data?.length ?? 0) > 0 && (
+                <span className="font-mono text-xs tabular-nums text-fg-muted">{repositories.data?.length}</span>
+              )}
+            </div>
             {(repositories.data?.length ?? 0) > 0 && (
-              <span className="font-mono text-xs tabular-nums text-fg-muted">{repositories.data?.length}</span>
+              <p className="mt-0.5 text-xs text-fg-muted">
+                Choose a tracked workspace to open its thread, or add another below.
+              </p>
             )}
           </div>
           {(repositories.data?.length ?? 0) > 0 && (
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
               <Button
                 aria-pressed={creating}
                 onClick={() => { setCloning(false); setCreating((prev) => !prev); }}
@@ -183,7 +190,7 @@ export function RepositoriesView() {
         )}
 
         {creating && (
-          <div className="rounded-xl border border-accent/40 bg-elevated/70 p-4 shadow-md backdrop-blur-xs">
+          <div className="rounded-xl border border-accent/40 bg-elevated p-4 shadow-md">
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-border/80">
               <div className="flex items-center gap-2">
                 <FolderPlus className="size-4 text-accent" />
@@ -202,7 +209,7 @@ export function RepositoriesView() {
         )}
 
         {cloning && (
-          <div className="rounded-xl border border-accent/40 bg-elevated/70 p-4 shadow-md backdrop-blur-xs">
+          <div className="rounded-xl border border-accent/40 bg-elevated p-4 shadow-md">
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-border/80">
               <div className="flex items-center gap-2">
                 <Download className="size-4 text-accent" />
@@ -238,15 +245,16 @@ export function RepositoriesView() {
 
         {repositories.isSuccess && repositories.data.length === 0 && !creating && !cloning && (
           <div className="my-auto flex flex-1 flex-col items-center justify-center overflow-hidden py-12 text-center">
-            {/* Ambient halo: a soft, slow gradient so the welcome screen reads
-             * as a stage rather than an empty box. Decorative only. */}
+            {/* Ambient halo: a soft radial gradient without runtime Gaussian blur shaders. */}
             <div
               aria-hidden
-              className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[380px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/15 blur-3xl"
+              className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[380px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-25"
+              style={{ background: "radial-gradient(closest-side, var(--rg-accent), transparent)" }}
             />
             <div
               aria-hidden
-              className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[240px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo/10 blur-2xl"
+              className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[240px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-20"
+              style={{ background: "radial-gradient(closest-side, var(--rg-indigo), transparent)" }}
             />
 
             <div className="relative mb-5 flex size-16 items-center justify-center rounded-2xl border border-accent/30 bg-elevated/70 shadow-raised">

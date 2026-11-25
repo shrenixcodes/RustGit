@@ -72,4 +72,10 @@ describe("assemble", () => {
   it("detects remaining markers", () => {
     expect(hasConflictMarkers("plain\ntext\n")).toBe(false);
   });
+
+  it("detects markers left behind by a partial hand edit", () => {
+    expect(hasConflictMarkers("<<<<<<< HEAD\nlet x = 1;\n=======\nlet x = 2;\n")).toBe(true);
+    expect(hasConflictMarkers("let x = 2;\n>>>>>>> feature\n")).toBe(true);
+    expect(hasConflictMarkers("Title\n=======\n")).toBe(false);
+  });
 });

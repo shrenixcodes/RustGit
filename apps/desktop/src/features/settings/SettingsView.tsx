@@ -5,6 +5,7 @@ import { Button } from "../../components/Button";
 import { ErrorNotice } from "../../components/ErrorNotice";
 import { PageHeader } from "../../components/PageHeader";
 import { SegmentedControl, type SegmentOption } from "../../components/SegmentedControl";
+import { ipc } from "../../services/ipc";
 import { useGitInfo, useInstallUpdate, useSetTheme, useSettings, useUpdateCheck } from "../../services/queries";
 import type { ThemePreference } from "../../services/types";
 import { usePreferences, type MotionPreference, type Personality } from "../../stores/preferences";
@@ -40,6 +41,8 @@ export function SettingsView() {
   const setPersonality = usePreferences((state) => state.setPersonality);
   const motion: MotionPreference = usePreferences((state) => state.motion);
   const setMotion = usePreferences((state) => state.setMotion);
+  const autoFetch: boolean = usePreferences((state) => state.autoFetch);
+  const setAutoFetch = usePreferences((state) => state.setAutoFetch);
   const [copiedExec, setCopiedExec] = useState(false);
 
   const copyExecPath = (path: string) => {
@@ -52,8 +55,8 @@ export function SettingsView() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <PageHeader title="Settings" visible />
-      <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-8">
-        <div className="space-y-4">
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 sm:px-8 pb-8">
+        <div className="w-full max-w-[960px] space-y-4">
           {/* Appearance Section */}
           <div className="rounded-xl border border-border/80 bg-elevated/40 p-5 shadow-2xs space-y-5">
             <h3 className="font-semibold text-xs text-fg flex items-center gap-2">
@@ -120,6 +123,21 @@ export function SettingsView() {
               )}
             </h3>
 
+            <Setting
+              label="Background fetch"
+              description="Fetch the open repository's remotes every 5 minutes while RustGit is visible. It never asks for credentials; a failed fetch is only noted in Activity."
+            >
+              <label className="flex items-center gap-2 text-xs text-fg-secondary cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={autoFetch}
+                  onChange={(event) => setAutoFetch(event.target.checked)}
+                  className="rounded border-border text-accent focus:ring-accent"
+                />
+                <span>Fetch automatically</span>
+              </label>
+            </Setting>
+
             <Setting label="Git" description="RustGit runs the Git executable found on PATH.">
               {gitInfo.isPending && <p className="text-xs text-fg-muted font-mono">Detecting Git…</p>}
               {gitInfo.isError && <ErrorNotice title="Git is not available" error={gitInfo.error} />}
@@ -167,7 +185,7 @@ export function SettingsView() {
                 <div className="flex items-center justify-between rounded-lg border border-border/70 bg-canvas/60 p-3">
                   <div className="flex items-center gap-2">
                     <span className="text-fg-muted">Installed version:</span>
-                    <span className="font-mono font-semibold text-fg">{updateCheck.data?.currentVersion ?? "0.3.4"}</span>
+                    <span className="font-mono font-semibold text-fg">{updateCheck.data?.currentVersion ?? "0.4.68"}</span>
                   </div>
                   <Button
                     variant="secondary"
@@ -175,7 +193,7 @@ export function SettingsView() {
                     onClick={() => void updateCheck.refetch()}
                     className="h-7 text-xs"
                   >
-                    <RefreshCw className={`size-3 mr-1 ${updateCheck.isFetching ? "animate-spin" : ""}`} />
+                    <RefreshCw className={`size-3 mr-1 ${updateCheck.isFetching ? "motion-safe:animate-spin" : ""}`} />
                     {updateCheck.isFetching ? "Checking…" : "Check for updates"}
                   </Button>
                 </div>
@@ -199,20 +217,32 @@ export function SettingsView() {
                     {installUpdate.isError && (
                       <p className="text-danger text-xs">{installUpdate.error.message}</p>
                     )}
-                    <Button
-                      variant="primary"
-                      disabled={installUpdate.isPending || !updateCheck.data.downloadUrl}
-                      onClick={() => {
-                        if (updateCheck.data?.downloadUrl && updateCheck.data?.assetName) {
-                          installUpdate.mutate({
-                            downloadUrl: updateCheck.data.downloadUrl,
-                            assetName: updateCheck.data.assetName,
-                          });
-                        }
-                      }}
-                    >
-                      {installUpdate.isPending ? "Downloading & Installing…" : "Install update"}
-                    </Button>
+                    {updateCheck.data.downloadUrl !== null ? (
+                      <Button
+                        variant="primary"
+                        disabled={installUpdate.isPending}
+                        onClick={() => {
+                          if (updateCheck.data?.downloadUrl && updateCheck.data?.assetName) {
+                            installUpdate.mutate({
+                              downloadUrl: updateCheck.data.downloadUrl,
+                              assetName: updateCheck.data.assetName,
+                              assetDigest: updateCheck.data.assetDigest,
+                            });
+                          }
+                        }}
+                      >
+                        {installUpdate.isPending ? "Downloading & Installing…" : "Install update"}
+                      </Button>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-2xs text-fg-muted">This release has no installer for your operating system yet.</p>
+                        {updateCheck.data.releaseUrl !== null && (
+                          <Button variant="secondary" onClick={() => void ipc.openGithubPage(updateCheck.data?.releaseUrl as string)}>
+                            View release on GitHub
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   updateCheck.data !== undefined && !updateCheck.isFetching && (

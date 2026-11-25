@@ -9,7 +9,7 @@ use rustgit_git_engine::{
     ChangeKind, GitError, InProgress, abort_operation, checkout_branch, cherry_pick,
     commit_details, commit_file_diff, conflict_versions, continue_operation, create_branch,
     delete_branch, list_refs, log_page, merge_branch, read_status, rebase_branch, rename_branch,
-    resolve_conflict, revert_commit, set_upstream,
+    resolve_conflict, revert_commit, set_upstream, skip_operation,
 };
 use support::TestRepo;
 
@@ -415,4 +415,81 @@ fn reverting_a_merge_commit_uses_the_mainline() {
     let reverted = revert_commit(&repo.git, &repo.root(), &merge).expect("revert merge");
     assert_eq!(reverted.outcome, IntegrationOutcome::Completed);
     assert!(!repo.root().join("feature.txt").exists());
+}
+
+#[test]
+fn delete_modify_conflict_can_keep_the_deletion() {
+    let repo: TestRepo = TestRepo::new();
+    repo.commit_file("shared.txt", "base\n", "base");
+    repo.git_ok(&["switch", "-c", "feature"]);
+    repo.commit_file("shared.txt", "feature\n", "edit on feature");
+    repo.git_ok(&["switch", "main"]);
+    repo.git_ok(&["rm", "--quiet", "--", "shared.txt"]);
+    repo.git_ok(&["commit", "-m", "delete on main"]);
+    let result = merge_branch(&repo.git, &repo.root(), "feature", MergeStrategy::Default)
+        .expect("merge runs");
+    assert_eq!(result.outcome, IntegrationOutcome::Conflicts);
+
+    let versions = conflict_versions(&repo.git, &repo.root(), "shared.txt").expect("versions");
+    assert_eq!(versions.ours, None);
+    let status = resolve_conflict(
+        &repo.git,
+        &repo.root(),
+        "shared.txt",
+        None,
+        Some(ConflictSide::Ours),
+    )
+    .expect("keep the deletion");
+    assert!(status.files.iter().all(|file| !file.conflicted));
+    assert!(!repo.root().join("shared.txt").exists());
+    let done = continue_operation(&repo.git, &repo.root()).expect("continue");
+    assert_eq!(done.outcome, IntegrationOutcome::Completed);
+}
+
+#[test]
+fn skip_drops_a_cherry_pick_that_resolved_to_nothing() {
+    let repo: TestRepo = diverged_repo(true);
+    let feature_commit: String = repo.git_ok(&["rev-parse", "feature"]).trim().to_owned();
+    let picked = cherry_pick(&repo.git, &repo.root(), &[feature_commit]).expect("pick runs");
+    assert_eq!(picked.outcome, IntegrationOutcome::Conflicts);
+    let head: String = repo.git_ok(&["rev-parse", "HEAD"]);
+
+    // Keeping our side leaves the pick with nothing to commit.
+    resolve_conflict(
+        &repo.git,
+        &repo.root(),
+        "shared.txt",
+        None,
+        Some(ConflictSide::Ours),
+    )
+    .expect("take ours");
+    let skipped = skip_operation(&repo.git, &repo.root()).expect("skip");
+    assert_eq!(skipped.status.in_progress, InProgress::None);
+    assert_eq!(repo.git_ok(&["rev-parse", "HEAD"]), head);
+
+    merge_branch(&repo.git, &repo.root(), "feature", MergeStrategy::Default).expect("merge");
+    assert!(matches!(
+        skip_operation(&repo.git, &repo.root()),
+        Err(GitError::InvalidRequest(_))
+    ));
+}
+
+#[test]
+fn log_lists_the_commits_of_a_range() {
+    let repo: TestRepo = diverged_repo(false);
+    let page = log_page(
+        &repo.git,
+        &repo.root(),
+        &LogQuery {
+            revisions: Some(vec!["main..feature".to_owned()]),
+            ..query(10)
+        },
+    )
+    .expect("range log");
+    let summaries: Vec<&str> = page
+        .commits
+        .iter()
+        .map(|commit| commit.summary.as_str())
+        .collect();
+    assert_eq!(summaries, ["feature change"]);
 }

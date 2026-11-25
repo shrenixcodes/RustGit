@@ -10,7 +10,8 @@ const HINTS: Partial<Record<ErrorKind, string>> = {
   repository_not_found: "This repository is no longer in RustGit's list.",
   authentication_failed:
     "Git's credential helper had no accepted credentials for this remote. RustGit never stores secrets. Git Credential Manager may open its own sign-in window on the first push or fetch; complete it and try again. Otherwise RustGit asks for the username, password or key passphrase itself; if you cancelled that prompt, retry and answer it.",
-  operation_in_progress: "Another operation holds this repository. Try again when it finishes.",
+  operation_in_progress:
+    "Git is in the middle of a merge, rebase, cherry-pick or revert. Open Uncommitted changes to resolve its conflicts, then continue or abort it.",
   operation_cancelled: "Cancelled. Git left no partial changes.",
 };
 
@@ -38,7 +39,7 @@ export function ErrorNotice({ title, error, actions }: ErrorNoticeProps) {
   return (
     <div
       role="alert"
-      className="flex gap-3.5 rounded-xl border border-danger/35 bg-danger/10 p-4 shadow-sm transition-all"
+      className="rg-notice-anim flex gap-3.5 rounded-xl border border-danger/35 bg-danger/10 p-4 shadow-sm transition-all"
     >
       <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-danger/15 border border-danger/25 text-danger">
         <CircleAlert aria-hidden className="size-4" />

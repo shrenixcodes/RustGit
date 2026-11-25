@@ -515,3 +515,31 @@ fn commit_context_reports_the_configured_signing_format() {
     let context = commit_context(&repo.git, &repo.root()).expect("context");
     assert_eq!(context.signing, SigningMode::Off);
 }
+
+#[test]
+fn diff_of_a_rename_whose_old_name_was_reused() {
+    let repo: TestRepo = TestRepo::new();
+    let original: String = (1..=20).map(|line: u32| format!("line {line}\n")).collect();
+    repo.commit_file("old.txt", &original, "initial");
+    repo.git_ok(&["mv", "old.txt", "new.txt"]);
+    repo.write("new.txt", &format!("{original}one more\n"));
+    repo.write("old.txt", "a different file\n");
+    repo.git_ok(&["add", "--", "new.txt", "old.txt"]);
+
+    let diff: FileDiff = file_diff(
+        &repo.git,
+        &repo.root(),
+        &DiffRequest {
+            path: "new.txt",
+            original_path: Some("old.txt"),
+            side: DiffSide::Staged,
+            ignore_whitespace: false,
+            context_lines: 3,
+        },
+    )
+    .expect("diff of the renamed file");
+    // Only new.txt's diff is parsed; old.txt (now a different file) is not mixed in.
+    // With old.txt still present Git reports new.txt as a new file.
+    assert_eq!(diff.path, "new.txt");
+    assert_eq!((diff.added, diff.deleted), (21, 0));
+}

@@ -178,13 +178,34 @@ const IGNORE_CACHE_LIMIT: usize = 4096;
 #[derive(Default)]
 struct IgnoreCache {
     directories: HashMap<PathBuf, bool>,
+    order: std::collections::VecDeque<PathBuf>,
 }
 
 impl IgnoreCache {
+    fn clear(&mut self) {
+        self.directories.clear();
+        self.order.clear();
+    }
+
+    fn remember(&mut self, relative: PathBuf, ignored: bool) {
+        if self.directories.contains_key(&relative) {
+            return;
+        }
+        while self.directories.len() >= IGNORE_CACHE_LIMIT {
+            let Some(oldest) = self.order.pop_front() else {
+                self.directories.clear();
+                break;
+            };
+            self.directories.remove(&oldest);
+        }
+        self.order.push_back(relative.clone());
+        self.directories.insert(relative, ignored);
+    }
+
     /// True when `path` lies inside a directory below `root` that Git ignores.
     fn in_ignored_directory(&mut self, git: &GitExecutor, root: &Path, path: &Path) -> bool {
         if path.file_name().is_some_and(|name| name == ".gitignore") {
-            self.directories.clear();
+            self.clear();
             return false;
         }
         let Ok(relative) = path.strip_prefix(root) else {
@@ -194,40 +215,56 @@ impl IgnoreCache {
             return false;
         };
         let mut current: PathBuf = PathBuf::new();
+        let mut unknown: Vec<PathBuf> = Vec::new();
         for component in parent.components() {
             current.push(component);
-            if self.is_ignored(git, root, &current) {
-                return true;
+            match self.directories.get(&current) {
+                Some(&true) => return true,
+                Some(&false) => {}
+                None => unknown.push(current.clone()),
             }
         }
-        false
+        if unknown.is_empty() {
+            return false;
+        }
+        let ignored_set: BTreeSet<String> = check_ignored_dirs(git, root, &unknown);
+        let mut hit = false;
+        for dir in unknown {
+            let key: String = dir.to_string_lossy().replace('\\', "/");
+            let ignored: bool = ignored_set.contains(&key);
+            self.remember(dir, ignored);
+            hit |= ignored;
+        }
+        hit
     }
+}
 
-    fn is_ignored(&mut self, git: &GitExecutor, root: &Path, relative: &Path) -> bool {
-        if let Some(known) = self.directories.get(relative) {
-            return *known;
+fn check_ignored_dirs(git: &GitExecutor, root: &Path, dirs: &[PathBuf]) -> BTreeSet<String> {
+    let mut input: Vec<u8> = Vec::new();
+    for dir in dirs {
+        let normalized: String = format!("{}/", dir.to_string_lossy().replace('\\', "/"));
+        input.extend_from_slice(normalized.as_bytes());
+        input.push(0);
+    }
+    match git.run_unchecked(
+        root,
+        ["--literal-pathspecs", "check-ignore", "--stdin", "-z"],
+        Some(&input),
+    ) {
+        Ok(output) => output
+            .stdout
+            .split(|byte: &u8| *byte == 0)
+            .filter(|entry: &&[u8]| !entry.is_empty())
+            .map(|entry: &[u8]| {
+                String::from_utf8_lossy(entry)
+                    .trim_end_matches('/')
+                    .to_owned()
+            })
+            .collect(),
+        Err(error) => {
+            tracing::warn!(%error, "could not check ignored directories");
+            BTreeSet::new()
         }
-        if self.directories.len() >= IGNORE_CACHE_LIMIT {
-            self.directories.clear();
-        }
-        let argument: String = format!("{}/", relative.to_string_lossy().replace('\\', "/"));
-        // Exit 0 means ignored; any failure means "watch it" (not ignored).
-        let ignored: bool = git
-            .run_unchecked(
-                root,
-                [
-                    "--literal-pathspecs",
-                    "check-ignore",
-                    "-q",
-                    "--",
-                    argument.as_str(),
-                ],
-                None,
-            )
-            .map(|output| output.status.success())
-            .unwrap_or(false);
-        self.directories.insert(relative.to_path_buf(), ignored);
-        ignored
     }
 }
 
@@ -363,10 +400,14 @@ fn spawn_debouncer(
                     }
                     for path in &event.paths {
                         if let Some(scope) = layout.classify(path) {
-                            if scope == ChangeScope::Worktree
-                                && ignore_cache.in_ignored_directory(&git, &layout.root, path)
-                            {
-                                continue;
+                            if scope == ChangeScope::Worktree {
+                                if path.file_name().is_some_and(|name| name == ".gitignore") {
+                                    ignore_cache.clear();
+                                } else if !pending.contains(&ChangeScope::Worktree)
+                                    && ignore_cache.in_ignored_directory(&git, &layout.root, path)
+                                {
+                                    continue;
+                                }
                             }
                             pending.insert(scope);
                         }
@@ -457,5 +498,20 @@ mod tests {
         assert!(layout.is_root(Path::new("/repo")));
         assert!(!layout.is_root(Path::new("/repo/src")));
         assert!(!layout.is_root(Path::new("/elsewhere/repo")));
+    }
+
+    #[test]
+    fn ignore_cache_evicts_fifo_without_losing_recent_entries() {
+        let mut cache: IgnoreCache = IgnoreCache::default();
+        for index in 0..=IGNORE_CACHE_LIMIT {
+            cache.remember(PathBuf::from(format!("dir-{index}")), index % 2 == 0);
+        }
+        assert_eq!(cache.directories.len(), IGNORE_CACHE_LIMIT);
+        assert!(!cache.directories.contains_key(Path::new("dir-0")));
+        assert!(
+            cache
+                .directories
+                .contains_key(&PathBuf::from(format!("dir-{IGNORE_CACHE_LIMIT}")))
+        );
     }
 }

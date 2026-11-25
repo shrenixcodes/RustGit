@@ -32,11 +32,12 @@ export function AppShell() {
   useGlobalShortcuts();
   useRestoreLastRepository();
   useRepositoryWatcher(activeRepositoryId);
-  useAutoFetch(activeRepositoryId);
+  const autoFetch: boolean = usePreferences((state) => state.autoFetch);
+  useAutoFetch(activeRepositoryId, autoFetch);
   useOperationEvents();
 
   return (
-    <div className="flex h-full flex-col bg-bg text-fg">
+    <div className="flex h-full flex-col bg-bg text-fg transition-[background-color,color,border-color] duration-200">
       <Seal />
       <UpdateBanner />
       <main className="flex min-h-0 flex-1 flex-col">
@@ -79,7 +80,8 @@ function useGlobalShortcuts(): void {
   };
 
   useShortcuts([
-    { shortcut: "Mod+K", run: () => setPaletteOpen(!paletteOpen), allowInInput: true },
+    // The palette is itself a dialog, and opens above any other.
+    { shortcut: "Mod+K", run: () => setPaletteOpen(!paletteOpen), allowInInput: true, allowInDialog: true },
     { shortcut: "Mod+P", run: () => setSwitcherOpen(!switcherOpen), allowInInput: true },
     { shortcut: "Mod+N", run: () => openSwitcher("create"), allowInInput: true },
     { shortcut: "Mod+O", run: () => openSwitcher("list"), allowInInput: true },

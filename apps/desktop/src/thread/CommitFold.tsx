@@ -1,5 +1,5 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { Check, ChevronDown, ChevronRight, Copy, GitCompare, GitFork, RotateCcw } from "lucide-react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Check, ChevronRight, Copy, GitCompare, GitFork, RotateCcw } from "lucide-react";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { Button } from "../components/Button";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -25,12 +25,14 @@ interface CommitFoldProps {
   head: HeadState | undefined;
   currentBranch: string | null;
   height: number;
+  /** Left padding that clears the graph lanes running through the fold. */
+  inset: number;
   onGoTo: (oid: string) => void;
   onHeightChange?: (height: number) => void;
 }
 
 /** A commit unfolded in place: everything about it, under its own row. */
-export function CommitFold({ repositoryId, oid, refs, head, currentBranch, height, onGoTo, onHeightChange }: CommitFoldProps) {
+export function CommitFold({ repositoryId, oid, refs, head, currentBranch, height, inset, onGoTo, onHeightChange }: CommitFoldProps) {
   const details = useCommitDetails(repositoryId, oid);
   const operation = useBranchOperation(repositoryId);
   const [openFiles, setOpenFiles] = useState<ReadonlySet<string>>(new Set());
@@ -71,11 +73,11 @@ export function CommitFold({ repositoryId, oid, refs, head, currentBranch, heigh
   };
 
   return (
-    <div style={{ height }} className="overflow-y-auto pr-4 sm:pr-6 pb-5 pl-8 sm:pl-10">
+    <div style={{ height, paddingLeft: inset }} className="overflow-y-auto pr-4 sm:pr-6 pb-5">
       {details.isPending && <p className="py-4 text-xs font-mono text-fg-muted">Reading commit…</p>}
       {details.isError && <ErrorNotice title="Could not read commit" error={details.error} />}
       {details.data !== undefined && (
-        <div ref={contentRef} className="space-y-4 pt-3.5 w-full">
+        <div ref={contentRef} className="w-full space-y-4 pt-3.5">
           {/* Header pill: SHA, Copy, Badges */}
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/70 bg-elevated/50 px-3 py-2 shadow-2xs">
             <div className="flex items-center gap-2 min-w-0">
@@ -129,41 +131,45 @@ export function CommitFold({ repositoryId, oid, refs, head, currentBranch, heigh
             </div>
           </div>
 
-          {/* Commit Actions Toolbar */}
-          {currentBranch !== null && (
-            <div className="flex flex-wrap items-center gap-2 pt-0.5">
-              <Button
-                variant="secondary"
-                disabled={operation.isPending}
-                onClick={() =>
-                  setPending({
-                    request: { kind: "cherry_pick", oid },
-                    title: `Cherry-pick onto ${currentBranch}?`,
-                    body: `Applies the changes of ${oid.slice(0, 7)} as a new commit on ${currentBranch}. Conflicts, if any, are left for you to resolve.`,
-                    label: "Cherry-pick",
-                  })
-                }
-                className="h-7.5 text-xs font-medium"
-              >
-                <GitFork className="size-3.5 mr-1 text-accent" />
-                Cherry-pick onto {currentBranch}
-              </Button>
-              <Button
-                variant="secondary"
-                disabled={operation.isPending}
-                onClick={() =>
-                  setPending({
-                    request: { kind: "revert", oid },
-                    title: `Revert ${oid.slice(0, 7)}?`,
-                    body: `Creates a new commit on ${currentBranch} that undoes this commit's changes. History is not rewritten.`,
-                    label: "Revert",
-                  })
-                }
-                className="h-7.5 text-xs font-medium"
-              >
-                <RotateCcw className="size-3.5 mr-1 text-clay-text" />
-                Revert…
-              </Button>
+          {/* Commit Actions Toolbar: cherry-pick and revert need a branch; comparing only needs HEAD. */}
+          <div className="flex flex-wrap items-center gap-2 pt-0.5">
+            {currentBranch !== null && (
+              <>
+                <Button
+                  variant="secondary"
+                  disabled={operation.isPending}
+                  onClick={() =>
+                    setPending({
+                      request: { kind: "cherry_pick", oid },
+                      title: `Cherry-pick onto ${currentBranch}?`,
+                      body: `Applies the changes of ${oid.slice(0, 7)} as a new commit on ${currentBranch}. Conflicts, if any, are left for you to resolve.`,
+                      label: "Cherry-pick",
+                    })
+                  }
+                  className="h-7.5 text-xs font-medium"
+                >
+                  <GitFork className="size-3.5 mr-1 text-accent" />
+                  Cherry-pick onto {currentBranch}
+                </Button>
+                <Button
+                  variant="secondary"
+                  disabled={operation.isPending}
+                  onClick={() =>
+                    setPending({
+                      request: { kind: "revert", oid },
+                      title: `Revert ${oid.slice(0, 7)}?`,
+                      body: `Creates a new commit on ${currentBranch} that undoes this commit's changes. History is not rewritten.`,
+                      label: "Revert",
+                    })
+                  }
+                  className="h-7.5 text-xs font-medium"
+                >
+                  <RotateCcw className="size-3.5 mr-1 text-clay-text" />
+                  Revert…
+                </Button>
+              </>
+            )}
+            {head !== undefined && head.kind !== "unborn" && (
               <Button
                 variant="ghost"
                 onClick={() => useUi.getState().openCompare(oid, "HEAD")}
@@ -172,8 +178,8 @@ export function CommitFold({ repositoryId, oid, refs, head, currentBranch, heigh
                 <GitCompare className="size-3.5 mr-1" />
                 Compare with HEAD
               </Button>
-            </div>
-          )}
+            )}
+          </div>
 
           {operation.error !== null && <ErrorNotice title="Git did not complete the operation" error={operation.error} />}
           {outcome !== null && <OutcomeNotice outcome={outcome} />}
@@ -244,9 +250,8 @@ export function FileEntry({
 }) {
   const meta = CHANGE_LABELS[file.kind];
   const { name, directory } = splitPath(file.path);
-  const Chevron = open ? ChevronDown : ChevronRight;
   return (
-    <li className="rounded-lg overflow-hidden border border-border/70 bg-canvas/40 hover:border-border-control transition-all shadow-2xs">
+    <li className="rounded-lg overflow-hidden border border-border/70 bg-canvas/40 hover:border-border-control transition-colors shadow-2xs">
       <button
         type="button"
         aria-expanded={open}
@@ -254,7 +259,10 @@ export function FileEntry({
         title={file.originalPath === null ? file.path : `${file.originalPath} → ${file.path}`}
         className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs cursor-pointer select-none hover:bg-hover/60 transition-colors"
       >
-        <Chevron aria-hidden className={`size-3.5 shrink-0 transition-transform ${open ? "text-accent" : "text-fg-muted"}`} />
+        <ChevronRight
+          aria-hidden
+          className={`size-3.5 shrink-0 transition-transform duration-150 ${open ? "rotate-90 text-accent" : "text-fg-muted"}`}
+        />
         <span
           aria-label={meta.label}
           className={`flex size-4 shrink-0 items-center justify-center rounded text-2xs font-mono font-bold leading-none ${meta.tone}`}
@@ -287,13 +295,28 @@ function InlineDiff({ repositoryId, oid, file }: { repositoryId: number; oid: st
   return <ReadOnlyDiff diff={useCommitFileDiff(repositoryId, oid, file.path, file.originalPath)} />;
 }
 
-/** A read-only unified diff, capped at INLINE_LINE_LIMIT lines. */
+const INITIAL_INLINE_LINES = 250;
+const INLINE_LINE_STEP = 500;
+
+/** A read-only unified diff, revealed progressively and capped at INLINE_LINE_LIMIT lines. */
 export function ReadOnlyDiff({ diff }: { diff: UseQueryResult<FileDiff, IpcError> }) {
+  const data: FileDiff | undefined = diff.data;
+  const rows: CanvasRow[] = useMemo(
+    () => (data === undefined ? [] : buildCanvasRows([{ ...data, side: "unstaged" }], "unified").slice(1)),
+    [data],
+  );
+  const [visibleLimit, setVisibleLimit] = useState<number>(INITIAL_INLINE_LINES);
+  useEffect(() => {
+    setVisibleLimit(INITIAL_INLINE_LINES);
+  }, [data]);
+
   if (diff.isPending) return <p className="py-1 pl-5 text-xs text-fg-muted">Reading the diff…</p>;
   if (diff.isError) return <ErrorNotice title="Could not read the diff" error={diff.error} />;
-  const data: FileDiff = diff.data;
-  const rows: CanvasRow[] = buildCanvasRows([{ ...data, side: "unstaged" }], "unified").slice(1);
-  const shown: CanvasRow[] = rows.slice(0, INLINE_LINE_LIMIT);
+
+  const maxInline: number = Math.min(rows.length, INLINE_LINE_LIMIT);
+  const shown: CanvasRow[] = rows.slice(0, Math.min(visibleLimit, maxInline));
+  const moreInline: number = maxInline - shown.length;
+  const cappedOverflow: number = rows.length - maxInline;
   return (
     <div className="rg-canvas my-1 overflow-x-auto font-mono text-xs" style={{ lineHeight: `${DIFF_ROW}px` }}>
       {shown.map((row, index) => {
@@ -301,12 +324,32 @@ export function ReadOnlyDiff({ diff }: { diff: UseQueryResult<FileDiff, IpcError
         if (row.kind === "note") return <p key={index} className="px-3 font-sans text-sm text-fg-muted">{row.text}</p>;
         if (row.kind === "hunk")
           return <HunkHeader key={index} style={style} indent={8} header={row.hunk.header} side="commit" active={false} selectedCount={0} disabled />;
-        if (row.kind === "line") return <UnifiedLine key={index} style={style} indent={0} refLine={row} selected={false} selectable={false} />;
+        if (row.kind === "line") return <UnifiedLine key={index} style={{ minHeight: DIFF_ROW }} indent={0} refLine={row} selected={false} selectable={false} wrap />;
         return null;
       })}
-      {rows.length > shown.length && (
+      {moreInline > 0 && (
+        <div className="flex flex-wrap items-center gap-2 px-3 py-1.5 font-sans text-xs text-fg-muted">
+          <button
+            type="button"
+            onClick={() => setVisibleLimit((current) => Math.min(maxInline, current + INLINE_LINE_STEP))}
+            className="rounded border border-border/80 bg-canvas/70 px-2 py-0.5 text-fg hover:border-accent hover:text-accent transition-colors cursor-pointer"
+          >
+            Show {Math.min(INLINE_LINE_STEP, moreInline)} more lines ({moreInline} remaining)
+          </button>
+          {moreInline > INLINE_LINE_STEP && (
+            <button
+              type="button"
+              onClick={() => setVisibleLimit(maxInline)}
+              className="rounded border border-border/80 bg-canvas/70 px-2 py-0.5 text-fg-secondary hover:border-accent hover:text-accent transition-colors cursor-pointer"
+            >
+              Show all {maxInline} inline
+            </button>
+          )}
+        </div>
+      )}
+      {moreInline === 0 && cappedOverflow > 0 && (
         <p className="px-3 py-1 font-sans text-xs text-fg-muted">
-          {rows.length - shown.length} more lines not shown inline.
+          {cappedOverflow} more lines not shown inline.
         </p>
       )}
     </div>

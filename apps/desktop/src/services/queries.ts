@@ -127,6 +127,8 @@ export function createQueryClient(): QueryClient {
       queries: {
         // Data changes through user actions or filesystem events, never through timers.
         staleTime: 30_000,
+        // Keep inactive queries from pinning large parsed diff/log heaps on low-RAM machines.
+        gcTime: 90_000,
         retry: false,
         refetchOnWindowFocus: true,
       },
@@ -234,7 +236,9 @@ export function useLogPages(
       }),
     getNextPageParam: (lastPage: LogPage, pages: LogPage[]) =>
       lastPage.hasMore ? pages.reduce((count: number, page: LogPage) => count + page.commits.length, 0) : undefined,
-    staleTime: 10_000,
+    // Filesystem watcher / head & ref mutations invalidate immediately; avoid multi-page refetch storms on focus.
+    staleTime: 60_000,
+    gcTime: 90_000,
   });
 }
 
@@ -245,6 +249,7 @@ export function useCommitDetails(repositoryId: number, oid: string | null): UseQ
     enabled: oid !== null,
     // A commit id names immutable content.
     staleTime: Infinity,
+    gcTime: 90_000,
   });
 }
 
@@ -269,6 +274,7 @@ export function useFileDiff(
       }),
     enabled: enabled && path !== null,
     staleTime: 5_000,
+    gcTime: 60_000,
   });
 }
 
@@ -441,6 +447,7 @@ export function useCommitFileDiff(
     enabled: path !== null,
     // A commit's diff never changes.
     staleTime: Infinity,
+    gcTime: 90_000,
   });
 }
 
@@ -455,6 +462,7 @@ export type BranchRequest =
   | { kind: "cherry_pick"; oid: string }
   | { kind: "revert"; oid: string }
   | { kind: "continue" }
+  | { kind: "skip" }
   | { kind: "abort" };
 
 export function describeBranchRequest(request: BranchRequest): string {
@@ -479,6 +487,8 @@ export function describeBranchRequest(request: BranchRequest): string {
       return `Revert ${request.oid.slice(0, 7)}`;
     case "continue":
       return "Continue operation";
+    case "skip":
+      return "Skip the current step";
     case "abort":
       return "Abort operation";
   }
@@ -520,6 +530,8 @@ export function useBranchOperation(repositoryId: number): UseMutationResult<Bran
           return { kind: "integration", result: await ipc.revertCommit(repositoryId, request.oid) };
         case "continue":
           return { kind: "integration", result: await ipc.continueOperation(repositoryId) };
+        case "skip":
+          return { kind: "integration", result: await ipc.skipOperation(repositoryId) };
         case "abort":
           return { kind: "status", status: await ipc.abortOperation(repositoryId) };
       }
@@ -588,9 +600,9 @@ export function useUpdateCheck(): UseQueryResult<UpdateCheckResult, IpcError> {
 }
 
 /** Installs a downloaded GitHub release update. */
-export function useInstallUpdate(): UseMutationResult<void, IpcError, { downloadUrl: string; assetName: string }> {
+export function useInstallUpdate(): UseMutationResult<void, IpcError, { downloadUrl: string; assetName: string; assetDigest: string | null }> {
   return useMutation({
-    mutationFn: ({ downloadUrl, assetName }) => ipc.installUpdate(downloadUrl, assetName),
+    mutationFn: ({ downloadUrl, assetName, assetDigest }) => ipc.installUpdate(downloadUrl, assetName, assetDigest),
     meta: {
       operation: "Install update",
       describe: (variables: unknown) => {

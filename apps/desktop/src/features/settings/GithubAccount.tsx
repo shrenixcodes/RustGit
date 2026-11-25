@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Check, Copy, ExternalLink, KeyRound, LogOut, ShieldCheck } from "lucide-react";
+import { Check, Copy, ExternalLink, Eye, EyeOff, KeyRound, LogOut, ShieldCheck } from "lucide-react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { Button } from "../../components/Button";
 import { ErrorNotice } from "../../components/ErrorNotice";
@@ -21,6 +21,7 @@ export function GithubAccount() {
   const [pat, setPat] = useState("");
   const [patBusy, setPatBusy] = useState(false);
   const [showPatInput, setShowPatInput] = useState(false);
+  const [revealPat, setRevealPat] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
 
   const finished = useCallback((result: GithubSignInFinished): void => {
@@ -33,7 +34,10 @@ export function GithubAccount() {
     setError(null);
     setFailure(null);
     try {
-      setCode(await ipc.githubStartSignIn());
+      const started: GithubDeviceCode = await ipc.githubStartSignIn();
+      setCode(started);
+      // Take the person straight to the page where the code is entered.
+      void ipc.openGithubPage(started.verification_uri).catch(() => {});
     } catch (cause: unknown) {
       setError(toIpcError(cause));
     }
@@ -109,9 +113,19 @@ export function GithubAccount() {
           </Button>
         </div>
       ) : code !== null ? (
-        <div role="status" className="space-y-3 rounded-lg border border-accent/40 bg-accent/10 p-4 shadow-2xs text-xs">
+        <div role="status" className="rg-notice-anim space-y-3 rounded-lg border border-accent/40 bg-accent/10 p-4 shadow-2xs text-xs">
           <p className="text-fg-secondary">
-            On <span data-selectable className="font-mono font-semibold text-accent underline">{code.verification_uri}</span> enter this code:
+            On{" "}
+            <button
+              type="button"
+              onClick={() => void ipc.openGithubPage(code.verification_uri).catch(() => {})}
+              title="Open in your browser"
+              className="inline-flex items-center gap-1 font-mono font-semibold text-accent underline underline-offset-2 hover:text-accent/80"
+            >
+              {code.verification_uri}
+              <ExternalLink aria-hidden className="size-3" />
+            </button>{" "}
+            enter this code:
           </p>
           <div className="flex items-center gap-3">
             <span data-selectable className="rounded-lg border border-accent/30 bg-canvas/80 px-4 py-2 font-mono text-lg font-bold tracking-widest text-accent">
@@ -147,25 +161,42 @@ export function GithubAccount() {
             </Button>
           </div>
           {showPatInput && (
-            <div className="space-y-2 rounded-lg border border-border/80 bg-canvas/60 p-3.5 text-xs shadow-2xs">
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                void savePat();
+              }}
+              className="rg-notice-anim space-y-2 rounded-lg border border-border/80 bg-canvas/60 p-3.5 text-xs shadow-2xs"
+            >
               <label htmlFor="github-pat-input" className="block text-2xs font-semibold uppercase tracking-wider text-fg-secondary">
                 Personal Access Token (classic or fine-grained)
               </label>
               <div className="flex items-center gap-2">
-                <input
-                  id="github-pat-input"
-                  type="password"
-                  value={pat}
-                  onChange={(e) => setPat(e.target.value)}
-                  placeholder="ghp_... or github_pat_..."
-                  className="h-8 flex-1 rounded-lg border border-border/80 bg-input px-2.5 font-mono text-xs text-fg focus:border-accent focus:outline-none"
-                  disabled={patBusy}
-                />
-                <Button variant="primary" disabled={patBusy || !pat.trim()} onClick={() => void savePat()}>
+                <div className="flex h-8 flex-1 items-center gap-1 rounded-lg border border-border/80 bg-canvas px-2.5 focus-within:border-accent focus-within:ring-1 focus-within:ring-accent/30">
+                  <input
+                    id="github-pat-input"
+                    type={revealPat ? "text" : "password"}
+                    value={pat}
+                    onChange={(e) => setPat(e.target.value)}
+                    placeholder="ghp_... or github_pat_..."
+                    className="h-full min-w-0 flex-1 bg-transparent font-mono text-xs text-fg focus:outline-none"
+                    disabled={patBusy}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setRevealPat((shown) => !shown)}
+                    aria-label={revealPat ? "Hide token" : "Show token"}
+                    title={revealPat ? "Hide token" : "Show token"}
+                    className="rounded p-1 text-fg-muted hover:bg-hover hover:text-fg transition-colors"
+                  >
+                    {revealPat ? <EyeOff aria-hidden className="size-3.5" /> : <Eye aria-hidden className="size-3.5" />}
+                  </button>
+                </div>
+                <Button type="submit" variant="primary" disabled={patBusy || !pat.trim()}>
                   {patBusy ? "Verifying…" : "Save token"}
                 </Button>
               </div>
-            </div>
+            </form>
           )}
         </div>
       )}

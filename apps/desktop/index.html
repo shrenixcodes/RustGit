@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark" data-motion="full" style="background-color: #0c0e12; color: #f1f5f9;">
+<html lang="en" data-theme="dark" data-motion="system">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,12 +9,15 @@
         height: 100%;
         margin: 0;
         overflow: hidden;
-        background-color: #0c0e12;
-        color: #f1f5f9;
+      }
+      /* First paint before the stylesheet: the theme tokens take over once loaded. */
+      html {
+        background-color: var(--rg-bg, #121316);
+        color: var(--rg-text, #f0edf5);
       }
     </style>
   </head>
-  <body style="background-color: #0c0e12; color: #f1f5f9;">
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

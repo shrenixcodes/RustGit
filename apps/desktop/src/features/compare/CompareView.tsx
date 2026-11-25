@@ -8,7 +8,8 @@ import { PageHeader } from "../../components/PageHeader";
 import { SegmentedControl, type SegmentOption } from "../../components/SegmentedControl";
 import { ipc, type IpcError } from "../../services/ipc";
 import { queryKeys, useRefs } from "../../services/queries";
-import type { CommitFile, Comparison, FileDiff, RefEntry } from "../../services/types";
+import type { CommitFile, Comparison, FileDiff, LogCommit, LogPage, RefEntry } from "../../services/types";
+import { formatAbsolute, formatRelative } from "../history/time";
 import { FileEntry, ReadOnlyDiff } from "../../thread/CommitFold";
 import { useUi } from "../../stores/ui";
 import { useWorkspace } from "../../stores/workspace";
@@ -84,8 +85,8 @@ function Compare({ repositoryId }: { repositoryId: number }) {
   };
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-8">
-      <div className="space-y-5">
+    <div className="min-h-0 flex-1 overflow-y-auto px-6 sm:px-8 pb-8">
+      <div className="w-full max-w-[960px] space-y-5">
         {/* Revision Selector Card */}
         <div className="rounded-xl border border-border/80 bg-elevated/40 p-4 shadow-2xs">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
@@ -149,6 +150,23 @@ function Compare({ repositoryId }: { repositoryId: number }) {
                 )}
               </div>
             </div>
+
+            {comparison.data.ahead > 0 && (
+              <CommitList
+                repositoryId={repositoryId}
+                range={`${comparison.data.base}..${comparison.data.head}`}
+                count={comparison.data.ahead}
+                title={`In ${head}, not in ${base}`}
+              />
+            )}
+            {comparison.data.behind > 0 && (
+              <CommitList
+                repositoryId={repositoryId}
+                range={`${comparison.data.head}..${comparison.data.base}`}
+                count={comparison.data.behind}
+                title={`In ${base}, not in ${head}`}
+              />
+            )}
 
             {comparison.data.files.length === 0 ? (
               <p className="text-center py-6 text-xs text-fg-muted">No file differences between these revisions.</p>
@@ -251,4 +269,47 @@ function CompareDiff({
     staleTime: Infinity,
   });
   return <ReadOnlyDiff diff={diff} />;
+}
+
+/** Commits listed per side; the counts above stay exact when there are more. */
+const COMMIT_LIST_LIMIT = 100;
+
+/** The commits in `range` (`a..b`, resolved object ids), newest first. */
+function CommitList({ repositoryId, range, count, title }: { repositoryId: number; range: string; count: number; title: string }) {
+  const commits = useQuery<LogPage, IpcError>({
+    queryKey: [...queryKeys.refs(repositoryId), "compare-commits", range],
+    queryFn: () => ipc.logPage({ id: repositoryId, revisions: [range], skip: 0, limit: COMMIT_LIST_LIMIT, search: null, since: null, until: null }),
+    staleTime: 10_000,
+  });
+  return (
+    <section aria-label={title} className="space-y-2">
+      <p className="rg-label">
+        {title} ({count})
+      </p>
+      {commits.isPending && <p className="text-xs text-fg-muted">Reading commits…</p>}
+      {commits.isError && <ErrorNotice title="Could not list the commits" error={commits.error} />}
+      {commits.data !== undefined && (
+        <ul className="divide-y divide-divider/60 rounded-lg border border-border/70 bg-canvas/40">
+          {commits.data.commits.map((commit: LogCommit) => (
+            <li key={commit.oid} className="flex items-baseline gap-3 px-3 py-1.5 text-xs">
+              <span data-selectable className="shrink-0 font-mono text-accent">
+                {commit.oid.slice(0, 7)}
+              </span>
+              <span data-selectable className="min-w-0 flex-1 truncate text-fg" title={commit.summary}>
+                {commit.summary}
+              </span>
+              <span className="shrink-0 truncate text-2xs text-fg-muted" title={formatAbsolute(commit.authorTime)}>
+                {commit.authorName} · {formatRelative(commit.authorTime)}
+              </span>
+            </li>
+          ))}
+          {count > commits.data.commits.length && (
+            <li className="px-3 py-1.5 text-2xs text-fg-muted">
+              and {count - commits.data.commits.length} more not listed here
+            </li>
+          )}
+        </ul>
+      )}
+    </section>
+  );
 }

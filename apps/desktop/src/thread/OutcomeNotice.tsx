@@ -22,7 +22,7 @@ export function describeOutcome(outcome: BranchOutcome): { tone: "ok" | "attenti
 export function OutcomeNotice({ outcome }: { outcome: BranchOutcome }) {
   const { tone, text } = describeOutcome(outcome);
   return (
-    <p role="status" className={`text-sm ${tone === "ok" ? "text-success" : "text-warning"}`}>
+    <p role="status" className={`rg-notice-anim text-sm ${tone === "ok" ? "text-success" : "text-warning"}`}>
       {text}
     </p>
   );

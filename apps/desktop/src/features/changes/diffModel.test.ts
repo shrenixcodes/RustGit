@@ -84,4 +84,10 @@ describe("buildCanvasRows", () => {
   it("measures the longest line", () => {
     expect(longestLine([diff("unstaged", lines)])).toBe(10);
   });
+
+  it("counts tabs at their rendered width", () => {
+    const tabbed = [{ kind: "add" as const, content: "\t\tx", oldLine: null, newLine: 1, noNewlineAtEnd: false }];
+    expect(longestLine([diff("unstaged", tabbed)])).toBe(3);
+    expect(longestLine([diff("unstaged", tabbed)], 4)).toBe(9);
+  });
 });

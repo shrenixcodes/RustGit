@@ -1,13 +1,15 @@
-import { memo, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { ChevronRight } from "lucide-react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { ArrowUp, ChevronRight, LoaderCircle } from "lucide-react";
+import { ErrorNotice } from "../components/ErrorNotice";
 import { OpenNode } from "../components/Mark";
 import { useLogPages, useRefs, useRepositoryStatus, type LogFilters } from "../services/queries";
 import type { HeadState, LogCommit, LogPage, RefEntry, StatusSnapshot } from "../services/types";
 import { rowHeightFor, usePreferences, type Zoom } from "../stores/preferences";
 import { useUi } from "../stores/ui";
+import { parseThreadSearch } from "./searchQuery";
 import { LOOSE_END, commitNode, mapNode, oidOf, useWorkspace, type NodeId } from "../stores/workspace";
 import { countChanges } from "../features/changes/changeLabels";
-import { GraphCell, MAX_DRAWN_LANES, laneWidthFor } from "../features/history/GraphCell";
+import { GraphCell, MAX_DRAWN_LANES, graphCanvasWidth, laneCenterX, laneWidthFor } from "../features/history/GraphCell";
 import { initialLayoutState, layoutCommits, type GraphRow } from "../features/history/graphLayout";
 import { HistoryLayoutCache, type LaidOutHistory } from "../features/history/historyLayout";
 import { RefBadges, refsByCommit } from "../features/history/RefBadges";
@@ -23,10 +25,13 @@ const SEARCH_DEBOUNCE_MS = 300;
 /** Loading pages to reveal a commit stops after this many commits. */
 export const REVEAL_LIMIT = 20_000;
 /** On the map, history is read further ahead so forks and merges have context. */
-const MAP_PREFETCH = 3_000;
+const MAP_PREFETCH = 900;
 const LANE = laneWidthFor(0);
-/** Content starts at the same x in every row, after the graph column. */
+/** Minimum left inset where row and fold content begin (in pixels). */
 const CONTENT_LEFT = 72;
+const GRAPH_COL_MIN = CONTENT_LEFT - 12;
+/** Height of a commit fold before its content has been measured. */
+const DEFAULT_COMMIT_FOLD_HEIGHT = 360;
 
 type ThreadRowModel =
   | { kind: "now"; id: NodeId }
@@ -41,8 +46,17 @@ export function ThreadView({ repositoryId }: { repositoryId: number }) {
   const status = useRepositoryStatus(repositoryId);
   if (status.data === undefined) {
     return (
-      <div className="flex flex-1 items-center justify-center text-fg-muted">
-        {status.isError ? `Could not read the repository: ${status.error.message}` : "Reading the repository…"}
+      <div className="flex flex-1 items-center justify-center p-6 text-fg-muted">
+        {status.isError ? (
+          <div className="w-full max-w-md">
+            <ErrorNotice title="Could not read the repository" error={status.error} />
+          </div>
+        ) : (
+          <div className="flex items-center gap-2.5 text-xs font-mono text-fg-muted">
+            <LoaderCircle aria-hidden className="size-4 text-accent motion-safe:animate-spin" />
+            <span>Reading the repository…</span>
+          </div>
+        )}
       </div>
     );
   }
@@ -62,6 +76,15 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
   const composer: CommitComposer = useCommitComposer(repositoryId, status);
   const container = useRef<HTMLDivElement>(null);
   const summaryInput = useRef<HTMLInputElement>(null);
+  // "c" may be pressed far down the thread, where the summary row is not
+  // mounted yet: focus it once the scroll back to the top has rendered it.
+  const focusSummaryPending = useRef<boolean>(false);
+  useEffect(() => {
+    if (focusSummaryPending.current && summaryInput.current !== null) {
+      focusSummaryPending.current = false;
+      summaryInput.current.focus();
+    }
+  });
 
   const [debounced, setDebounced] = useState<string>(search.trim());
   useEffect(() => {
@@ -69,15 +92,8 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
     return () => window.clearTimeout(timer);
   }, [search]);
   const searching: boolean = debounced !== "";
-  const filters: LogFilters = useMemo(
-    () => ({
-      revision: null,
-      search: searching ? { text: debounced, field: /^[0-9a-f]{4,64}$/i.test(debounced) ? "sha" : "message" } : null,
-      since: null,
-      until: null,
-    }),
-    [debounced, searching],
-  );
+  // Plain words search messages; author:, since:, until: and branch: narrow the history.
+  const filters: LogFilters = useMemo(() => parseThreadSearch(debounced), [debounced]);
   const log = useLogPages(repositoryId, filters);
   const headOid: string | null = status.branch.oid;
   const head: HeadState | undefined = refs.data?.head;
@@ -119,17 +135,32 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
   }, [mapModel, history, searching]);
 
   const indexById: Map<NodeId, number> = useMemo(() => new Map(rows.map((row, index) => [row.id, index])), [rows]);
+  let mapMaxLanes = 1;
+  if (mapModel !== null) {
+    for (const node of mapModel) mapMaxLanes = Math.max(mapMaxLanes, node.graph?.width ?? 1);
+  }
   const graphLanes: number = Math.min(
     MAX_DRAWN_LANES,
-    Math.max(1, mapModel !== null ? Math.max(1, ...mapModel.map((n) => n.graph?.width ?? 1)) : history.maxLanes),
+    Math.max(1, mapModel !== null ? mapMaxLanes : history.maxLanes),
   );
-  const graphWidth: number = searching ? 0 : graphLanes * LANE + 12;
+  const graphWidth: number = searching ? 0 : graphCanvasWidth(graphLanes, LANE);
+  const graphColWidth: number = searching ? 0 : Math.max(GRAPH_COL_MIN, graphWidth);
+  const contentLeft: number = searching ? 20 : graphColWidth + 12;
   const headIndex: number = headOid === null ? -1 : (indexById.get(zoom === "map" && !searching ? mapNode(headOid) : commitNode(headOid)) ?? -1);
   const headLane: number = headIndex > 0 ? ((rows[headIndex] as Extract<ThreadRowModel, { kind: "commit" }>).graph?.lane ?? 0) : 0;
+  const uncommittedTop = useMemo(() => ({ lane: headLane, span: "top" as const }), [headLane]);
+  const uncommittedFull = useMemo(() => ({ lane: headLane, span: "full" as const }), [headLane]);
 
   // Unfolding geometry.
   const [viewportHint, setViewportHint] = useState<number>(800);
-  const [measuredCommitHeight, setMeasuredCommitHeight] = useState<number>(360);
+  // Measured per node, so another commit's height never applies to the one being opened.
+  const [measured, setMeasured] = useState<{ node: NodeId | null; height: number }>({ node: null, height: DEFAULT_COMMIT_FOLD_HEIGHT });
+  const measuredCommitHeight: number = measured.node === unfolded ? measured.height : DEFAULT_COMMIT_FOLD_HEIGHT;
+  const onCommitFoldHeight = useCallback(
+    (height: number): void =>
+      setMeasured((current) => (current.node === unfolded && current.height === height ? current : { node: unfolded, height })),
+    [unfolded],
+  );
   const unfoldedIndex: number = unfolded === null ? -1 : (indexById.get(unfolded) ?? -1);
   const unfoldedRow: ThreadRowModel | undefined = rows[unfoldedIndex];
   const unfoldHeight: number =
@@ -147,10 +178,44 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
   const { start, end, totalHeight, viewport, ensureVisible } = useThreadWindow(container, rows.length, rowHeight, unfolding);
   useEffect(() => setViewportHint(viewport), [viewport]);
 
-  // Fold away a node that no longer exists (e.g. after switching zoom).
+  const [scrolledDown, setScrolledDown] = useState<boolean>(false);
   useEffect(() => {
-    if (unfolded !== null && unfoldedIndex < 0 && rows.length > 1) unfold(null);
-  }, [unfolded, unfoldedIndex, rows.length, unfold]);
+    const element: HTMLDivElement | null = container.current;
+    if (element === null) return;
+    const onScroll = (): void => {
+      const next: boolean = element.scrollTop > 400;
+      setScrolledDown((prev) => (prev === next ? prev : next));
+    };
+    onScroll();
+    element.addEventListener("scroll", onScroll, { passive: true });
+    return () => element.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const scrollToTop = (): void => {
+    setFocus(LOOSE_END);
+    const reduced: boolean =
+      document.documentElement.dataset.motion === "reduce" ||
+      (document.documentElement.dataset.motion !== "full" &&
+        typeof window !== "undefined" &&
+        window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true);
+    container.current?.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
+    container.current?.focus();
+  };
+
+  // After switching zoom, keep the same commit open when the other view shows
+  // it too; otherwise fold away a node that no longer exists.
+  useEffect(() => {
+    if (unfolded === null || unfoldedIndex >= 0 || rows.length <= 1) return;
+    const oid: string | null = oidOf(unfolded);
+    const counterpart: NodeId | null = oid === null ? null : unfolded.startsWith("m:") ? commitNode(oid) : mapNode(oid);
+    unfold(counterpart !== null && indexById.has(counterpart) ? counterpart : null);
+  }, [unfolded, unfoldedIndex, rows.length, indexById, unfold]);
+  useEffect(() => {
+    if (focus === null || indexById.has(focus) || rows.length <= 1) return;
+    const oid: string | null = oidOf(focus);
+    const counterpart: NodeId | null = oid === null ? null : focus.startsWith("m:") ? commitNode(oid) : mapNode(oid);
+    if (counterpart !== null && indexById.has(counterpart)) setFocus(counterpart);
+  }, [focus, indexById, rows.length, setFocus]);
 
   // Keep the focused node in view only when focus or unfold target changes (not on every scroll tick).
   const lastFocus = useRef<NodeId | null>(null);
@@ -247,7 +312,8 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
         break;
       case "c":
         setFocus(LOOSE_END);
-        summaryInput.current?.focus();
+        if (summaryInput.current !== null) summaryInput.current.focus();
+        else focusSummaryPending.current = true;
         break;
       default:
         return;
@@ -256,9 +322,9 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="relative flex min-h-0 flex-1 flex-col">
       {(searching || revealFailed !== null) && (
-        <p role="status" className="shrink-0 py-1.5 pr-5 text-xs text-fg-muted" style={{ paddingLeft: CONTENT_LEFT }}>
+        <p role="status" className="shrink-0 py-1.5 pr-5 text-xs text-fg-muted" style={{ paddingLeft: contentLeft }}>
           {revealFailed !== null
             ? `Commit ${revealFailed.slice(0, 10)} is not in the history loaded so far (up to ${REVEAL_LIMIT.toLocaleString()} commits).`
             : log.isPending
@@ -288,7 +354,8 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
                   top={top}
                   height={rowHeight}
                   lane={headLane}
-                  graphWidth={graphWidth}
+                  graphWidth={graphColWidth}
+                  contentLeft={contentLeft}
                   linked={headIndex > 0 && !searching}
                   focused={focus === row.id}
                   unfolded={unfolded === row.id}
@@ -298,6 +365,7 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
                   summaryInput={summaryInput}
                   onToggle={() => toggleUnfold(row.id)}
                   onFocusRow={() => setFocus(row.id)}
+                  onGoTo={goTo}
                 />
               );
             }
@@ -309,33 +377,59 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
                 height={rowHeight}
                 row={row}
                 graphWidth={graphWidth}
+                graphColWidth={graphColWidth}
+                contentLeft={contentLeft}
                 head={row.commit.oid === headOid}
                 headState={head}
                 refs={refMap.get(row.commit.oid)}
                 map={zoom === "map" && !searching}
                 uncommitted={
                   !searching && headIndex > 0 && index > 0 && index <= headIndex
-                    ? { lane: headLane, span: index === headIndex ? "top" : "full" }
+                    ? index === headIndex
+                      ? uncommittedTop
+                      : uncommittedFull
                     : undefined
                 }
                 focused={focus === row.id}
                 unfolded={unfolded === row.id}
-                onClick={() => toggleUnfold(row.id)}
+                onToggle={toggleUnfold}
               />
             );
           })}
 
           {unfoldedRow !== undefined && unfolding !== null && (
             <div
+              // A new node gets a fresh fold: its own state, and the unfold animation.
+              key={unfoldedRow.id}
               role="group"
               aria-label={unfoldedRow.kind === "now" ? "Uncommitted changes" : `Commit ${unfoldedRow.commit.oid.slice(0, 7)} unfolded`}
               style={{ position: "absolute", top: (unfolding.after + 1) * rowHeight, height: unfolding.height, left: 0, right: 0 }}
-              className="rg-fold-anim border-y border-divider bg-surface"
+              className="rg-fold-anim bg-surface"
             >
+              {/* Keep the graph rail on the canvas surface so vertical lanes continue past the fold without border cuts. */}
+              {!searching && (
+                <span aria-hidden className="pointer-events-none absolute top-0 bottom-0 left-0 bg-canvas" style={{ width: graphColWidth }} />
+              )}
+              <span aria-hidden className="pointer-events-none absolute top-0 right-0 h-px bg-divider" style={{ left: searching ? 0 : graphColWidth }} />
+              <span aria-hidden className="pointer-events-none absolute bottom-0 right-0 h-px bg-divider" style={{ left: searching ? 0 : graphColWidth }} />
               {/* The thread keeps running past the fold: every lane that passes this point, in its colour. */}
-              <FoldLanes row={unfoldedRow} headLane={headLane} />
+              <FoldLanes
+                row={unfoldedRow}
+                width={graphColWidth}
+                headLane={headLane}
+                linked={headIndex > 0 && !searching}
+                uncommitted={unfoldedRow.kind !== "now" && headIndex > 0 && !searching && unfoldedIndex < headIndex}
+              />
               {unfoldedRow.kind === "now" ? (
-                <ReviewStream repositoryId={repositoryId} status={status} composer={composer} height={unfolding.height} />
+                <ReviewStream
+                  repositoryId={repositoryId}
+                  status={status}
+                  composer={composer}
+                  height={unfolding.height}
+                  inset={contentLeft}
+                  headLaneX={laneCenterX(headLane, LANE)}
+                  linked={headIndex > 0 && !searching}
+                />
               ) : unfoldedRow.id.startsWith("m:") ? (
                 <MapFold
                   repositoryId={repositoryId}
@@ -344,6 +438,7 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
                   currentBranch={currentBranch}
                   dirty={dirty}
                   height={unfolding.height}
+                  inset={contentLeft}
                 />
               ) : (
                 <CommitFold
@@ -353,8 +448,9 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
                   head={head}
                   currentBranch={currentBranch}
                   height={unfolding.height}
+                  inset={contentLeft}
                   onGoTo={goTo}
-                  onHeightChange={setMeasuredCommitHeight}
+                  onHeightChange={onCommitFoldHeight}
                 />
               )}
             </div>
@@ -363,7 +459,7 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
           {log.hasNextPage && (
             <div
               role="status"
-              style={{ position: "absolute", top: totalHeight, height: rowHeight, left: CONTENT_LEFT }}
+              style={{ position: "absolute", top: totalHeight, height: rowHeight, left: contentLeft }}
               className="flex items-center text-xs text-fg-muted"
             >
               {log.isFetchingNextPage ? "Reading further back…" : "More history below"}
@@ -371,30 +467,110 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
           )}
         </div>
       </div>
+
+      {scrolledDown && (
+        <button
+          type="button"
+          onClick={scrollToTop}
+          aria-label="Back to loose end"
+          title="Scroll back to the top (Loose end)"
+          className="rg-notice-anim absolute right-5 bottom-4 z-20 flex h-8 items-center gap-1.5 rounded-full border border-border/80 bg-elevated px-3 text-xs font-medium text-fg shadow-raised transition-[border-color,color,transform] duration-150 hover:border-accent hover:text-accent active:scale-95"
+        >
+          <ArrowUp aria-hidden className="size-3.5" />
+          <span>Loose end</span>
+        </button>
+      )}
     </div>
   );
 }
 
-/** Lanes that continue through an unfolded region (the dashed link for the loose end). */
-function FoldLanes({ row, headLane }: { row: ThreadRowModel; headLane: number }) {
-  const x = (lane: number): number => 6 + lane * LANE + LANE / 2;
+/** Lanes that continue through an unfolded region (SVG paths matching GraphCell geometry). */
+function FoldLanes({
+  row,
+  width,
+  headLane,
+  linked,
+  uncommitted,
+}: {
+  row: ThreadRowModel;
+  width: number;
+  headLane: number;
+  linked: boolean;
+  uncommitted: boolean;
+}) {
+  if (width <= 0) return null;
+  const x = (lane: number): number => laneCenterX(lane, LANE);
   if (row.kind === "now") {
-    return <span aria-hidden className="absolute top-0 bottom-0 border-l border-dashed border-accent" style={{ left: x(headLane) }} />;
+    // Without a HEAD commit below (a new repository) there is nothing to link to.
+    if (!linked || headLane >= MAX_DRAWN_LANES) return null;
+    const cx: number = x(headLane);
+    return (
+      <svg data-fold-lanes aria-hidden width={width} height="100%" className="pointer-events-none absolute top-0 bottom-0 left-0 z-10">
+        <line
+          x1={cx}
+          y1={0}
+          x2={cx}
+          y2="100%"
+          stroke="var(--rg-accent)"
+          strokeWidth={1.5}
+          strokeDasharray="3 3"
+          strokeLinecap="butt"
+        />
+      </svg>
+    );
   }
-  const lanes: Array<{ lane: number; color: number }> = [...(row.graph?.outgoing ?? []), ...(row.graph?.passing ?? [])].filter(
+  const outgoing = (row.graph?.outgoing ?? []).filter(
     (line, index, all) => line.lane < MAX_DRAWN_LANES && all.findIndex((other) => other.lane === line.lane) === index,
   );
+  const outgoingLanes = new Set(outgoing.map((line) => line.lane));
+  const passing = (row.graph?.passing ?? []).filter(
+    (line, index, all) =>
+      line.lane < MAX_DRAWN_LANES &&
+      !outgoingLanes.has(line.lane) &&
+      all.findIndex((other) => other.lane === line.lane) === index,
+  );
+  if (passing.length === 0 && outgoing.length === 0 && !uncommitted) return null;
   return (
-    <>
-      {lanes.map((line) => (
-        <span
-          key={line.lane}
-          aria-hidden
-          className="absolute top-0 bottom-0 w-[1.25px]"
-          style={{ left: x(line.lane) - 0.5, background: `var(--rg-lane-${line.color})`, opacity: 0.8 }}
+    <svg data-fold-lanes aria-hidden width={width} height="100%" className="pointer-events-none absolute top-0 bottom-0 left-0 z-10">
+      {uncommitted && headLane < MAX_DRAWN_LANES && (
+        <line
+          x1={x(headLane)}
+          y1={0}
+          x2={x(headLane)}
+          y2="100%"
+          stroke="var(--rg-accent)"
+          strokeWidth={1.5}
+          strokeDasharray="3 3"
+          strokeLinecap="butt"
+        />
+      )}
+      {passing.map((line) => (
+        <line
+          key={`p${line.lane}`}
+          x1={x(line.lane)}
+          y1={0}
+          x2={x(line.lane)}
+          y2="100%"
+          stroke={`var(--rg-lane-${line.color})`}
+          strokeWidth={1.4}
+          strokeOpacity={0.48}
+          strokeLinecap="butt"
         />
       ))}
-    </>
+      {outgoing.map((line) => (
+        <line
+          key={`o${line.lane}`}
+          x1={x(line.lane)}
+          y1={0}
+          x2={x(line.lane)}
+          y2="100%"
+          stroke={`var(--rg-lane-${line.color})`}
+          strokeWidth={1.75}
+          strokeOpacity={0.95}
+          strokeLinecap="butt"
+        />
+      ))}
+    </svg>
   );
 }
 
@@ -408,6 +584,7 @@ interface NowRowProps {
   height: number;
   lane: number;
   graphWidth: number;
+  contentLeft: number;
   linked: boolean;
   focused: boolean;
   unfolded: boolean;
@@ -417,11 +594,12 @@ interface NowRowProps {
   summaryInput: React.RefObject<HTMLInputElement | null>;
   onToggle: () => void;
   onFocusRow: () => void;
+  onGoTo: (oid: string) => void;
 }
 
 /** The loose end: the working tree as the open node, and the next commit's summary in its own row. */
-function NowRow({ id, top, height, lane, graphWidth, linked, focused, unfolded, composer, counts, dirty, summaryInput, onToggle, onFocusRow }: NowRowProps) {
-  const cx: number = 6 + lane * LANE + LANE / 2;
+function NowRow({ id, top, height, lane, graphWidth, contentLeft, linked, focused, unfolded, composer, counts, dirty, summaryInput, onToggle, onFocusRow, onGoTo }: NowRowProps) {
+  const cx: number = laneCenterX(lane, LANE);
   const parts: string[] = [];
   if (counts.conflicted > 0) parts.push(`${counts.conflicted} conflicted`);
   parts.push(`${counts.staged} staged`, `${counts.unstaged} unstaged`, `${counts.untracked} untracked`);
@@ -434,21 +612,23 @@ function NowRow({ id, top, height, lane, graphWidth, linked, focused, unfolded, 
       aria-expanded={unfolded}
       aria-selected={focused}
       aria-label={`Uncommitted changes: ${summaryText}`}
-      style={{ position: "absolute", top, height, left: 0, right: 0 }}
+      style={{ position: "absolute", top, height, left: 0, right: 0, contain: "layout style", paddingLeft: graphWidth === 0 ? contentLeft : undefined }}
       onClick={(event) => {
         if (!(event.target instanceof HTMLInputElement) && !(event.target instanceof HTMLButtonElement)) onToggle();
       }}
-      className={`flex cursor-default items-center gap-2 sm:gap-3 pr-3 sm:pr-5 transition-colors duration-100 ${
+      className={`flex cursor-default items-center gap-3 pr-3 sm:pr-5 transition-colors duration-100 ${
         focused ? "bg-selection relative before:absolute before:left-0 before:top-1 before:bottom-1 before:w-[2px] before:bg-accent before:rounded-r" : "hover:bg-hover"
       }`}
     >
-      <svg aria-hidden width={Math.max(graphWidth, CONTENT_LEFT - 12)} height={height} className="shrink-0" style={{ display: "block" }}>
-        {(linked || dirty) && (
-          <line x1={cx} y1={height / 2 + 6} x2={cx} y2={height} stroke="var(--rg-accent)" strokeWidth={1.25} strokeDasharray="2 3" />
-        )}
-        <OpenNode cx={cx} cy={height / 2} r={6} stroke="var(--rg-clay)" width={1.6} />
-      </svg>
-      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3" style={{ marginLeft: Math.max(0, CONTENT_LEFT - 12 - Math.max(graphWidth, CONTENT_LEFT - 12)) }}>
+      {graphWidth > 0 && (
+        <svg aria-hidden width={graphWidth} height={height} className="shrink-0 overflow-visible" style={{ display: "block" }}>
+          {linked && (
+            <line x1={cx} y1={height / 2 + 5.6} x2={cx} y2={height} stroke="var(--rg-accent)" strokeWidth={1.5} strokeDasharray="3 3" strokeLinecap="butt" />
+          )}
+          <OpenNode cx={cx} cy={height / 2} r={5.6} stroke="var(--rg-clay)" width={1.65} />
+        </svg>
+      )}
+      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
         <button
           type="button"
           aria-expanded={unfolded}
@@ -477,7 +657,9 @@ function NowRow({ id, top, height, lane, graphWidth, linked, focused, unfolded, 
                 event.preventDefault();
                 composer.submit();
               } else if (event.key === "Escape") {
-                event.currentTarget.blur();
+                // Leave the field for the thread; a second Escape folds.
+                event.preventDefault();
+                event.currentTarget.closest<HTMLElement>('[role="tree"]')?.focus();
               }
             }}
             placeholder={dirty ? "Write the next commit…" : "Nothing to commit"}
@@ -487,9 +669,17 @@ function NowRow({ id, top, height, lane, graphWidth, linked, focused, unfolded, 
         {dirty ? (
           <div className="hidden sm:flex items-center gap-1.5 font-mono text-2xs">
             {counts.conflicted > 0 && (
-              <span className="rounded bg-danger/15 border border-danger/25 px-1.5 py-0.5 font-semibold text-danger">
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (!unfolded) onToggle();
+                }}
+                title="Open uncommitted changes to resolve conflicts"
+                className="rounded bg-danger/15 border border-danger/25 px-1.5 py-0.5 font-semibold text-danger transition-colors hover:bg-danger/25"
+              >
                 {counts.conflicted} conflicted
-              </span>
+              </button>
             )}
             {counts.staged > 0 && (
               <span className="rounded bg-accent/15 border border-accent/25 px-1.5 py-0.5 font-semibold text-accent">
@@ -512,9 +702,18 @@ function NowRow({ id, top, height, lane, graphWidth, linked, focused, unfolded, 
           <span className="shrink-0 font-sans text-xs text-fg-muted">{summaryText}</span>
         )}
         {composer.done !== null && (
-          <span role="status" className="shrink-0 font-mono text-xs text-success font-medium">
+          <button
+            type="button"
+            role="status"
+            onClick={(event) => {
+              event.stopPropagation();
+              onGoTo(composer.done!.oid);
+            }}
+            title="Jump to this commit"
+            className="rg-notice-anim shrink-0 rounded border border-success/30 bg-success/10 px-1.5 py-0.5 font-mono text-2xs font-medium text-success transition-colors hover:bg-success/20"
+          >
             committed {composer.done.oid.slice(0, 7)}
-          </span>
+          </button>
         )}
         <button
           type="button"
@@ -536,6 +735,8 @@ interface CommitRowProps {
   height: number;
   row: Extract<ThreadRowModel, { kind: "commit" }>;
   graphWidth: number;
+  graphColWidth: number;
+  contentLeft: number;
   head: boolean;
   headState: HeadState | undefined;
   refs: RefEntry[] | undefined;
@@ -543,10 +744,10 @@ interface CommitRowProps {
   uncommitted: { lane: number; span: "full" | "top" } | undefined;
   focused: boolean;
   unfolded: boolean;
-  onClick: () => void;
+  onToggle: (id: NodeId) => void;
 }
 
-const CommitRow = memo(function CommitRow({ id, top, height, row, graphWidth, head, headState, refs, map, uncommitted, focused, unfolded, onClick }: CommitRowProps) {
+const CommitRow = memo(function CommitRow({ id, top, height, row, graphWidth, graphColWidth, contentLeft, head, headState, refs, map, uncommitted, focused, unfolded, onToggle }: CommitRowProps) {
   const { commit } = row;
   const detachedHere: boolean = headState?.kind === "detached" && headState.oid === commit.oid;
   const hasRefs: boolean = detachedHere || (refs !== undefined && refs.length > 0);
@@ -570,18 +771,20 @@ const CommitRow = memo(function CommitRow({ id, top, height, row, graphWidth, he
       aria-expanded={unfolded}
       aria-selected={focused}
       aria-label={label}
-      onClick={onClick}
-      style={{ position: "absolute", top, height, left: 0, right: 0 }}
-      className={`flex cursor-default items-center gap-2 sm:gap-3 pr-3 sm:pr-5 transition-colors duration-100 ${
+      onClick={() => onToggle(row.id)}
+      style={{ position: "absolute", top, height, left: 0, right: 0, contain: "layout style", paddingLeft: graphColWidth === 0 ? contentLeft : undefined }}
+      className={`flex cursor-default items-center gap-3 pr-3 sm:pr-5 transition-colors duration-100 ${
         focused ? "bg-selection relative before:absolute before:left-0 before:top-1 before:bottom-1 before:w-[2px] before:bg-accent before:rounded-r" : "hover:bg-hover"
       }`}
     >
-      <span className="shrink-0 pl-1.5" style={{ width: Math.max(graphWidth, CONTENT_LEFT - 12) }}>
-        {row.graph !== undefined && (
-          <GraphCell row={row.graph} width={graphWidth} height={height} laneWidth={LANE} head={head} selected={focused} uncommitted={uncommitted} />
-        )}
-      </span>
-      <span className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3" style={{ marginLeft: Math.max(0, CONTENT_LEFT - 12 - Math.max(graphWidth, CONTENT_LEFT - 12)) }}>
+      {graphColWidth > 0 && (
+        <span className="shrink-0" style={{ width: graphColWidth }}>
+          {row.graph !== undefined && (
+            <GraphCell row={row.graph} width={graphWidth} height={height} laneWidth={LANE} head={head} selected={focused} uncommitted={uncommitted} />
+          )}
+        </span>
+      )}
+      <span className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
         <ChevronRight
           aria-hidden
           className={`size-3.5 shrink-0 transition-transform duration-150 ${
@@ -593,7 +796,7 @@ const CommitRow = memo(function CommitRow({ id, top, height, row, graphWidth, he
         {map && row.hidden > 0 && <span className="shrink-0 font-mono text-2xs text-fg-muted">· {row.hidden} commit{row.hidden === 1 ? "" : "s"} below folded</span>}
       </span>
       {!map && (
-        <span className="hidden md:inline-block w-28 lg:w-32 shrink-0 truncate text-xs text-fg-muted font-sans" title={commit.authorEmail}>
+        <span className="hidden md:inline-block w-28 lg:w-36 xl:w-44 shrink-0 truncate text-xs text-fg-muted font-sans" title={commit.authorEmail}>
           {commit.authorName}
         </span>
       )}

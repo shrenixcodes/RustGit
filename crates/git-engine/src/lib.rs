@@ -30,7 +30,7 @@ pub use diff::{
     DiffRequest, DiffSide, FileDiff, FileTotals, change_totals, file_diff,
 };
 pub use error::{GitError, GitErrorKind, GitResult};
-pub use executor::{CancelToken, CommandRecord, GitExecutor};
+pub use executor::{CancelToken, CappedOutput, CommandRecord, GitExecutor};
 pub use history::{
     CommitDetails, CommitFile, LogCommit, LogPage, LogQuery, commit_details, commit_file_diff,
     log_page,

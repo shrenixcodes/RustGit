@@ -1,10 +1,14 @@
 //! Commit log pages, commit details and diffs of committed files.
 
+use std::collections::HashMap;
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
-use crate::diff::{DiffSide, FileDiff, file_section, parse_file_diff, parse_numstat, unified_arg};
+use crate::diff::{
+    DiffSide, FileDiff, RENAME_DIFF_CAPTURE_CAP, SINGLE_DIFF_CAPTURE_CAP, file_section,
+    parse_file_diff_capped, parse_numstat, unified_arg,
+};
 use crate::error::{GitError, GitResult};
 use crate::executor::GitExecutor;
 use crate::index::has_head;
@@ -274,11 +278,16 @@ pub fn commit_details(git: &GitExecutor, root: &Path, oid: &str) -> GitResult<Co
     let status_raw: Vec<u8> = tree_diff(git, root, &resolved, parents.first(), "--name-status")?;
     let numstat_raw: Vec<u8> = tree_diff(git, root, &resolved, parents.first(), "--numstat")?;
     let numstat = parse_numstat(&numstat_raw)?;
+    let totals_by_path: HashMap<String, (Option<u32>, Option<u32>)> = numstat
+        .files
+        .into_iter()
+        .map(|totals| (totals.path, (totals.added, totals.deleted)))
+        .collect();
     let mut files: Vec<CommitFile> = parse_name_status(&status_raw)?;
     for file in &mut files {
-        if let Some(totals) = numstat.files.iter().find(|totals| totals.path == file.path) {
-            file.additions = totals.added;
-            file.deletions = totals.deleted;
+        if let Some(&(additions, deletions)) = totals_by_path.get(&file.path) {
+            file.additions = additions;
+            file.deletions = deletions;
         }
     }
 
@@ -421,8 +430,17 @@ pub(crate) fn tree_file_diff(
     if let Some(original) = original_path {
         args.push(original);
     }
-    let output: std::process::Output = git.run(root, args, None)?;
-    let mut diff: FileDiff = parse_file_diff(file_section(&output.stdout, path), DiffSide::Commit)?;
+    let cap: usize = if original_path.is_some() {
+        RENAME_DIFF_CAPTURE_CAP
+    } else {
+        SINGLE_DIFF_CAPTURE_CAP
+    };
+    let capped = git.run_capped(root, args, cap, &[0])?;
+    let mut diff: FileDiff = parse_file_diff_capped(
+        file_section(&capped.output.stdout, path),
+        DiffSide::Commit,
+        capped.truncated,
+    )?;
     diff.path = path.to_owned();
     if diff.original_path.is_none() {
         diff.original_path = original_path.map(str::to_owned);

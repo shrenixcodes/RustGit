@@ -1,3 +1,5 @@
+> **Historical record:** This document captures an earlier project state. Statuses, branches, findings, and verification results below have not been revalidated for the current release. See the [README](../README.md) and current source for present behavior.
+
 > **Composition superseded** by `SCREEN_MODEL.md`. Decisions D-1 (real index),
 > D-6 (destructive actions), D-12 (rendering) and D-14/D-15 (ownership, state) still apply.
 

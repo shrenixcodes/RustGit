@@ -16,7 +16,7 @@ focus (events can be missed while a repository is not watched).
 | Any staging command (`stage_*`, `unstage_*`, `discard_paths`, `apply_hunk`) | status (replace with response), all `file_diff` and `change_totals` for that repository |
 | `create_commit`                               | status (replace), diffs, totals, `commit_context`, `log_page`, `list_refs` |
 | `add/init/remove_repository`, `set_repository_pinned`, `open_repository` | `list_repositories` |
-| Window regains focus                          | status of the open repository       |
+| Window regains focus                          | stale queries for the open repository |
 | Branch mutations, merge/rebase/cherry-pick/revert, stash apply, `continue_operation`, `abort_operation` | status, diffs, `list_refs`, `log_page`, `commit_context` |
 | `operation-finished` (fetch/pull/push)        | status, `list_refs`, `log_page`; pull also diffs |
 
@@ -40,9 +40,10 @@ interface RepositoryChanged {
 }
 ```
 
-The UI invalidates status for `worktree`/`index`/`head`, and branch/history
-queries for `refs`/`head`. If watching fails or events overflow, the backend
-emits one event with every scope so the UI performs a full refresh.
+The UI invalidates status for `worktree`/`index`/`head`, branch/history
+queries for `refs`/`head`, and commit context and remotes for `config`. If
+watching fails or events overflow, the backend emits one event with every scope
+so the UI performs a full refresh.
 
 ### `operation-progress` — IMPLEMENTED
 

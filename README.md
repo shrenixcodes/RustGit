@@ -14,7 +14,7 @@ A lightweight, fast, cross-platform Git desktop client built with Rust, Tauri 2,
 - **The Thread & Loose End:** One unified canvas where uncommitted changes ("the loose end") sit directly above commit history. Unfold any node in place without leaving context.
 - **Smooth Commit Graph & Continuity:** Cubic Bezier branch and merge curves, distinct node markers (merge commits, `HEAD` ring, branch/tag/remote pills), passing branch rails running cleanly behind unfolded commits, and a zoomed-out **Map** mode for repository topology.
 - **Inline Review Stream & Staged Totals:** Unified and split diff layouts with word-level change emphasis, live staged `+`/`−` line counts in the commit composer, optional whitespace ignoring, and staging/unstaging/discarding by file, hunk, or `Shift`-selected line ranges.
-- **History Search & Per-Commit Inspection:** Search commits by message, `author:`, `branch:`, `since:`, `until:`, or SHA prefix; inspect commit metadata, changed files (`Expand all` / per-file diff), cherry-pick, or revert inline.
+- **History Search & Per-Commit Inspection:** Search commits by message, `author:`, `branch:`, `since:`, `until:`, or SHA prefix; inspect commit metadata and changed files, with full-width diffs and wrapped lines, and cherry-pick or revert inline.
 - **Branches & Conflict Resolution:** Create, switch, rename, delete, track upstream branches, merge, and rebase—plus a block-by-block conflict resolver (`ours` / `theirs` / manual edits) to finish or abort mid-operation.
 - **Compare, Stash, Worktrees & Remotes:** Compare any two revisions (commits unique to each side plus file diffs), preview stashed file diffs before applying/popping/dropping, manage linked worktrees, and edit remotes.
 - **Sync & GitHub Integration:** Fetch, pull (fast-forward, merge, or rebase), push, publish, clone, and optional automatic background fetching with live Git progress and cancellation. Sign in via GitHub OAuth device flow or PAT (reusing tokens from `gh`, GitHub Desktop, or Git Credential Manager when present) with OS keychain storage on Windows/macOS. Git passwords go through your Git credential helper (`askpass` prompt fallback; never stored by RustGit) and secrets are redacted from errors and command logs.
@@ -80,7 +80,7 @@ apps/
 ### Prerequisites
 
 - Rust stable (`rustup`, minimum 1.88)
-- Node.js 22+ with pnpm (`corepack enable pnpm`)
+- Node.js 22+ and pnpm 12.21.0 (the version specified in `package.json`)
 - Git
 - [Tauri 2 platform prerequisites](https://tauri.app/start/prerequisites/)
 
@@ -113,6 +113,24 @@ cargo test --workspace
 ```
 
 Rust integration tests spin up disposable repositories in temporary directories and never modify user repositories.
+
+The Windows native smoke test launches the built executable against a disposable
+repository and exercises the application through WebView2:
+
+```bash
+pnpm --filter @rustgit/desktop test:native
+```
+
+This command expects `target/debug/rustgit.exe` to have been built first. See
+the script's usage comment to test another executable. Linux and macOS builds
+are checked by CI, but do not have equivalent native smoke coverage.
+
+## Documentation
+
+The [IPC contract](docs/integration/API_CONTRACT.md) and
+[event contract](docs/integration/EVENT_CONTRACT.md) describe backend interfaces.
+The dated audit, progress, acceptance and planning documents retain historical
+findings; their status tables are not a current release certification.
 
 ## License
 

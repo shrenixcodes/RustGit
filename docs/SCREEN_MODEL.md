@@ -1,3 +1,5 @@
+> **Historical record:** This document captures an earlier project state. Statuses, branches, findings, and verification results below have not been revalidated for the current release. See the [README](../README.md) and current source for present behavior.
+
 # RustGit screen model: the thread
 
 **Status: approved 2026-11-16 and implemented** on `worktree-ui-orbital`

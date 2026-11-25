@@ -1,5 +1,8 @@
 # RustGit IPC API contract
 
+The command implementations and `apps/desktop/src/services/ipc.ts` are the
+authoritative source when older contract entries or change-log notes differ.
+
 Owner: core engineering session (backend). Consumers: UI session (frontend).
 
 Every command is a Tauri command invoked with `invoke(name, args)`. The
@@ -15,7 +18,7 @@ Contract status values: **IMPLEMENTED** (backend done and tested),
 
 - **Errors.** Every failure rejects with `CommandError`
   `{ kind: ErrorKind, message: string }`. `message` is human-readable, already
-  redacted, and includes Git's stderr verbatim when Git failed. Never parse
+  redacted, and may include Git's stderr when Git failed. Never parse
   `message`; branch on `kind`.
 - **Repository identity.** Repository-scoped commands take `id` (or
   `repositoryId`) from `RepositoryEntry.id`, never a path. The backend
@@ -30,13 +33,11 @@ Contract status values: **IMPLEMENTED** (backend done and tested),
   Different repositories never block each other.
 - **Threads.** All Git and SQLite work runs on a blocking thread pool; a slow
   command never blocks the UI thread or other commands.
-- **Cancellation.** No command is cancellable yet. All current commands are
-  short-lived local operations. Long operations (clone, fetch, pull, push)
-  will get an operation id and a `cancel_operation` command; see
-  `EVENT_CONTRACT.md`.
-- **Mutations return fresh state.** Mutating repository commands return the
-  `StatusSnapshot` read *after* the mutation under the same lock, so the UI
-  can replace its cached status without another round trip.
+- **Cancellation.** Long-running clone, fetch, pull and push operations return
+  an operation id. `cancel_operation` requests cancellation when the operation
+  is still cancellable; see `EVENT_CONTRACT.md`.
+- **Mutation results.** Commands return their documented result type. Commands
+  that return a `StatusSnapshot` read it after the mutation under the lock.
 
 ### ErrorKind
 

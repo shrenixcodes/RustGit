@@ -67,6 +67,7 @@ export function useStashDetails(repositoryId: number, oid: string | null): UseQu
     enabled: oid !== null,
     // A stash's content never changes; its oid identifies it.
     staleTime: Infinity,
+    gcTime: 90_000,
   });
 }
 
@@ -81,6 +82,7 @@ export function useStashFileDiff(
     queryFn: () => ipc.stashFileDiff(repositoryId, oid, path ?? "", contextLines),
     enabled: path !== null,
     staleTime: Infinity,
+    gcTime: 60_000,
   });
 }
 

@@ -25,7 +25,7 @@ const SEARCH_DEBOUNCE_MS = 300;
 /** Loading pages to reveal a commit stops after this many commits. */
 export const REVEAL_LIMIT = 20_000;
 /** On the map, history is read further ahead so forks and merges have context. */
-const MAP_PREFETCH = 3_000;
+const MAP_PREFETCH = 900;
 const LANE = laneWidthFor(0);
 /** Minimum left inset where row and fold content begin (in pixels). */
 const CONTENT_LEFT = 72;
@@ -135,9 +135,13 @@ function Thread({ repositoryId, status }: { repositoryId: number; status: Status
   }, [mapModel, history, searching]);
 
   const indexById: Map<NodeId, number> = useMemo(() => new Map(rows.map((row, index) => [row.id, index])), [rows]);
+  let mapMaxLanes = 1;
+  if (mapModel !== null) {
+    for (const node of mapModel) mapMaxLanes = Math.max(mapMaxLanes, node.graph?.width ?? 1);
+  }
   const graphLanes: number = Math.min(
     MAX_DRAWN_LANES,
-    Math.max(1, mapModel !== null ? Math.max(1, ...mapModel.map((n) => n.graph?.width ?? 1)) : history.maxLanes),
+    Math.max(1, mapModel !== null ? mapMaxLanes : history.maxLanes),
   );
   const graphWidth: number = searching ? 0 : graphCanvasWidth(graphLanes, LANE);
   const graphColWidth: number = searching ? 0 : Math.max(GRAPH_COL_MIN, graphWidth);

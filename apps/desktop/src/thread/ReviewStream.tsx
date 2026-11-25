@@ -109,25 +109,37 @@ export function ReviewStream({
   const container = useRef<HTMLDivElement>(null);
 
   const files: FileStatus[] = useMemo(() => status.files.filter((file) => matchesFilter(file, filter)), [status.files, filter]);
-  const expandedFiles: FileStatus[] = files.filter((file) => expanded.has(file.path));
-  const requests: DiffRequest[] = expandedFiles.map((file) => ({ path: file.path, originalPath: file.originalPath, sides: sidesOf(file) }));
+  const requests: DiffRequest[] = useMemo(
+    () =>
+      files
+        .filter((file) => expanded.has(file.path))
+        .map((file) => ({ path: file.path, originalPath: file.originalPath, sides: sidesOf(file) })),
+    [files, expanded],
+  );
   const results = useFileDiffs(repositoryId, requests, ignoreWhitespace);
+  const resultsDataKey: string = results.map((r) => r.dataUpdatedAt).join(",");
+  const resultsStatusKey: string = results.map((r) => r.status).join(",");
 
   // Map results back to files (requests are flattened per side, in order).
-  const diffsByPath: Map<string, { diffs: FileDiff[]; loading: boolean; error: string | null }> = new Map();
-  let cursor = 0;
-  for (const request of requests) {
-    const diffs: FileDiff[] = [];
-    let loading = false;
-    let error: string | null = null;
-    for (let i = 0; i < request.sides.length; i += 1) {
-      const result = results[cursor++];
-      if (result?.data !== undefined) diffs.push(result.data);
-      else if (result?.isError === true) error = result.error.message;
-      else loading = true;
+  const diffsByPath: Map<string, { diffs: FileDiff[]; loading: boolean; error: string | null }> = useMemo(() => {
+    const map: Map<string, { diffs: FileDiff[]; loading: boolean; error: string | null }> = new Map();
+    let cursor = 0;
+    for (const request of requests) {
+      const diffs: FileDiff[] = [];
+      let loading = false;
+      let error: string | null = null;
+      for (let i = 0; i < request.sides.length; i += 1) {
+        const result = results[cursor++];
+        if (result?.data !== undefined) diffs.push(result.data);
+        else if (result?.isError === true) error = result.error.message;
+        else loading = true;
+      }
+      map.set(request.path, { diffs, loading, error });
     }
-    diffsByPath.set(request.path, { diffs, loading, error });
-  }
+    return map;
+    // results array identity changes each render; keys capture actual query updates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requests, resultsDataKey, resultsStatusKey]);
 
   const rows: StreamRow[] = useMemo(() => {
     const out: StreamRow[] = [];
@@ -157,12 +169,15 @@ export function ReviewStream({
       });
     }
     return out;
-  }, [files, expanded, layout, results.map((r) => r.dataUpdatedAt).join(","), results.map((r) => r.status).join(",")]);
+  }, [files, expanded, layout, diffsByPath]);
 
   // The canvas is as wide as the longest shown line, so long lines scroll
   // horizontally with their row background and file rows stay in view.
-  let longest = 0;
-  for (const entry of diffsByPath.values()) longest = Math.max(longest, longestLine(entry.diffs, 4));
+  const longest: number = useMemo(() => {
+    let max = 0;
+    for (const entry of diffsByPath.values()) max = Math.max(max, longestLine(entry.diffs, 4));
+    return max;
+  }, [diffsByPath]);
   const unifiedGutter: number = inset + UNIFIED_COLS_WIDTH;
   const canvasWidth: string =
     layout === "unified" ? `calc(${unifiedGutter}px + ${longest}ch)` : `calc(${inset + DIFF_INDENT}px + 2 * (${SPLIT_GUTTER}px + ${longest}ch))`;

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Check, ChevronRight, Copy, GitCompare, GitFork, RotateCcw } from "lucide-react";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { Button } from "../components/Button";
@@ -295,13 +295,28 @@ function InlineDiff({ repositoryId, oid, file }: { repositoryId: number; oid: st
   return <ReadOnlyDiff diff={useCommitFileDiff(repositoryId, oid, file.path, file.originalPath)} />;
 }
 
-/** A read-only unified diff, capped at INLINE_LINE_LIMIT lines. */
+const INITIAL_INLINE_LINES = 250;
+const INLINE_LINE_STEP = 500;
+
+/** A read-only unified diff, revealed progressively and capped at INLINE_LINE_LIMIT lines. */
 export function ReadOnlyDiff({ diff }: { diff: UseQueryResult<FileDiff, IpcError> }) {
+  const data: FileDiff | undefined = diff.data;
+  const rows: CanvasRow[] = useMemo(
+    () => (data === undefined ? [] : buildCanvasRows([{ ...data, side: "unstaged" }], "unified").slice(1)),
+    [data],
+  );
+  const [visibleLimit, setVisibleLimit] = useState<number>(INITIAL_INLINE_LINES);
+  useEffect(() => {
+    setVisibleLimit(INITIAL_INLINE_LINES);
+  }, [data]);
+
   if (diff.isPending) return <p className="py-1 pl-5 text-xs text-fg-muted">Reading the diff…</p>;
   if (diff.isError) return <ErrorNotice title="Could not read the diff" error={diff.error} />;
-  const data: FileDiff = diff.data;
-  const rows: CanvasRow[] = buildCanvasRows([{ ...data, side: "unstaged" }], "unified").slice(1);
-  const shown: CanvasRow[] = rows.slice(0, INLINE_LINE_LIMIT);
+
+  const maxInline: number = Math.min(rows.length, INLINE_LINE_LIMIT);
+  const shown: CanvasRow[] = rows.slice(0, Math.min(visibleLimit, maxInline));
+  const moreInline: number = maxInline - shown.length;
+  const cappedOverflow: number = rows.length - maxInline;
   return (
     <div className="rg-canvas my-1 overflow-x-auto font-mono text-xs" style={{ lineHeight: `${DIFF_ROW}px` }}>
       {shown.map((row, index) => {
@@ -312,9 +327,29 @@ export function ReadOnlyDiff({ diff }: { diff: UseQueryResult<FileDiff, IpcError
         if (row.kind === "line") return <UnifiedLine key={index} style={style} indent={0} refLine={row} selected={false} selectable={false} />;
         return null;
       })}
-      {rows.length > shown.length && (
+      {moreInline > 0 && (
+        <div className="flex flex-wrap items-center gap-2 px-3 py-1.5 font-sans text-xs text-fg-muted">
+          <button
+            type="button"
+            onClick={() => setVisibleLimit((current) => Math.min(maxInline, current + INLINE_LINE_STEP))}
+            className="rounded border border-border/80 bg-canvas/70 px-2 py-0.5 text-fg hover:border-accent hover:text-accent transition-colors cursor-pointer"
+          >
+            Show {Math.min(INLINE_LINE_STEP, moreInline)} more lines ({moreInline} remaining)
+          </button>
+          {moreInline > INLINE_LINE_STEP && (
+            <button
+              type="button"
+              onClick={() => setVisibleLimit(maxInline)}
+              className="rounded border border-border/80 bg-canvas/70 px-2 py-0.5 text-fg-secondary hover:border-accent hover:text-accent transition-colors cursor-pointer"
+            >
+              Show all {maxInline} inline
+            </button>
+          )}
+        </div>
+      )}
+      {moreInline === 0 && cappedOverflow > 0 && (
         <p className="px-3 py-1 font-sans text-xs text-fg-muted">
-          {rows.length - shown.length} more lines not shown inline.
+          {cappedOverflow} more lines not shown inline.
         </p>
       )}
     </div>

@@ -10,19 +10,34 @@ const UNITS: ReadonlyArray<[Intl.RelativeTimeFormatUnit, number]> = [
 const relative: Intl.RelativeTimeFormat = new Intl.RelativeTimeFormat(undefined, { numeric: "auto", style: "short" });
 const absolute: Intl.DateTimeFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
 
+const MAX_TIME_CACHE = 512;
+const relativeLabelCache: Map<string, string> = new Map();
+const absoluteLabelCache: Map<number, string> = new Map();
+
+function remember<K>(cache: Map<K, string>, key: K, value: string): string {
+  if (cache.size >= MAX_TIME_CACHE) {
+    const oldest = cache.keys().next().value;
+    if (oldest !== undefined) cache.delete(oldest);
+  }
+  cache.set(key, value);
+  return value;
+}
+
 /** "3 days ago" style time for a Unix-seconds timestamp. */
 export function formatRelative(seconds: number, nowMs: number = Date.now()): string {
   const delta: number = seconds - Math.round(nowMs / 1000);
   for (const [unit, size] of UNITS) {
     if (Math.abs(delta) >= size) {
-      return relative.format(Math.round(delta / size), unit);
+      const count: number = Math.round(delta / size);
+      const key = `${unit}:${count}`;
+      return relativeLabelCache.get(key) ?? remember(relativeLabelCache, key, relative.format(count, unit));
     }
   }
   return "just now";
 }
 
 export function formatAbsolute(seconds: number): string {
-  return absolute.format(seconds * 1000);
+  return absoluteLabelCache.get(seconds) ?? remember(absoluteLabelCache, seconds, absolute.format(seconds * 1000));
 }
 
 /** Start of the local day for a `yyyy-mm-dd` date input value, in Unix seconds. */
